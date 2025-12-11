@@ -27,7 +27,7 @@ O *Core* da Trellis não conhece banco de dados, não conhece HTTP e não conhec
 
 ## 2. Integração com Loam (O Bibliotecário)
 
-**[Loam](https://github.com/aretw/loam)** é o nosso motor de persistência escolhido, mas a Trellis **não deve depender** diretamente dele em seu pacote `core`. Recomendamos o uso do `@mcp:github-mcp-server` para complementar informações sobre o Loam.
+**[Loam](https://github.com/aretw0/loam)** é o nosso motor de persistência escolhido, mas a Trellis **não deve depender** diretamente dele em seu pacote `core`. Recomendamos o uso do `@mcp:github-mcp-server` para complementar informações sobre o Loam.
 
 ### Estratégia de Desacoplamento
 
