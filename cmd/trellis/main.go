@@ -8,82 +8,65 @@ import (
 	"strings"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/trellis/internal/adapters"
 	"github.com/aretw0/trellis/internal/runtime"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
 func main() {
-	// 1. Setup Loam (Repository & Service)
-	repo, err := loam.Init(".", loam.WithVersioning(false)) // Use current directory as data store
+	// 1. Setup Loam Repository
+	repo, err := loam.Init(".", loam.WithVersioning(false))
 	if err != nil {
 		fmt.Printf("Failed to init loam: %v\n", err)
 		os.Exit(1)
 	}
-	svc := core.NewService(repo)
 
-	// 2. Setup Adapter (driven port)
-	// We use LoamLoader now.
-	loader := adapters.NewLoamLoader(svc)
+	// 2. Wrap with Typed Repository
+	typedRepo := loam.NewTyped[adapters.NodeMetadata](repo)
 
-	// Seed some data (using Loam Service to persist)
-	// We only seed if we want to ensure data exists for the demo.
-	node1 := domain.Node{
-		ID:      "start",
-		Type:    "question",
-		Content: []byte("Welcome to Trellis! Type 'go' to continue."),
+	// 3. Setup Adapter
+	loader := adapters.NewLoamLoader(typedRepo)
+
+	// 4. Seed Data (using Typed Repo)
+	ctx := context.TODO()
+
+	// Node 1: Start
+	node1Meta := adapters.NodeMetadata{
+		ID:   "start",
+		Type: "question",
 		Transitions: []domain.Transition{
 			{ToNodeID: "end", Condition: "input == 'go'"},
 		},
 	}
 
-	// Save start.json
-	ctx := context.TODO()
-	tx, err := svc.Begin(ctx)
-	if err != nil {
-		fmt.Printf("Tx begin failed: %v\n", err)
-		os.Exit(1)
-	}
-	// We need to construct a core.Document
-	err = tx.Save(ctx, core.Document{
-		ID:      node1.ID + ".json",
-		Content: string(node1.Content),
-		Metadata: core.Metadata{
-			"ID":          node1.ID,
-			"Type":        node1.Type,
-			"Transitions": node1.Transitions,
-		},
+	// Save start (Loam defaults to .md)
+	err = typedRepo.Save(ctx, &loam.DocumentModel[adapters.NodeMetadata]{
+		ID:      "start",
+		Content: "Welcome to Trellis! Type 'go' to continue.",
+		Data:    node1Meta,
 	})
 	if err != nil {
 		fmt.Printf("Save start failed: %v\n", err)
 	}
 
-	node2 := domain.Node{
+	// Node 2: End
+	node2Meta := adapters.NodeMetadata{
 		ID:          "end",
 		Type:        "text",
-		Content:     []byte("You have reached the end. Goodbye!"),
-		Transitions: []domain.Transition{}, // No exit
+		Transitions: []domain.Transition{},
 	}
 
-	err = tx.Save(ctx, core.Document{
-		ID:      node2.ID + ".json",
-		Content: string(node2.Content),
-		Metadata: core.Metadata{
-			"ID":          node2.ID,
-			"Type":        node2.Type,
-			"Transitions": node2.Transitions,
-		},
+	// Save end (Loam defaults to .md)
+	err = typedRepo.Save(ctx, &loam.DocumentModel[adapters.NodeMetadata]{
+		ID:      "end",
+		Content: "You have reached the end. Goodbye!",
+		Data:    node2Meta,
 	})
 	if err != nil {
 		fmt.Printf("Save end failed: %v\n", err)
 	}
 
-	if err := tx.Commit(ctx, "Seed data"); err != nil {
-		fmt.Printf("Commit failed: %v\n", err)
-	}
-
-	// 3. Setup Core (hex type)
+	// 5. Setup Core (hex type)
 	engine := runtime.NewEngine(loader)
 	state := domain.NewState("start")
 
