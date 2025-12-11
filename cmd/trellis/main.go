@@ -47,51 +47,38 @@ func main() {
 
 	// Simple Event Loop
 	for {
-		// Run Step with empty input first to render current node?
-		// Or we loop: Render -> Input -> Step.
-		// But Step does Render implicitly via Actions.
-		// Let's call Step with empty input to 'Enter' the node if we just arrived?
-		// Our Step logic checks "if input matches condition".
-		// Use a loop that prompts.
-
-		// This loop is a loose "Driver" implementation.
-
-		// Execute Step (Processing input from previous iteration, or empty for first run)
-		// ... Wait, Step function in my implementation takes input and decides transition.
-		// If we are at "start", we need to SHOW "start" content.
-		// If I pass empty input, "start" Node logic runs.
-		// It says "question", prints "Welcome...", sees no input match, returns same state.
-
-		// Logic:
-		// 1. Run Step(state, input).
-		// 2. Handle Actions (Print).
-		// 3. If State changed, loop with empty input?
-		//    If State didn't change, READ input, then loop with input.
-
-		// Refined Loop:
 		var input string
-		// check if this is the first run
 
+		// Run Step
 		actions, nextState, err := engine.Step(state, input)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			break
 		}
 
-		// Dispatch Actions (Driver Port Logic)
+		// Dispatch Actions
 		for _, act := range actions {
 			if act.Type == "CLI_PRINT" {
 				fmt.Println(act.Payload)
 			}
 		}
 
-		// Check if we need input
+		// Exit condition for demo (Check AFTER render)
+		if nextState.CurrentNodeID == "end" {
+			break
+		}
+
+		// If state didn't change, we need input to proceed (or we are stuck)
 		if nextState.CurrentNodeID == state.CurrentNodeID {
-			// We didn't move. Means we are waiting for input or stuck.
-			// Read input
 			fmt.Print("> ")
 			text, _ := reader.ReadString('\n')
 			input = strings.TrimSpace(text)
+
+			// Check for explicit exit command
+			if input == "exit" || input == "quit" {
+				fmt.Println("Bye!")
+				break
+			}
 
 			// Run Step again with input
 			actions, nextState, err = engine.Step(state, input)
@@ -99,21 +86,19 @@ func main() {
 				fmt.Printf("Error: %v\n", err)
 				break
 			}
-		}
 
-		// Update state
-		state = nextState
-		input = "" // Clear input for next step "entry"
+			// Dispatch any actions from the input-triggered step
+			for _, act := range actions {
+				if act.Type == "CLI_PRINT" {
+					fmt.Println(act.Payload)
+				}
+			}
 
-		// Exit condition for demo
-		if state.CurrentNodeID == "end" {
-			// One last print?
-			// The loop will run one more time for "end", print "Goodbye", then wait for input.
-			// If "end" has no transitions, we start loop, Step prints "Goodbye", actions handled.
-			// nextState == state. We wait for input.
-			// User types anything. Step runs again. No transitions match. State same.
-			// Loop continues.
-			// It's fine for a REPL.
+			// Update state after input processing
+			state = nextState
+		} else {
+			// We moved to a new state automatically (e.g. forced transition)
+			state = nextState
 		}
 	}
 }

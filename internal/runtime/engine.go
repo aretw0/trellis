@@ -45,7 +45,8 @@ func (e *Engine) Step(currentState *domain.State, input string) ([]domain.Action
 	actions := []domain.ActionRequest{}
 
 	// If it's a text node, we probably want to display it.
-	if node.Type == "text" || node.Type == "question" {
+	// FIX: Only display content if we are "visiting" (input is empty), not "submitting".
+	if (node.Type == "text" || node.Type == "question") && input == "" {
 		// Interpolation could happen here.
 		text := string(node.Content)
 		actions = append(actions, domain.ActionRequest{
@@ -68,7 +69,8 @@ func (e *Engine) Step(currentState *domain.State, input string) ([]domain.Action
 			parts := strings.Split(t.Condition, "==")
 			if len(parts) == 2 {
 				expected := strings.Trim(strings.TrimSpace(parts[1]), "'\"")
-				if strings.TrimSpace(input) == expected {
+				// Case-insensitive matching
+				if strings.EqualFold(strings.TrimSpace(input), expected) {
 					nextNodeID = t.ToNodeID
 					break
 				}
