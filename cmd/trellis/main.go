@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -14,57 +13,43 @@ import (
 )
 
 func main() {
+	// 0. Parse Args
+	repoPath := "."
+	if len(os.Args) > 1 {
+		// Simple arg parsing. Could use flags but user asked for "trellis.exe --dir" or just arg.
+		// Let's support just the arg for simplicity as per "trellis.exe ./data-folder" in plan.
+		// If user passes flags, we might need more logic.
+		// For now, treat first non-flag arg as path, or just first arg.
+		// Plan said: "Accept a --dir flag (or argument)".
+		// Let's try to match user expectation: "no inicializa-lo com versionamento".
+		// Loam Init takes path.
+		// Let's look for --dir explicitly or just check args.
+
+		args := os.Args[1:]
+		if len(args) > 0 {
+			if args[0] == "--dir" && len(args) > 1 {
+				repoPath = args[1]
+			} else if !strings.HasPrefix(args[0], "-") {
+				repoPath = args[0]
+			}
+		}
+	}
+
 	// 1. Setup Loam Repository
-	repo, err := loam.Init(".", loam.WithVersioning(false))
+	// Note: We use WithVersioning(false) to treat it as a player/viewer without side-effects.
+	repo, err := loam.Init(repoPath, loam.WithVersioning(false))
 	if err != nil {
 		fmt.Printf("Failed to init loam: %v\n", err)
 		os.Exit(1)
 	}
 
-	// 2. Wrap with Typed Repository
+	// 2. Wrap with Typed Repository (Read-Only usage essentially)
 	typedRepo := loam.NewTyped[adapters.NodeMetadata](repo)
 
 	// 3. Setup Adapter
 	loader := adapters.NewLoamLoader(typedRepo)
 
-	// 4. Seed Data (using Typed Repo)
-	ctx := context.TODO()
-
-	// Node 1: Start
-	node1Meta := adapters.NodeMetadata{
-		ID:   "start",
-		Type: "question",
-		Transitions: []domain.Transition{
-			{ToNodeID: "end", Condition: "input == 'go'"},
-		},
-	}
-
-	// Save start (Loam defaults to .md)
-	err = typedRepo.Save(ctx, &loam.DocumentModel[adapters.NodeMetadata]{
-		ID:      "start",
-		Content: "Welcome to Trellis! Type 'go' to continue.",
-		Data:    node1Meta,
-	})
-	if err != nil {
-		fmt.Printf("Save start failed: %v\n", err)
-	}
-
-	// Node 2: End
-	node2Meta := adapters.NodeMetadata{
-		ID:          "end",
-		Type:        "text",
-		Transitions: []domain.Transition{},
-	}
-
-	// Save end (Loam defaults to .md)
-	err = typedRepo.Save(ctx, &loam.DocumentModel[adapters.NodeMetadata]{
-		ID:      "end",
-		Content: "You have reached the end. Goodbye!",
-		Data:    node2Meta,
-	})
-	if err != nil {
-		fmt.Printf("Save end failed: %v\n", err)
-	}
+	// 4. Seeding Removed (Using Golden Path or existing data)
 
 	// 5. Setup Core (hex type)
 	engine := runtime.NewEngine(loader)
@@ -88,7 +73,9 @@ func main() {
 		// Dispatch Actions
 		for _, act := range actions {
 			if act.Type == "CLI_PRINT" {
-				fmt.Println(act.Payload)
+				if msg, ok := act.Payload.(string); ok {
+					fmt.Println(strings.TrimSpace(msg))
+				}
 			}
 		}
 
@@ -119,7 +106,9 @@ func main() {
 			// Dispatch any actions from the input-triggered step
 			for _, act := range actions {
 				if act.Type == "CLI_PRINT" {
-					fmt.Println(act.Payload)
+					if msg, ok := act.Payload.(string); ok {
+						fmt.Println(strings.TrimSpace(msg))
+					}
 				}
 			}
 
