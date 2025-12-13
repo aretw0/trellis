@@ -79,6 +79,11 @@ func (e *Engine) Step(currentState *domain.State, input string) ([]domain.Action
 	}
 
 	nextState := *currentState // Copy
+
+	// Check for Sink State
+	if len(node.Transitions) == 0 {
+		nextState.Terminated = true
+	}
 	if nextNodeID != "" {
 		nextState.CurrentNodeID = nextNodeID
 		nextState.History = append(nextState.History, nextNodeID)

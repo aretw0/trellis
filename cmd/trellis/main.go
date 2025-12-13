@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/aretw0/loam"
@@ -36,15 +37,16 @@ func main() {
 	}
 
 	// 1. Setup Loam Repository
+	absPath, _ := filepath.Abs(repoPath)
 	// Note: We use WithVersioning(false) to treat it as a player/viewer without side-effects.
-	repo, err := loam.Init(repoPath, loam.WithVersioning(false))
+	repo, err := loam.Init(absPath, loam.WithVersioning(false))
 	if err != nil {
 		fmt.Printf("Failed to init loam: %v\n", err)
 		os.Exit(1)
 	}
 
 	// 2. Wrap with Typed Repository (Read-Only usage essentially)
-	typedRepo := loam.NewTyped[adapters.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
 
 	// 3. Setup Adapter
 	loader := adapters.NewLoamLoader(typedRepo)
@@ -54,6 +56,7 @@ func main() {
 	// 5. Setup Core (hex type)
 	engine := runtime.NewEngine(loader)
 	state := domain.NewState("start")
+	lastRenderedID := "" // Track to avoid re-printing static content
 
 	reader := bufio.NewReader(os.Stdin)
 
@@ -70,17 +73,21 @@ func main() {
 			break
 		}
 
-		// Dispatch Actions
-		for _, act := range actions {
-			if act.Type == "CLI_PRINT" {
-				if msg, ok := act.Payload.(string); ok {
-					fmt.Println(strings.TrimSpace(msg))
+		// Dispatch Actions (Only if we haven't rendered this node yet, or it's new feedback)
+		// For the initial "Render" step (input=""), we suppress output if we are still on the same node.
+		if state.CurrentNodeID != lastRenderedID {
+			for _, act := range actions {
+				if act.Type == "CLI_PRINT" {
+					if msg, ok := act.Payload.(string); ok {
+						fmt.Println(strings.TrimSpace(msg))
+					}
 				}
 			}
+			lastRenderedID = state.CurrentNodeID
 		}
 
-		// Exit condition for demo (Check AFTER render)
-		if nextState.CurrentNodeID == "end" {
+		// Generic Exit condition (Sink Node)
+		if nextState.Terminated {
 			break
 		}
 

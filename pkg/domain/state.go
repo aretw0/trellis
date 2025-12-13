@@ -10,6 +10,9 @@ type State struct {
 
 	// History could track the path taken (optional for now, but good for debugging)
 	History []string
+
+	// Terminated indicates if the execution has reached a sink state (no transitions).
+	Terminated bool
 }
 
 // NewState creates a clean state starting at a specific node.
