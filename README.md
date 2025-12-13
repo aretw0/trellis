@@ -17,11 +17,8 @@ go mod tidy
 ### Rodando o Golden Path (Demo)
 
 ```bash
-# Geração dos dados de teste
-go run ./cmd/gen-trail ./examples/golden-path
-
-# Execução do Engine
-go run ./cmd/trellis ./examples/golden-path
+# Execução do Engine (Demo)
+go run ./cmd/trellis ./examples/tour
 ```
 
 ## Documentação
