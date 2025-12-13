@@ -30,7 +30,7 @@ Foco: Validação de grafo e experiência visual.
 
 - [ ] **Compiler Validation**: O Compiler deve validar links mortos (`to_node_id` que não existe).
 - [ ] **Renderização Rica no CLI**: Usar uma lib de TUI (ex: `charmbracelet/glamour`) para renderizar o Markdown bonito no terminal.
-- [ ] **Variáveis e Lógica**: Suporte a interpolação simples (ex: `Olá {{ nome }}`) e condicionais mais ricas.
+- [ ] **Delegated Logic Integration**: Suporte a condicionais via callbacks ("Flags de Recurso") e interpolação simples (`{{ variavel }}`). **Constraint**: Sem expressões complexas no Markdown.
 - [ ] **Public Facade**: Refatorar `pkg/trellis` para expor API limpa e usar nos testes (Dogfooding), com cuidado para não complicar a importação simples e.g. `import "github.com/aretw0/trellis"`.
 
 ### 🔮 Backlog / Future

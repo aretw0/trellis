@@ -44,3 +44,22 @@ O Compiler do Trellis valida estaticamente:
 
 - Integridade do JSON/Markdown.
 - Links mortos (em breve).
+
+## 4. Princípios de Design (Constraints)
+
+Para evitar a "Complexidade Oculta", seguimos estas restrições:
+
+### Logic-Data Decoupling (Desacoplamento Lógico)
+
+A lógica complexa **nunca** deve residir no grafo (Markdown).
+
+- **Errado**: `condition: user.age > 18 && user.status == 'active'` (Isso exige um parser complexo e contexto).
+- **Correto**: `condition: is_adult_active` (O Host resolve isso e retorna bool). O Trellis apenas pergunta.
+
+### Strict Mode Compiler
+
+O compilador deve ser implacável.
+
+- Variáveis não declaradas resultam em erro de compilação.
+- Links quebrados resultam em erro de compilação.
+- O objetivo é **Confiança Total**: Se compilou, não existem "Dead Ends" lógicos causados por typos.

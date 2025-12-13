@@ -18,6 +18,23 @@ Trellis não é um framework monolítico; é um **filtro**.
 - **Processamento**: Determinação determinística do próximo passo.
 - **Output**: Novo Estado + Ações Solicitadas.
 
-### Visão
+### Estratégia: O que o Trellis NÃO É
 
-Ser o motor de decisão padrão para sistemas que precisam navegar por grafos de texto complexos sem se acoplar à infraestrutura de entrega (WhatsApp, Web, CLI).
+Para manter a sanidade do projeto, definimos limites claros:
+
+1. **Não é uma Linguagem de Programação**: Não haverá loops complexos, definição de funções ou matemática arbitrária no Markdown.
+2. **Não é um Template Engine Genérico**: Evitaremos recriar o Jinja2/Liquid. A lógica deve ser delegada, não embutida.
+3. **Não é um Banco de Dados**: O Trellis consome estado, mas não gerencia persistência complexa (isso é trabalho do Loam ou do Host).
+
+### Visão de Futuro: The Toolmaker's Tool
+
+Para responder onde o Trellis quer chegar: **Ele deve ser a ferramenta que os criadores de ferramentas usam.**
+
+Seja para criar um CLI interativo, um bot de WhatsApp, ou um wizard de instalação, o problema é sempre o mesmo: *Gerenciar o fluxo de conversa*. O Trellis resolve isso de forma agnóstica.
+
+**O Trellis é o Guarda de Trânsito, não o Motor do Carro.**
+
+- Ele diz *para onde ir* (Próximo Nó).
+- Ele não *dirige o carro* (não faz chamadas de API, não processa pagamentos).
+
+Isso permite que ele seja usado tanto em um script bash simples quanto em um backend Go complexo para Telegram.
