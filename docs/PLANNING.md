@@ -28,7 +28,7 @@ Foco: Integridade dos dados, testes e melhorias na CLI.
 
 Foco: Ferramentas para quem *constrói* os fluxos (Toolmakers). Garantir confiança e testabilidade.
 
-- [ ] **Public Facade (Root Package)**: Refatorar para expor API no root `github.com/aretw0/trellis`. Evitar `pkg/trellis` para não gerar stutter (`trellis.trellis`).
+- [x] **Public Facade (Root Package)**: Refatorar para expor API no root `github.com/aretw0/trellis`. Evitar `pkg/trellis` para não gerar stutter (`trellis.trellis`).
 - [ ] **Compiler Validation**: O Compiler deve validar links mortos e variáveis não declaradas. Erro na compilação, não no runtime.
 - [ ] **Delegated Logic Integration**: Suporte a condicionais (`condition: is_vip`) e interpolação simples. A lógica real reside em callbacks no código Go (Host), não no Markdown.
 - [ ] **Introspection (Graphviz/Mermaid)**: Comando `trellis graph` para exportar a visualização do fluxo. "Documentation as Code".
