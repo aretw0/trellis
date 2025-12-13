@@ -1,0 +1,11 @@
+{
+  "id": "choice.json",
+  "type": "text",
+  "content": "This is a JSON node.",
+  "transitions": [
+    {
+      "to_node_id": "end",
+      "condition": ""
+    }
+  ]
+}
