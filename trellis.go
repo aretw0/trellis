@@ -71,3 +71,8 @@ func (e *Engine) Start() *domain.State {
 func (e *Engine) Step(ctx context.Context, state *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
 	return e.runtime.Step(ctx, state, input)
 }
+
+// Inspect returns the full graph definition for visualization or introspection tools.
+func (e *Engine) Inspect() ([]domain.Node, error) {
+	return e.runtime.Inspect()
+}

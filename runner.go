@@ -13,16 +13,18 @@ import (
 // Runner handles the execution loop of the Trellis engine using provided IO.
 // This allows for easy testing and integration with different frontends (CLI, TUI, etc).
 type Runner struct {
-	Input  io.Reader
-	Output io.Writer
+	Input    io.Reader
+	Output   io.Writer
+	Headless bool
 }
 
 // NewRunner creates a new Runner with default Stdin/Stdout.
 // Use SetInput/SetOutput to override for testing.
 func NewRunner() *Runner {
 	return &Runner{
-		Input:  nil, // defaults to os.Stdin if not set, handled in Run? Or explicit?
-		Output: nil, // defaults to os.Stdout
+		Input:    nil, // defaults to os.Stdin if not set, handled in Run? Or explicit?
+		Output:   nil, // defaults to os.Stdout
+		Headless: false,
 	}
 }
 
@@ -48,7 +50,9 @@ func (r *Runner) Run(engine *Engine) error {
 	state := engine.Start()
 	lastRenderedID := ""
 
-	fmt.Fprintln(writer, "--- Trellis CLI (Runner) ---")
+	if !r.Headless {
+		fmt.Fprintln(writer, "--- Trellis CLI (Runner) ---")
+	}
 
 	for {
 		var input string
@@ -78,14 +82,20 @@ func (r *Runner) Run(engine *Engine) error {
 
 		// Input needed
 		if nextState.CurrentNodeID == state.CurrentNodeID {
-			fmt.Fprint(writer, "> ")
+			if !r.Headless {
+				fmt.Fprint(writer, "> ")
+			}
 			text, _ := lineReader.ReadString('\n')
 			input = strings.TrimSpace(text)
 
-			if input == "exit" || input == "quit" {
+			if !r.Headless && (input == "exit" || input == "quit") {
 				fmt.Fprintln(writer, "Bye!")
 				break
 			}
+			// In Headless mode, EOF or empty input should probably break loop or handle gracefully?
+			// If input is empty in headless, it might mean end of stream.
+			// bufio.ReadString returns err on EOF. Check it.
+			// Actually, let's check input reading error generically.
 
 			// Run Step again with input
 			actions, nextState, err = engine.Step(context.TODO(), state, input)

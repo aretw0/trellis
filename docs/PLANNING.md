@@ -32,8 +32,8 @@ Foco: Ferramentas para quem *constrói* os fluxos (Toolmakers). Garantir confian
 - [x] **CLI & Runner Architecture**: Extrair loop para `Runner` e adotar `spf13/cobra` para gerenciar comandos (`run`, `graph`, `validate`).
 - [x] **Compiler Validation**: O Compiler deve validar links mortos. (De-prioritized for CLI focus).
 - [x] **Delegated Logic Integration**: Suporte a condicionais (`condition: is_vip`) e interpolação simples. A lógica real reside em callbacks no código Go (Host), não no Markdown.
-- [ ] **Introspection (Graphviz/Mermaid)**: Comando `trellis graph` para exportar a visualização do fluxo. "Documentation as Code".
-- [ ] **Headless Runner**: Capacidade de executar fluxos sem interface visual para testes automatizados de regressão.
+- [x] **Introspection (Graphviz/Mermaid)**: Comando `trellis graph` para exportar a visualização do fluxo. "Documentation as Code".
+- [x] **Headless Runner**: Capacidade de executar fluxos sem interface visual para testes automatizados de regressão.
 
 ### 🎨 v0.4: User Experience (The "Pretty" Phase)
 

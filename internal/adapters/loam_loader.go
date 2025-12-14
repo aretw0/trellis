@@ -85,3 +85,24 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 
 	return bytes, nil
 }
+
+// ListNodes lists all nodes in the repository.
+func (l *LoamLoader) ListNodes() ([]string, error) {
+	ctx := context.Background()
+	docs, err := l.Repo.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loam list failed: %w", err)
+	}
+
+	ids := make([]string, len(docs))
+	for i, doc := range docs {
+		// Use the ID from metadata if available, otherwise filename ID
+		// But Repo.List returns []Document[T].
+		if doc.Data.ID != "" {
+			ids[i] = doc.Data.ID
+		} else {
+			ids[i] = doc.ID
+		}
+	}
+	return ids, nil
+}

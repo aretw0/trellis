@@ -29,3 +29,12 @@ func (l *InMemoryLoader) GetNode(id string) ([]byte, error) {
 	}
 	return data, nil
 }
+
+// ListNodes lists all node IDs in memory.
+func (l *InMemoryLoader) ListNodes() ([]string, error) {
+	ids := make([]string, 0, len(l.nodes))
+	for id := range l.nodes {
+		ids = append(ids, id)
+	}
+	return ids, nil
+}

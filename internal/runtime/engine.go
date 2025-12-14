@@ -138,3 +138,26 @@ func interpolate(text string, memory map[string]any) string {
 	}
 	return text
 }
+
+// Inspect returns a structured view of the entire graph by walking all nodes.
+func (e *Engine) Inspect() ([]domain.Node, error) {
+	nodeIDs, err := e.loader.ListNodes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list nodes: %w", err)
+	}
+
+	nodes := make([]domain.Node, 0, len(nodeIDs))
+	for _, id := range nodeIDs {
+		raw, err := e.loader.GetNode(id)
+		if err != nil {
+			// Warn but continue? Or fail? Fail is safer for now.
+			return nil, fmt.Errorf("failed to load node %s: %w", id, err)
+		}
+		node, err := e.parser.Parse(raw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse node %s: %w", id, err)
+		}
+		nodes = append(nodes, *node)
+	}
+	return nodes, nil
+}

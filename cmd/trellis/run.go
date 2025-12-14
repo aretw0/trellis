@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -15,6 +15,7 @@ var runCmd = &cobra.Command{
 	Long:  `Starts the Trellis engine in interactive mode with the content from the current directory.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		repoPath, _ := cmd.Flags().GetString("dir")
+		headless, _ := cmd.Flags().GetBool("headless")
 
 		// Initialize Engine
 		engine, err := trellis.New(repoPath)
@@ -27,6 +28,7 @@ var runCmd = &cobra.Command{
 		runner := trellis.NewRunner()
 		runner.Input = os.Stdin
 		runner.Output = os.Stdout
+		runner.Headless = headless
 
 		// Execute
 		if err := runner.Run(engine); err != nil {
@@ -39,13 +41,8 @@ var runCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	// Make 'run' the default if no command is provided?
-	// For now, let's keep it explicit, OR we can handle it in Run of rootCmd.
-	// Common pattern: if no args, print help.
-	// But Trellis legacy behavior was "run by default".
-	// Let's add the logic to rootCmd.Run to default to runCmd behavior if desired.
-	// However, for correct Cobra usage, we usually prefer explicit subcommands or a default Run action.
-	// Let's configure rootCmd to run this logic if no subcommand given to preserve DX.
+	runCmd.Flags().Bool("headless", false, "Run in headless mode (no prompts, strict IO)")
 
+	// Make 'run' the default if no command is provided?
 	rootCmd.Run = runCmd.Run
 }
