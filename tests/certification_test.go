@@ -69,10 +69,25 @@ func runSpec(t *testing.T, sourcePath string) {
 			t.Fatalf("Failed to load node '%s': %v", currentID, err)
 		}
 
+		// Verify transitions loaded correctly
+		if len(doc.Data.Transitions) > 0 {
+			to := doc.Data.Transitions[0].To
+			if to == "" {
+				to = doc.Data.Transitions[0].ToFull
+			}
+			t.Logf("Transition 0: To=%s", to)
+			// Verify that the transition system loaded *something* parsable.
+			// (We rely on the crawler loop below to validate that the link target actually exists)
+		}
+
 		// Enqueue transitions
 		for _, tr := range doc.Data.Transitions {
-			if !visited[tr.ToNodeID] {
-				queue = append(queue, tr.ToNodeID)
+			to := tr.To
+			if to == "" {
+				to = tr.ToFull
+			}
+			if !visited[to] {
+				queue = append(queue, to)
 			}
 		}
 	}

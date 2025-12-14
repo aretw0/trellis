@@ -10,11 +10,19 @@ import (
 )
 
 // NodeMetadata represents the header/metadata of a Trellis Node.
-// It matches the domain.Node fields minus Content.
+// It uses "mapstructure" tags to match standard Frontmatter/YAML keys (to, from).
 type NodeMetadata struct {
-	ID          string              `json:"id"`
-	Type        string              `json:"type"`
-	Transitions []domain.Transition `json:"transitions"`
+	ID          string             `json:"id" mapstructure:"id"`
+	Type        string             `json:"type" mapstructure:"type"`
+	Transitions []LoaderTransition `json:"transitions" mapstructure:"transitions"`
+}
+
+type LoaderTransition struct {
+	From      string `json:"from" mapstructure:"from"`
+	FromFull  string `json:"from_node_id" mapstructure:"from_node_id"`
+	To        string `json:"to" mapstructure:"to"`
+	ToFull    string `json:"to_node_id" mapstructure:"to_node_id"`
+	Condition string `json:"condition" mapstructure:"condition"`
 }
 
 // LoamLoader adapts the Loam library to the Trellis GraphLoader interface.
@@ -43,21 +51,31 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	}
 
 	// Synthesize valid JSON for the compiler.
-	// Merge Metadata (doc.Data) + Content (doc.Content).
+	// We must map our loader struct (which matches YAML "to") to domain JSON ("to_node_id").
 
-	// Create a map to avoid "double json" issues if we just marshaled struct.
-	// Actually, we can just marshal a temporary struct that mimics domain.Node logic?
-	// No, compiler expects JSON bytes.
-	// We already have `NodeMetadata` struct populated.
-	// We just need to add Content to it and Marshal.
+	domainTransitions := make([]domain.Transition, len(doc.Data.Transitions))
+	for i, lt := range doc.Data.Transitions {
+		// Support both "to" and "to_node_id"
+		to := lt.To
+		if to == "" {
+			to = lt.ToFull
+		}
+		from := lt.From
+		if from == "" {
+			from = lt.FromFull
+		}
 
-	// We can't just set Content on NodeMetadata because it doesn't have it.
-	// We can define a helper or just use map.
+		domainTransitions[i] = domain.Transition{
+			FromNodeID: from,
+			ToNodeID:   to,
+			Condition:  lt.Condition,
+		}
+	}
 
 	data := make(map[string]any)
 	data["id"] = doc.Data.ID // Or doc.ID (filename)? Stick to metadata ID.
 	data["type"] = doc.Data.Type
-	data["transitions"] = doc.Data.Transitions
+	data["transitions"] = domainTransitions
 	data["content"] = []byte(doc.Content) // As Base64
 
 	bytes, err := json.Marshal(data)

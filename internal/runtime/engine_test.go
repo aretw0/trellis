@@ -1,6 +1,7 @@
 package runtime_test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -50,7 +51,7 @@ func TestEngine_Step(t *testing.T) {
 
 	t.Run("Initial Render", func(t *testing.T) {
 		state := domain.NewState("start")
-		actions, nextState, err := engine.Step(state, "")
+		actions, nextState, err := engine.Step(context.Background(), state, "")
 		if err != nil {
 			t.Fatalf("Step failed: %v", err)
 		}
@@ -69,7 +70,7 @@ func TestEngine_Step(t *testing.T) {
 	t.Run("Transition Matching", func(t *testing.T) {
 		state := domain.NewState("start")
 		// Simulate input
-		actions, nextState, err := engine.Step(state, "YeS") // Mixed case
+		actions, nextState, err := engine.Step(context.Background(), state, "YeS") // Mixed case
 		if err != nil {
 			t.Fatalf("Step failed: %v", err)
 		}
@@ -86,7 +87,7 @@ func TestEngine_Step(t *testing.T) {
 
 	t.Run("No Transition Match", func(t *testing.T) {
 		state := domain.NewState("start")
-		_, nextState, err := engine.Step(state, "no")
+		_, nextState, err := engine.Step(context.Background(), state, "no")
 		if err != nil {
 			t.Fatalf("Step failed: %v", err)
 		}
@@ -98,7 +99,7 @@ func TestEngine_Step(t *testing.T) {
 
 	t.Run("Default Transition", func(t *testing.T) {
 		state := domain.NewState("middle")
-		_, nextState, err := engine.Step(state, "") // Empty input for auto transition
+		_, nextState, err := engine.Step(context.Background(), state, "") // Empty input for auto transition
 		if err != nil {
 			t.Fatalf("Step failed: %v", err)
 		}

@@ -1,6 +1,7 @@
 package trellis
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -16,9 +17,19 @@ type Engine struct {
 	runtime *runtime.Engine
 }
 
+// Option defines a functional option for configuring the Engine.
+type Option func(*Engine)
+
+// WithConditionEvaluator sets a custom logic evaluator for the engine.
+func WithConditionEvaluator(eval runtime.ConditionEvaluator) Option {
+	return func(e *Engine) {
+		e.runtime.SetEvaluator(eval)
+	}
+}
+
 // New initializes a new Trellis Engine backed by a Loam repository at the given path.
 // It sets up the necessary adapters and loads the content.
-func New(repoPath string) (*Engine, error) {
+func New(repoPath string, opts ...Option) (*Engine, error) {
 	absPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("invalid path: %w", err)
@@ -38,9 +49,16 @@ func New(repoPath string) (*Engine, error) {
 	// Initialize Core Runtime
 	rt := runtime.NewEngine(loader)
 
-	return &Engine{
+	eng := &Engine{
 		runtime: rt,
-	}, nil
+	}
+
+	// Apply Options
+	for _, opt := range opts {
+		opt(eng)
+	}
+
+	return eng, nil
 }
 
 // Start creates the initial state for the flow.
@@ -50,6 +68,6 @@ func (e *Engine) Start() *domain.State {
 }
 
 // Step executes a single transition step in the flow based on the input.
-func (e *Engine) Step(state *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
-	return e.runtime.Step(state, input)
+func (e *Engine) Step(ctx context.Context, state *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
+	return e.runtime.Step(ctx, state, input)
 }

@@ -2,9 +2,12 @@ package trellis
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/aretw0/trellis/pkg/domain"
 )
 
 // Runner handles the execution loop of the Trellis engine using provided IO.
@@ -51,7 +54,7 @@ func (r *Runner) Run(engine *Engine) error {
 		var input string
 
 		// Run Step
-		actions, nextState, err := engine.Step(state, input)
+		actions, nextState, err := engine.Step(context.TODO(), state, input)
 		if err != nil {
 			return fmt.Errorf("step error: %w", err)
 		}
@@ -59,7 +62,7 @@ func (r *Runner) Run(engine *Engine) error {
 		// Dispatch Actions
 		if state.CurrentNodeID != lastRenderedID {
 			for _, act := range actions {
-				if act.Type == "CLI_PRINT" {
+				if act.Type == domain.ActionRenderContent {
 					if msg, ok := act.Payload.(string); ok {
 						fmt.Fprintln(writer, strings.TrimSpace(msg))
 					}
@@ -85,14 +88,14 @@ func (r *Runner) Run(engine *Engine) error {
 			}
 
 			// Run Step again with input
-			actions, nextState, err = engine.Step(state, input)
+			actions, nextState, err = engine.Step(context.TODO(), state, input)
 			if err != nil {
 				return fmt.Errorf("step input error: %w", err)
 			}
 
 			// Dispatch Actions from Input
 			for _, act := range actions {
-				if act.Type == "CLI_PRINT" {
+				if act.Type == domain.ActionRenderContent {
 					if msg, ok := act.Payload.(string); ok {
 						fmt.Fprintln(writer, strings.TrimSpace(msg))
 					}
