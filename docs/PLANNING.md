@@ -24,7 +24,7 @@ Foco: Integridade dos dados, testes e melhorias na CLI.
 - [x] **Project Cleanup**: Organização de exemplos e testes.
 - [x] **Documentation Fix**: Corrigir links quebrados no README (Quick Start).
 
-### 🚧 v0.3: Developer Experience (DX) & Tooling
+### ✅ v0.3: Developer Experience (DX) & Tooling
 
 Foco: Ferramentas para quem *constrói* os fluxos (Toolmakers). Garantir confiança e testabilidade.
 
@@ -35,14 +35,14 @@ Foco: Ferramentas para quem *constrói* os fluxos (Toolmakers). Garantir confian
 - [x] **Introspection (Graphviz/Mermaid)**: Comando `trellis graph` para exportar a visualização do fluxo. "Documentation as Code".
 - [x] **Headless Runner**: Capacidade de executar fluxos sem interface visual para testes automatizados de regressão.
 
-### 🎨 v0.4: User Experience (The "Pretty" Phase)
+### 🚧 v0.4: User Experience (The "Pretty" Phase)
 
 Foco: Experiência visual do usuário final no Terminal.
 
 - [ ] **TUI Renderer**: Integração com `charmbracelet/glamour` para renderizar Markdown rico (tabelas, alertas) no terminal.
 - [ ] **Interactive Inputs**: Suporte nativo a diferentes tipos de input no frontmatter (ex: password masking, select lists, multiline text).
 
-### � v0.5: Scale & Protocol (The "System" Phase)
+### 🚧 v0.5: Scale & Protocol (The "System" Phase)
 
 Foco: Arquitetura para sistemas complexos e distribuídos.
 
