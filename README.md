@@ -52,8 +52,10 @@ trellis graph ./my-flow
 
 ```text
 trellis/
-├── cmd/           # Entrypoints (trellis, gen-trail)
+├── cmd/           # Entrypoints (trellis)
 ├── docs/          # Documentação do Projeto
+├── examples/      # Demos e Receitas
 ├── internal/      # Implementação (Loam Adapter, Runtime)
-└── pkg/           # Contratos Públicos (Domain, Ports)
+├── pkg/           # Contratos Públicos (Domain, Ports)
+└── tests/         # Testes de Integração (Certification Suite)
 ```
