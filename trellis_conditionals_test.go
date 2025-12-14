@@ -2,7 +2,6 @@ package trellis_test
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/aretw0/loam"
@@ -12,13 +11,10 @@ import (
 
 func TestDelegatedLogic(t *testing.T) {
 	// 1. Setup Temp Repo
-	tmpDir, err := os.MkdirTemp("", "trellis-logic-test-*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	// 1. Setup Temp Repo
+	tmpDir := t.TempDir()
 
-	repo, err := loam.Init(tmpDir, loam.WithAutoInit(true))
+	repo, err := loam.Init(tmpDir)
 	if err != nil {
 		t.Fatal(err)
 	}
