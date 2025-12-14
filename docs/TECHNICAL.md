@@ -9,12 +9,14 @@ O *Core* da Trellis não conhece banco de dados, não conhece HTTP e não conhec
 A API primária para interagir com o engine.
 
 - `Engine.Step(state, input)`: Executa um ciclo de transição.
+- `Engine.Inspect()`: Retorna o grafo completo para visualização.
 
 ### 2. Driven Ports (Saída)
 
 As interfaces que o engine usa para buscar dados.
 
 - `GraphLoader.GetNode(id)`: Abstração para carregar nós. O **Loam** implementa isso via adapter.
+- `GraphLoader.ListNodes()`: Descoberta de nós para introspecção.
 
 ## Estrutura de Diretórios e Decisões
 

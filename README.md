@@ -21,6 +21,27 @@ go mod tidy
 go run ./cmd/trellis ./examples/tour
 ```
 
+## Usage
+
+### Running a Flow
+
+```bash
+# Interactive mode
+trellis run ./my-flow
+
+# Headless mode (for automation/pipes)
+echo "start\nyes" | trellis run --headless ./my-flow
+```
+
+### Introspection
+
+Visualize your flow as a Mermaid graph:
+
+```bash
+trellis graph ./my-flow
+# Outputs: graph TD ...
+```
+
 ## Documentação
 
 - [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
