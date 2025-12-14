@@ -78,8 +78,10 @@ func (e *Engine) Step(ctx context.Context, currentState *domain.State, input str
 	// Present content only if we are "visiting" the node (input is empty).
 	// If input is provided, we are "submitting", so we skip re-rendering the content.
 	if (node.Type == "text" || node.Type == "question") && input == "" {
-		// Interpolation could happen here.
+		// Interpolation
 		text := string(node.Content)
+		text = interpolate(text, currentState.Memory)
+
 		actions = append(actions, domain.ActionRequest{
 			Type:    domain.ActionRenderContent,
 			Payload: text,
@@ -121,4 +123,18 @@ func (e *Engine) Step(ctx context.Context, currentState *domain.State, input str
 	}
 
 	return actions, &nextState, nil
+}
+
+// interpolate replaces {{ key }} with values from memory
+func interpolate(text string, memory map[string]any) string {
+	if memory == nil {
+		return text
+	}
+	for key, val := range memory {
+		placeholder := fmt.Sprintf("{{ %s }}", key)
+		// Basic string replacement for now.
+		// Ideally we would use a regex to handle spacing variations like {{key}}.
+		text = strings.ReplaceAll(text, placeholder, fmt.Sprint(val))
+	}
+	return text
 }
