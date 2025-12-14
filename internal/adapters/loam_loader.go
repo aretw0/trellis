@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/trellis/pkg/domain"
@@ -73,7 +75,13 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	}
 
 	data := make(map[string]any)
-	data["id"] = doc.Data.ID // Or doc.ID (filename)? Stick to metadata ID.
+	// Normalize ID: prefer metadata ID, fallback to filename ID, but always strip extension
+	rawID := doc.Data.ID
+	if rawID == "" {
+		rawID = doc.ID
+	}
+	data["id"] = trimExtension(rawID)
+
 	data["type"] = doc.Data.Type
 	data["transitions"] = domainTransitions
 	data["content"] = []byte(doc.Content) // As Base64
@@ -97,12 +105,19 @@ func (l *LoamLoader) ListNodes() ([]string, error) {
 	ids := make([]string, len(docs))
 	for i, doc := range docs {
 		// Use the ID from metadata if available, otherwise filename ID
-		// But Repo.List returns []Document[T].
-		if doc.Data.ID != "" {
-			ids[i] = doc.Data.ID
-		} else {
-			ids[i] = doc.ID
+		rawID := doc.Data.ID
+		if rawID == "" {
+			rawID = doc.ID
 		}
+		ids[i] = trimExtension(rawID)
 	}
 	return ids, nil
+}
+
+func trimExtension(id string) string {
+	ext := filepath.Ext(id)
+	if ext != "" {
+		return strings.TrimSuffix(id, ext)
+	}
+	return id
 }
