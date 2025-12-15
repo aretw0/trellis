@@ -3,6 +3,7 @@
 ## Arquitetura Hexagonal (Ports & Adapters)
 
 O *Core* da Trellis não conhece banco de dados, não conhece HTTP e não conhece CLI. Ele define **Portas** (Interfaces) que o mundo externo deve satisfazer.
+Essa arquitetura desacoplada torna o Trellis leve o suficiente para ser embutido em CLIs simples ou usado como biblioteca "low-level" dentro de frameworks de Agentes de IA maiores.
 
 ### 1. Driver Ports (Entrada)
 

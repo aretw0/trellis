@@ -2,7 +2,9 @@
 
 > "Faça uma coisa e faça bem feita. Trabalhe com fluxos de texto." - Filosofia Unix
 
-**Trellis** é o "Cérebro Lógico" de um sistema de automação. Projetada como uma **Função Pura de Transição de Estado**, opera isolada de efeitos colaterais.
+**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) para a construção de CLIs, fluxos de automação e Guardrails para Agentes de IA.
+
+Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio e as transições permitidas.
 
 ## Quick Start
 
