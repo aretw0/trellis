@@ -9,53 +9,73 @@ import (
 	"github.com/aretw0/trellis/internal/adapters"
 	"github.com/aretw0/trellis/internal/runtime"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/ports"
 )
 
 // Engine is the high-level entry point for the Trellis library.
 // It wraps the internal runtime and provides a simplified API for consumers.
 type Engine struct {
-	runtime *runtime.Engine
+	runtime   *runtime.Engine
+	loader    ports.GraphLoader
+	evaluator runtime.ConditionEvaluator
 }
 
 // Option defines a functional option for configuring the Engine.
 type Option func(*Engine)
 
-// WithConditionEvaluator sets a custom logic evaluator for the engine.
-func WithConditionEvaluator(eval runtime.ConditionEvaluator) Option {
+// WithLoader injects a custom GraphLoader, bypassing the default Loam initialization.
+func WithLoader(l ports.GraphLoader) Option {
 	return func(e *Engine) {
-		e.runtime.SetEvaluator(eval)
+		e.loader = l
 	}
 }
 
-// New initializes a new Trellis Engine backed by a Loam repository at the given path.
-// It sets up the necessary adapters and loads the content.
+// WithConditionEvaluator sets a custom logic evaluator for the engine.
+func WithConditionEvaluator(eval runtime.ConditionEvaluator) Option {
+	return func(e *Engine) {
+		e.evaluator = eval
+	}
+}
+
+// New initializes a new Trellis Engine.
+// By default, it uses a Loam repository at the given path.
+// If WithLoader option is provided, repoPath can be empty and Loam is skipped.
 func New(repoPath string, opts ...Option) (*Engine, error) {
-	absPath, err := filepath.Abs(repoPath)
-	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
-	}
+	eng := &Engine{}
 
-	// Initialize Loam in read-only mode (Game Mode)
-	// We explicitly disable versioning side-effects for the runtime.
-	repo, err := loam.Init(absPath, loam.WithVersioning(false))
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize loam: %w", err)
-	}
-
-	// Setup Typed Repository and Adapter
-	typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
-	loader := adapters.NewLoamLoader(typedRepo)
-
-	// Initialize Core Runtime
-	rt := runtime.NewEngine(loader)
-
-	eng := &Engine{
-		runtime: rt,
-	}
-
-	// Apply Options
+	// Apply Options first to check if a loader is provided
 	for _, opt := range opts {
 		opt(eng)
+	}
+
+	// If no loader was injected, initialize default Loam adapter
+	if eng.loader == nil {
+		if repoPath == "" {
+			return nil, fmt.Errorf("repoPath is required when no custom loader is provided")
+		}
+
+		absPath, err := filepath.Abs(repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid path: %w", err)
+		}
+
+		// Initialize Loam in read-only mode (Game Mode)
+		repo, err := loam.Init(absPath, loam.WithVersioning(false))
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize loam: %w", err)
+		}
+
+		// Setup Typed Repository and Adapter
+		typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
+		eng.loader = adapters.NewLoamLoader(typedRepo)
+	}
+
+	// Initialize Core Runtime with the selected loader
+	eng.runtime = runtime.NewEngine(eng.loader)
+
+	// Apply runtime-specific options if any
+	if eng.evaluator != nil {
+		eng.runtime.SetEvaluator(eng.evaluator)
 	}
 
 	return eng, nil
