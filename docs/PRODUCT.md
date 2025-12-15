@@ -34,7 +34,19 @@ Seja para criar um CLI interativo, um bot de WhatsApp, ou um wizard de instalaç
 
 **O Trellis é o Guarda de Trânsito, não o Motor do Carro.**
 
-- Ele diz *para onde ir* (Próximo Nó).
+- Ele apenas diz *para onde ir* (Próximo Nó).
 - Ele não *dirige o carro* (não faz chamadas de API, não processa pagamentos).
 
 Isso permite que ele seja usado tanto em um script bash simples quanto em um backend Go complexo para Telegram.
+
+## Trellis na Era da IA (Agentes)
+
+O Trellis ocupa um espaço crítico na arquitetura de **Agentes de IA (LLMs)**, atuando como o padrão **"Deterministic Guardrails"**.
+
+- **O Problema**: Agentes puramente baseados em LLM são criativos, mas não determinísticos. Eles "alucinam" fluxos, esquecem regras de negócio ou inventam descontos.
+- **A Solução Híbrida (Neuro-Symbolic)**:
+  - **LLM (Cérebro Criativo)**: Gera o texto, traduz a intenção do usuário, mantem a empatia.
+  - **Trellis (Espinha Dorsal Lógica)**: Mantém o Estado e define as Transições permitidas.
+  - **MemoryLoader**: Permite injetar grafos dinamicamente em memória, ideal para ambientes serverless ou onde o fluxo é gerado on-the-fly.
+
+> "Use o Trellis para garantir que o Agente siga o processo de compliance, e o LLM para garantir que ele seja educado enquanto faz isso."
