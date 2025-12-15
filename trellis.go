@@ -59,8 +59,8 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 			return nil, fmt.Errorf("invalid path: %w", err)
 		}
 
-		// Initialize Loam in read-only mode (Game Mode)
-		repo, err := loam.Init(absPath, loam.WithVersioning(false))
+		// Initialize Loam
+		repo, err := loam.Init(absPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize loam: %w", err)
 		}
@@ -88,8 +88,20 @@ func (e *Engine) Start() *domain.State {
 }
 
 // Step executes a single transition step in the flow based on the input.
+// Deprecated: Use Render and Navigate for better interactive control.
 func (e *Engine) Step(ctx context.Context, state *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
 	return e.runtime.Step(ctx, state, input)
+}
+
+// Render generates the actions (view) for the current state without transitioning.
+// Returns actions, isTerminal (true if no transitions), and error.
+func (e *Engine) Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error) {
+	return e.runtime.Render(ctx, state)
+}
+
+// Navigate calculates the next state based on the current state and input.
+func (e *Engine) Navigate(ctx context.Context, state *domain.State, input string) (*domain.State, error) {
+	return e.runtime.Navigate(ctx, state, input)
 }
 
 // Inspect returns the full graph definition for visualization or introspection tools.

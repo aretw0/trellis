@@ -1,25 +1,22 @@
 package main
 
 import (
-	"bufio"
-	"context"
-	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
 func main() {
-	// 1. Define the Graph using Go Structs (Clean & Type-Safe)
+	// 1. Define the Graph using Go Structs
 	loader, err := memory.NewFromNodes(
 		domain.Node{
 			ID:      "start",
 			Type:    "question",
-			Content: []byte("Welcome to the Pure Go Trellis Demo!\nDo you want to see how easy this is? [yes] [no]"),
+			Content: []byte("Welcome to the **Trellis TUI Demo**!\nDo you see this in *rich text*? [yes] [no]"),
 			Transitions: []domain.Transition{
 				{ToNodeID: "yes", Condition: "input == 'yes'"},
 				{ToNodeID: "no"},
@@ -28,66 +25,33 @@ func main() {
 		domain.Node{
 			ID:      "yes",
 			Type:    "text",
-			Content: []byte("Correct! We just in-memory structs and now we have a state machine."),
+			Content: []byte("## Great!\n\nThat means `glamour` is working."),
 		},
 		domain.Node{
 			ID:      "no",
 			Type:    "text",
-			Content: []byte("Oh well. It is easy though."),
+			Content: []byte("## Oops.\n\nSomething is wrong with the renderer."),
 		},
 	)
 	if err != nil {
 		log.Fatalf("Failed to create loader: %v", err)
 	}
 
-	// 2. Initialize Engine with MemoryLoader
+	// 2. Initialize Engine
 	eng, err := trellis.New("", trellis.WithLoader(loader))
 	if err != nil {
 		log.Fatalf("Failed to init engine: %v", err)
 	}
 
-	// 3. Start the State
-	state := eng.Start()
-	ctx := context.Background()
+	// 3. Configure Runner with TUI
+	runner := trellis.NewRunner()
+	runner.Input = os.Stdin
+	runner.Output = os.Stdout
+	runner.Headless = false
+	runner.Renderer = tui.NewRenderer() // Inject TUI Renderer
 
-	// 4. Simple REPL Loop
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("--- Trellis Memory Demo ---")
-
-	for !state.Terminated {
-		// Run a Step (with empty input to get the initial content)
-		// Note: In a real app we would manage "visiting" vs "submitting" better.
-		// Here we just simulate: Get Content -> Wait for Input -> Submit Input.
-
-		// First, get content for current node (blind step with no input)
-		// Wait, Step logic: output content if input is empty? Yes.
-		actions, _, err := eng.Step(ctx, state, "")
-		if err != nil {
-			log.Fatalf("Error rendering: %v", err)
-		}
-
-		// Print Content
-		for _, act := range actions {
-			if act.Type == domain.ActionRenderContent {
-				fmt.Println(act.Payload)
-			}
-		}
-
-		// Read Input
-		fmt.Print("> ")
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
-
-		// Submit Input to Transition
-		_, nextState, err := eng.Step(ctx, state, input)
-		if err != nil {
-			log.Fatalf("Error transitioning: %v", err)
-		}
-
-		// Update State
-		state = nextState
-		fmt.Printf("[Debug] Transitioned to: %s\n", state.CurrentNodeID)
+	// 4. Run!
+	if err := runner.Run(eng); err != nil {
+		log.Fatalf("Error running: %v", err)
 	}
-
-	fmt.Println("Flow Terminated.")
 }

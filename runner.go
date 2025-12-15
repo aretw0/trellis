@@ -16,7 +16,12 @@ type Runner struct {
 	Input    io.Reader
 	Output   io.Writer
 	Headless bool
+	Renderer ContentRenderer
 }
+
+// ContentRenderer is a function that transforms the content before outputting it.
+// This allows for TUI rendering (markdown to ANSI) without coupling the core package.
+type ContentRenderer func(string) (string, error)
 
 // NewRunner creates a new Runner with default Stdin/Stdout.
 // Use SetInput/SetOutput to override for testing.
@@ -25,6 +30,7 @@ func NewRunner() *Runner {
 		Input:    nil, // defaults to os.Stdin if not set, handled in Run? Or explicit?
 		Output:   nil, // defaults to os.Stdout
 		Headless: false,
+		Renderer: nil,
 	}
 }
 
@@ -57,65 +63,68 @@ func (r *Runner) Run(engine *Engine) error {
 	for {
 		var input string
 
-		// Run Step
-		actions, nextState, err := engine.Step(context.TODO(), state, input)
+		// 1. Render Phase (View)
+		// We always ask the engine what to show.
+		actions, isTerminal, err := engine.Render(context.Background(), state)
 		if err != nil {
-			return fmt.Errorf("step error: %w", err)
+			return fmt.Errorf("render error: %w", err)
 		}
 
-		// Dispatch Actions
+		// 2. Display Phase & Input Decision
+		hasContent := false
 		if state.CurrentNodeID != lastRenderedID {
 			for _, act := range actions {
 				if act.Type == domain.ActionRenderContent {
 					if msg, ok := act.Payload.(string); ok {
-						fmt.Fprintln(writer, strings.TrimSpace(msg))
+						hasContent = true
+						output := msg
+						if r.Renderer != nil {
+							rendered, err := r.Renderer(msg)
+							if err == nil {
+								output = rendered
+							}
+						}
+						// Ensure we print a newline after content
+						fmt.Fprintln(writer, strings.TrimSpace(output))
 					}
 				}
 			}
 			lastRenderedID = state.CurrentNodeID
 		}
 
-		// Generic Exit condition
+		// 3. Wait Phase (Input)
+		// Policy: If we showed content, we must wait for user acknowledgment/input.
+		// If we didn't show anything (e.g. logic node), we proceed with empty input (auto-skip).
+		// EXCEPTION: If isTerminal is true, we are done. We showed the final message (if any) and we exit.
+		if isTerminal {
+			break
+		}
+
+		needsInput := hasContent && !r.Headless
+
+		if needsInput {
+			fmt.Fprint(writer, "> ")
+			text, _ := lineReader.ReadString('\n')
+			input = strings.TrimSpace(text)
+
+			if input == "exit" || input == "quit" {
+				fmt.Fprintln(writer, "Bye!")
+				break
+			}
+		}
+
+		// 4. Navigate Phase (Controller)
+		nextState, err := engine.Navigate(context.Background(), state, input)
+		if err != nil {
+			return fmt.Errorf("navigation error: %w", err)
+		}
+
+		// Check Exit Condition
 		if nextState.Terminated {
 			break
 		}
 
-		// Input needed
-		if nextState.CurrentNodeID == state.CurrentNodeID {
-			if !r.Headless {
-				fmt.Fprint(writer, "> ")
-			}
-			text, _ := lineReader.ReadString('\n')
-			input = strings.TrimSpace(text)
-
-			if !r.Headless && (input == "exit" || input == "quit") {
-				fmt.Fprintln(writer, "Bye!")
-				break
-			}
-			// In Headless mode, EOF or empty input should probably break loop or handle gracefully?
-			// If input is empty in headless, it might mean end of stream.
-			// bufio.ReadString returns err on EOF. Check it.
-			// Actually, let's check input reading error generically.
-
-			// Run Step again with input
-			actions, nextState, err = engine.Step(context.TODO(), state, input)
-			if err != nil {
-				return fmt.Errorf("step input error: %w", err)
-			}
-
-			// Dispatch Actions from Input
-			for _, act := range actions {
-				if act.Type == domain.ActionRenderContent {
-					if msg, ok := act.Payload.(string); ok {
-						fmt.Fprintln(writer, strings.TrimSpace(msg))
-					}
-				}
-			}
-
-			state = nextState
-		} else {
-			state = nextState
-		}
+		state = nextState
 	}
 	return nil
 }

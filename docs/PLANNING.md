@@ -52,7 +52,7 @@ Foco: Reduzir a barreira de entrada, clarificar a arquitetura para novos usuári
 
 Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O objetivo é inspirar, não criar um framework de UI.
 
-- [ ] **Basic TUI Renderer**: Integração simples com `charmbracelet/glamour` apenas para sanitização e renderização básica de Markdown.
+- [x] **Basic TUI Renderer**: Integração simples com `charmbracelet/glamour` apenas para sanitização e renderização básica de Markdown.
 - [ ] **Interactive Inputs Prototype**: PoC de como o Engine pode solicitar inputs complexos (ex: select list), mas delegando a UI para o Host.
 - [ ] **Dev Mode (Hot Reload)**: Implementar monitoramento de arquivos (Watch).
   - *Estratégia*: Inicialmente no `Running Loop` (CLI).

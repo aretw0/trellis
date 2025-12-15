@@ -53,32 +53,45 @@ func (e *Engine) SetEvaluator(eval ConditionEvaluator) {
 	e.evaluator = eval
 }
 
-// Step executes a single step in the state machine.
-// It loads the current node, evaluates transitions, and returns action requests.
-// For MVP, it doesn't persist state, just inputs state and outputs next state + actions.
-// But wait, the Step function usually takes the current State and Input?
-// BOOTSTRAP: "- Input: Estado Atual + Grafo de Decisão + Input do Usuário."
+// Step executes a single step (Render + Transition).
+// Deprecated: Use Render and Navigate separately for better control.
 func (e *Engine) Step(ctx context.Context, currentState *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
-	// 1. Load the definition of the current node
+	// 1. Render content (View)
+	actions, _, err := e.Render(ctx, currentState)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// 2. Compute transition (Controller)
+	nextState, err := e.Navigate(ctx, currentState, input)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return actions, nextState, nil
+}
+
+// Render calculates the presentation for the current state.
+// It loads the node and generates actions (e.g. print text) but does NOT change state.
+// It returns actions, isTerminal (true if no transitions), and error.
+func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]domain.ActionRequest, bool, error) {
 	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
+		return nil, false, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
 	}
 
 	node, err := e.parser.Parse(raw)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
+		return nil, false, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
-	// 2. Process the node's logic
-	// For MVP, we'll just check if it's a text node and return a print action.
 	actions := []domain.ActionRequest{}
 
-	// If it's a text node, we probably want to display it.
-	// Present content only if we are "visiting" the node (input is empty).
-	// If input is provided, we are "submitting", so we skip re-rendering the content.
-	if (node.Type == "text" || node.Type == "question") && input == "" {
-		// Interpolation
+	// Only render content if we are NOT submitting data (which usually implies moving away)
+	// But in the new architecture, Render is called explicitly before Navigate, so we always render.
+	// It's up to the Runner to decide if it shows it or not based on previous history?
+	// Actually, Render just returns what the node *says*.
+	if node.Type == "text" || node.Type == "question" {
 		text := string(node.Content)
 		text = interpolate(text, currentState.Memory)
 
@@ -88,21 +101,35 @@ func (e *Engine) Step(ctx context.Context, currentState *domain.State, input str
 		})
 	}
 
-	// 3. Determine next transition
+	isTerminal := len(node.Transitions) == 0
+	return actions, isTerminal, nil
+}
+
+// Navigate determines the next state based on input.
+func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input string) (*domain.State, error) {
+	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
+	}
+
+	node, err := e.parser.Parse(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
+	}
+
 	var nextNodeID string
 
+	// Evaluate transitions
 	for _, t := range node.Transitions {
 		if t.Condition == "" {
-			// Default/Always transition
 			nextNodeID = t.ToNodeID
 			break
 		}
 
-		// Evaluate Condition
 		if e.evaluator != nil {
 			ok, err := e.evaluator(ctx, t.Condition, input)
 			if err != nil {
-				return nil, nil, fmt.Errorf("condition evaluation failed for '%s': %w", t.Condition, err)
+				return nil, fmt.Errorf("condition evaluation failed for '%s': %w", t.Condition, err)
 			}
 			if ok {
 				nextNodeID = t.ToNodeID
@@ -111,9 +138,7 @@ func (e *Engine) Step(ctx context.Context, currentState *domain.State, input str
 		}
 	}
 
-	nextState := *currentState // Copy
-
-	// Check for Sink State
+	nextState := *currentState
 	if len(node.Transitions) == 0 {
 		nextState.Terminated = true
 	}
@@ -122,7 +147,7 @@ func (e *Engine) Step(ctx context.Context, currentState *domain.State, input str
 		nextState.History = append(nextState.History, nextNodeID)
 	}
 
-	return actions, &nextState, nil
+	return &nextState, nil
 }
 
 // interpolate replaces {{ key }} with values from memory

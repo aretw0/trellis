@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +30,10 @@ var runCmd = &cobra.Command{
 		runner.Input = os.Stdin
 		runner.Output = os.Stdout
 		runner.Headless = headless
+
+		if !headless {
+			runner.Renderer = tui.NewRenderer()
+		}
 
 		// Execute
 		if err := runner.Run(engine); err != nil {
