@@ -2,7 +2,7 @@
 
 > Para filosofia e arquitetura, [consulte o README](./README.md).
 
-## Roadmap
+## 1. Roadmap
 
 ### ✅ v0.1: Bootstrap (MVP)
 
@@ -35,20 +35,45 @@ Foco: Ferramentas para quem *constrói* os fluxos (Toolmakers). Garantir confian
 - [x] **Introspection (Graphviz/Mermaid)**: Comando `trellis graph` para exportar a visualização do fluxo. "Documentation as Code".
 - [x] **Headless Runner**: Capacidade de executar fluxos sem interface visual para testes automatizados de regressão.
 
-### 🚧 v0.4: User Experience (The "Pretty" Phase)
+### 🚧 v0.3.1: Onboarding & Decoupling (The "Adoption" Phase)
 
-Foco: Experiência visual do usuário final no Terminal.
+Foco: Reduzir a barreira de entrada, clarificar a arquitetura para novos usuários e posicionar para a Era da IA.
 
-- [ ] **TUI Renderer**: Integração com `charmbracelet/glamour` para renderizar Markdown rico (tabelas, alertas) no terminal.
-- [ ] **Interactive Inputs**: Suporte nativo a diferentes tipos de input no frontmatter (ex: password masking, select lists, multiline text).
+- [ ] **Loam Decoupling**: Refatorar `trellis.New` para tornar o Loam opcional via Functional Options pattern (`trellis.WithLoader`).
+- [ ] **MemoryLoader**: Implementar um adaptador `in-memory` oficial. Essencial para testes unitários de consumidores e para quem quer "hardcodar" o grafo em Go.
+- [ ] **Minimalist "Hello World"**: Criar `examples/hello-world` demonstrando o uso do `MemoryLoader` (sem arquivos, apenas Go).
+- [ ] **AI/LLM Documentation**: Adicionar seção "Trellis for AI Agents" no `PRODUCT.md` explicando o padrão "Symbolic/Neuro Architecture".
+  - *Concept*: Trellis como "Deterministic Guardrails" para LLMs.
+- [ ] **Documentation Revamp**:
+  - [ ] Atualizar README: Diagrama "Host -> Trellis -> Adapter".
+  - [ ] Clarificar que Loam é "Batteries Included", mas opcional.
 
-### 🚧 v0.5: Scale & Protocol (The "System" Phase)
+### 🚧 v0.3.2: Reference Implementation (Minimal TUI)
 
-Foco: Arquitetura para sistemas complexos e distribuídos.
+Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O objetivo é inspirar, não criar um framework de UI.
+
+- [ ] **Basic TUI Renderer**: Integração simples com `charmbracelet/glamour` apenas para sanitização e renderização básica de Markdown.
+- [ ] **Interactive Inputs Prototype**: PoC de como o Engine pode solicitar inputs complexos (ex: select list), mas delegando a UI para o Host.
+- [ ] **Dev Mode (Hot Reload)**: Implementar monitoramento de arquivos (Watch).
+  - *Estratégia*: Inicialmente no `Running Loop` (CLI).
+  - *Future-Proofing*: Abstrair via interface `Watcher` para que, quando o Loam tiver suporte nativo, possamos apenas trocar a implementação sem mudar o CLI.
+
+### 🚧 v0.3.3: Stateless & Serverless (The "Cloud" Phase)
+
+Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) típicas de Agentes de IA.
+
+- [ ] **Stateless Engine**: Garantir que o `Engine.Step` seja puramente funcional e não retenha nada além do que é passado.
+- [ ] **JSON IO**: Garantir que o runner possa operar puramente com Input JSON -> Output JSON, sem TTY.
+- [ ] **Validator Refactor**: Reimplementar `trellis validate` para operar sobre a abstração `GraphLoader`, permitindo validar grafos em memória ou bancos, não apenas arquivos.
+- [ ] **Strict Serialization**: Resolver o problema de ambiguidade de tipos (`map[string]any`) na serialização/desserialização JSON (int vs float).
+
+### 🚧 v0.4: Scale, Protocol & Integration (The "System" Phase)
+
+Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda com LLMs.
 
 - [ ] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "checkout_flow.md"`). Permite modularização.
-- [ ] **Stateless Server Mode**: Adaptador para rodar o Engine via API (HTTP/gRPC/Lambda), onde o estado é externo (Redis/Client-side).
-- [ ] **Side-Effect Protocol**: Padronização de como o Trellis solicita ações ao Host (ex: retornar struct `Action` estruturada para envio de email ou DB update).
+- [ ] **Stateless Server Mode**: Um adaptador HTTP/gRPC de exemplo que expõe o `Engine.Step`.
+- [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
 ### 🔮 Backlog / Concepts
 
@@ -57,9 +82,23 @@ Foco: Arquitetura para sistemas complexos e distribuídos.
 
 ---
 
-## 3. Decisões Arquiteturais (Log)
+## 2. Decisões Arquiteturais (Log)
 
 - **2025-12-11**: *Presentation Layer Responsibility*. Decidido que a limpeza de whitespace (sanitização de output) é responsabilidade da camada de apresentação (CLI), não do Storage (Loam) ou do Domain (Engine).
 - **2025-12-11**: *Loam Integration*. Adotado `TypedRepository` para mapear frontmatter automaticamente, tratando o Loam como fonte da verdade para formatos.
 - **2025-12-13**: *Logic Decoupling*. Adotada estratégia de "Delegated Logic". O Markdown declara *intenções* de lógica, o Host implementa.
 - **2025-12-13**: *Encapsulation*. `NodeMetadata` e `LoaderTransition` mantidos como DTOs públicos em `loam_loader` por conveniência experimental. **FIXME**: Torná-los privados ou movê-los para `internal/dto` para evitar poluição de API.
+- **2025-12-14**: *Test Strategy*. Decidido que a cobertura de testes deve ser explícita em cada fase crítica.
+
+---
+
+## 3. Estratégia de Testes
+
+Para evitar regressões, definimos níveis de teste obrigatórios:
+
+1. **Core/Logic (Engine)**: Unit Tests + Table Driven.
+2. **Adapters (Loam/Memory)**: *Contract Tests*. O mesmo suite deve rodar contra Loam e MemoryLoader para garantir funcionalidade idêntica.
+3. **Integration**: Testes End-to-End simulando JSON in/out.
+4. **CLI**: Snapshot testing.
+
+---
