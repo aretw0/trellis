@@ -35,18 +35,18 @@ Foco: Ferramentas para quem *constrói* os fluxos (Toolmakers). Garantir confian
 - [x] **Introspection (Graphviz/Mermaid)**: Comando `trellis graph` para exportar a visualização do fluxo. "Documentation as Code".
 - [x] **Headless Runner**: Capacidade de executar fluxos sem interface visual para testes automatizados de regressão.
 
-### 🚧 v0.3.1: Onboarding & Decoupling (The "Adoption" Phase)
+### ✅ v0.3.1: Onboarding & Decoupling (The "Adoption" Phase)
 
 Foco: Reduzir a barreira de entrada, clarificar a arquitetura para novos usuários e posicionar para a Era da IA.
 
-- [ ] **Loam Decoupling**: Refatorar `trellis.New` para tornar o Loam opcional via Functional Options pattern (`trellis.WithLoader`).
-- [ ] **MemoryLoader**: Implementar um adaptador `in-memory` oficial. Essencial para testes unitários de consumidores e para quem quer "hardcodar" o grafo em Go.
-- [ ] **Minimalist "Hello World"**: Criar `examples/hello-world` demonstrando o uso do `MemoryLoader` (sem arquivos, apenas Go).
-- [ ] **AI/LLM Documentation**: Adicionar seção "Trellis for AI Agents" no `PRODUCT.md` explicando o padrão "Symbolic/Neuro Architecture".
+- [x] **Loam Decoupling**: Refatorar `trellis.New` para tornar o Loam opcional via Functional Options pattern (`trellis.WithLoader`).
+- [x] **MemoryLoader**: Implementar um adaptador `in-memory` oficial. Essencial para testes unitários de consumidores e para quem quer "hardcodar" o grafo em Go.
+- [x] **Minimalist "Hello World"**: Criar `examples/hello-world` demonstrando o uso do `MemoryLoader` (sem arquivos, apenas Go).
+- [x] **AI/LLM Documentation**: Adicionar seção "Trellis for AI Agents" no `PRODUCT.md` explicando o padrão "Symbolic/Neuro Architecture".
   - *Concept*: Trellis como "Deterministic Guardrails" para LLMs.
-- [ ] **Documentation Revamp**:
-  - [ ] Atualizar README: Diagrama "Host -> Trellis -> Adapter".
-  - [ ] Clarificar que Loam é "Batteries Included", mas opcional.
+- [x] **Documentation Revamp**:
+  - [x] Atualizar README: Diagrama "Host -> Trellis -> Adapter".
+  - [x] Clarificar que Loam é "Batteries Included", mas opcional.
 
 ### 🚧 v0.3.2: Reference Implementation (Minimal TUI)
 
