@@ -55,21 +55,6 @@ func (e *Engine) SetEvaluator(eval ConditionEvaluator) {
 
 // Step executes a single step (Render + Transition).
 // Deprecated: Use Render and Navigate separately for better control.
-func (e *Engine) Step(ctx context.Context, currentState *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
-	// 1. Render content (View)
-	actions, _, err := e.Render(ctx, currentState)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// 2. Compute transition (Controller)
-	nextState, err := e.Navigate(ctx, currentState, input)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return actions, nextState, nil
-}
 
 // Render calculates the presentation for the current state.
 // It loads the node and generates actions (e.g. print text) but does NOT change state.

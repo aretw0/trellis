@@ -87,12 +87,6 @@ func (e *Engine) Start() *domain.State {
 	return domain.NewState("start")
 }
 
-// Step executes a single transition step in the flow based on the input.
-// Deprecated: Use Render and Navigate for better interactive control.
-func (e *Engine) Step(ctx context.Context, state *domain.State, input string) ([]domain.ActionRequest, *domain.State, error) {
-	return e.runtime.Step(ctx, state, input)
-}
-
 // Render generates the actions (view) for the current state without transitioning.
 // Returns actions, isTerminal (true if no transitions), and error.
 func (e *Engine) Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error) {

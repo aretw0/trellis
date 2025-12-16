@@ -51,9 +51,10 @@ func TestEngine_Step(t *testing.T) {
 
 	t.Run("Initial Render", func(t *testing.T) {
 		state := domain.NewState("start")
-		actions, nextState, err := engine.Step(context.Background(), state, "")
+		// 1. Initial Render (Start)
+		actions, _, err := engine.Render(context.Background(), state)
 		if err != nil {
-			t.Fatalf("Step failed: %v", err)
+			t.Fatalf("Render failed (start): %v", err)
 		}
 
 		if len(actions) != 1 {
@@ -62,22 +63,33 @@ func TestEngine_Step(t *testing.T) {
 		if actions[0].Payload != "Start Node" {
 			t.Errorf("Unexpected payload: %v", actions[0].Payload)
 		}
-		if nextState.CurrentNodeID != "start" {
-			t.Errorf("Expected to return state 'start', got '%s'", nextState.CurrentNodeID)
+		// Render doesn't change state, so we check state locally or skip usage of nextState here
+		// Actually the original test asserted on nextState.CurrentNodeID
+		// In Render only, state doesn't change.
+		if state.CurrentNodeID != "start" {
+			t.Errorf("Expected state to remain 'start', got '%s'", state.CurrentNodeID)
 		}
 	})
 
 	t.Run("Transition Matching", func(t *testing.T) {
 		state := domain.NewState("start")
 		// Simulate input
-		actions, nextState, err := engine.Step(context.Background(), state, "YeS") // Mixed case
+		// 1. Render (Start)
+		actions, _, err := engine.Render(context.Background(), state)
 		if err != nil {
-			t.Fatalf("Step failed: %v", err)
+			t.Fatalf("Render failed: %v", err)
+		}
+		// ... check actions if needed
+
+		// 2. Navigate (Input: "YeS")
+		nextState, err := engine.Navigate(context.Background(), state, "YeS") // Mixed case
+		if err != nil {
+			t.Fatalf("Navigate failed: %v", err)
 		}
 
-		// Node logic should NOT run when processing input
-		if len(actions) != 0 {
-			t.Errorf("Expected 0 actions (no re-render), got %d", len(actions))
+		// Check actions from Render (should be present now)
+		if len(actions) == 0 {
+			t.Errorf("Expected actions from Render, got 0")
 		}
 
 		if nextState.CurrentNodeID != "middle" {
@@ -87,9 +99,10 @@ func TestEngine_Step(t *testing.T) {
 
 	t.Run("No Transition Match", func(t *testing.T) {
 		state := domain.NewState("start")
-		_, nextState, err := engine.Step(context.Background(), state, "no")
+		// Navigate (Input: "no")
+		nextState, err := engine.Navigate(context.Background(), state, "no")
 		if err != nil {
-			t.Fatalf("Step failed: %v", err)
+			t.Fatalf("Navigate failed: %v", err)
 		}
 
 		if nextState.CurrentNodeID != "start" {
@@ -99,9 +112,10 @@ func TestEngine_Step(t *testing.T) {
 
 	t.Run("Default Transition", func(t *testing.T) {
 		state := domain.NewState("middle")
-		_, nextState, err := engine.Step(context.Background(), state, "") // Empty input for auto transition
+		// Navigate (Input: "")
+		nextState, err := engine.Navigate(context.Background(), state, "") // Empty input for auto transition
 		if err != nil {
-			t.Fatalf("Step failed: %v", err)
+			t.Fatalf("Navigate failed: %v", err)
 		}
 
 		if nextState.CurrentNodeID != "end" {

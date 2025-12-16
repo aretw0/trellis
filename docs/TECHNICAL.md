@@ -9,7 +9,8 @@ Essa arquitetura desacoplada torna o Trellis leve o suficiente para ser embutido
 
 A API primária para interagir com o engine.
 
-- `Engine.Step(state, input)`: Executa um ciclo de transição.
+- `Engine.Render(state)`: Retorna a view (ações) para o estado atual e se é terminal.
+- `Engine.Navigate(state, input)`: Computa o próximo estado dado um input.
 - `Engine.Inspect()`: Retorna o grafo completo para visualização.
 
 ### 2. Driven Ports (Saída)

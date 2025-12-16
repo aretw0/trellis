@@ -50,9 +50,17 @@ func ExampleNew_memory() {
 	state := engine.Start()
 	ctx := context.Background()
 
-	// 5. Execute a Step (Input: "yes")
+	// 5. Navigate (Input: "yes")
 	// "start" -> (input: yes) -> "yes"
-	actions, nextState, err := engine.Step(ctx, state, "yes")
+	// Note: Example previously captured actions from Step.
+	// Render to show we can get actions, then Navigate.
+	actions, _, err := engine.Render(ctx, state)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Verify actions from start node (optional in example, but good for completeness)
+
+	nextState, err := engine.Navigate(ctx, state, "yes")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,4 +71,5 @@ func ExampleNew_memory() {
 	}
 	// Output:
 	// Current Node: yes
+	// Action: RENDER_CONTENT
 }

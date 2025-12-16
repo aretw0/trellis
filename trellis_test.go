@@ -35,11 +35,19 @@ Hello World`)
 		t.Errorf("Expected initial state 'start', got '%s'", state.CurrentNodeID)
 	}
 
-	// 3. Test Step
-	actions, nextState, err := engine.Step(context.Background(), state, "")
+	// 3. Test Render (Start Node)
+	actions, _, err := engine.Render(context.Background(), state)
 	if err != nil {
-		t.Fatalf("Step failed: %v", err)
+		t.Fatalf("Render failed: %v", err)
 	}
+
+	if len(actions) == 0 {
+		t.Error("Expected actions from start node, got 0")
+	}
+
+	// 4. Test Navigate (No input -> Next)
+	// Assuming Start flows to something else or just testing validity of current state if no input provided.
+	// In this test we just want to ensure Render worked.
 
 	if len(actions) == 0 {
 		// It might be empty if we don't render on empty input, but let's check payload if present
@@ -58,5 +66,4 @@ Hello World`)
 		}
 	}
 
-	_ = nextState
 }

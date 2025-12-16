@@ -57,17 +57,17 @@ Welcome.
 
 	// 5. Test Case 1: Wrong Password -> Should STAY at start
 	state := eng.Start()
-	// Step 1: Start node (Load)
-	_, state, err = eng.Step(context.Background(), state, "")
+	// Step 1: Start node (Render)
+	_, _, err = eng.Render(context.Background(), state)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to render start: %v", err)
 	}
 	if state.CurrentNodeID != "start" {
 		t.Errorf("Expected start, got %s", state.CurrentNodeID)
 	}
 
 	// Step 2: Input "wrong"
-	_, nextState, err := eng.Step(context.Background(), state, "wrong")
+	nextState, err := eng.Navigate(context.Background(), state, "wrong")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,8 @@ Welcome.
 	// 6. Test Case 2: Right Password -> Should go to secret_room
 	// Reuse state (it is still at start)
 
-	_, nextState, err = eng.Step(context.Background(), state, "password")
+	// Step 3: Input "password" -> Navigate
+	nextState, err = eng.Navigate(context.Background(), state, "password")
 	if err != nil {
 		t.Fatal(err)
 	}

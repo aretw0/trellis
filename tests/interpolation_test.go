@@ -41,8 +41,9 @@ Hello, {{ username }}!
 	state := domain.NewState("welcome")
 	state.Memory["username"] = "Alice"
 
-	// 5. Run Step
-	actions, _, err := eng.Step(context.Background(), state, "")
+	// 5. Run Render
+	// We only care about the Output actions here.
+	actions, _, err := eng.Render(context.Background(), state)
 	if err != nil {
 		t.Fatal(err)
 	}

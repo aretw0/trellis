@@ -62,7 +62,7 @@ Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O obj
 
 Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) típicas de Agentes de IA.
 
-- [ ] **Stateless Engine**: Garantir que o `Engine.Step` seja puramente funcional e não retenha nada além do que é passado.
+- [ ] **Stateless Engine**: Garantir que as funções `Render` e `Navigate` sejam puramente funcionais.
 - [ ] **JSON IO**: Garantir que o runner possa operar puramente com Input JSON -> Output JSON, sem TTY.
 - [ ] **Validator Refactor**: Reimplementar `trellis validate` para operar sobre a abstração `GraphLoader`, permitindo validar grafos em memória ou bancos, não apenas arquivos.
 - [ ] **Strict Serialization**: Resolver o problema de ambiguidade de tipos (`map[string]any`) na serialização/desserialização JSON (int vs float).
@@ -72,7 +72,7 @@ Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) t
 Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda com LLMs.
 
 - [ ] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "checkout_flow.md"`). Permite modularização.
-- [ ] **Stateless Server Mode**: Um adaptador HTTP/gRPC de exemplo que expõe o `Engine.Step`.
+- [ ] **Stateless Server Mode**: Um adaptador HTTP/gRPC de exemplo que expõe `Render/Navigate`.
 - [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
 ### 🔮 Backlog / Concepts
