@@ -53,9 +53,12 @@ Foco: Reduzir a barreira de entrada, clarificar a arquitetura para novos usuári
 Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O objetivo é inspirar, não criar um framework de UI.
 
 - [x] **Basic TUI Renderer**: Integração simples com `charmbracelet/glamour` apenas para sanitização e renderização básica de Markdown.
-- [ ] **Interactive Inputs Prototype**: PoC de como o Engine pode solicitar inputs complexos (ex: select list), mas delegando a UI para o Host.
+- [ ] **Interactive Inputs Prototype**: PoC de como o Engine pode solicitar inputs complexos, delegando a UI para o Host.
+  - *Constraint*: O Engine deve solicitar **dados** (ex: "OneOf: [A, B]"), não **widgets** (ex: "SelectBox"). Evitar acoplamento visual.
 - [ ] **Dev Mode (Hot Reload)**: Implementar monitoramento de arquivos (Watch).
   - *Estratégia*: Inicialmente no `Running Loop` (CLI).
+  - *Caveat (State Handling)*: Não tentar reconciliação complexa de estado. Se o grafo mudar estruturalmente, reiniciar a sessão ou exibir aviso.
+  - *Constraint*: O Watcher deve suportar "Atomic Saves" (que alteram inodes) robustamente em Windows/Linux.
   - *Future-Proofing*: Abstrair via interface `Watcher` para que, quando o Loam tiver suporte nativo, possamos apenas trocar a implementação sem mudar o CLI.
 
 ### 🚧 v0.3.3: Stateless & Serverless (The "Cloud" Phase)
