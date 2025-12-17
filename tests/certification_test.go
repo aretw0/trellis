@@ -8,6 +8,7 @@ import (
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/trellis/internal/dto"
+	"github.com/aretw0/trellis/internal/testutils"
 )
 
 // TestCertificationSuite runs the certification specs defined in tests/specs.
@@ -46,23 +47,17 @@ func TestCertification_Examples(t *testing.T) {
 }
 
 func runSpec(t *testing.T, sourcePath string) {
-	// 1. Setup Isolated Temp Dir for this test
-	tempDir := t.TempDir()
+	// 1. Setup Test Repo
+	tempDir, repo := testutils.SetupTestRepo(t)
 
 	// 2. Copy Spec Data to Temp Dir
 	if err := copyDir(sourcePath, tempDir); err != nil {
 		t.Fatalf("Failed to copy spec data: %v", err)
 	}
 
-	// 3. Init Loam on the Temp Dir
-	// Even if IsDevRun is true, pointing to a new TempDir creates a fresh environment.
-	// We use absolute path of tempDir.
-	absPath, _ := filepath.Abs(tempDir)
-
-	repo, err := loam.Init(absPath)
-	if err != nil {
-		t.Fatalf("Loam init failed: %v", err)
-	}
+	// 3. Init Loam already done by helper.
+	// But we need the repo variable.
+	// repo is returned by helper.
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
 
 	// 4. Crawler / BFS Validation

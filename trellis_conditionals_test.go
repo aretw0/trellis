@@ -4,20 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/internal/testutils"
 )
 
 func TestDelegatedLogic(t *testing.T) {
 	// 1. Setup Temp Repo
 	// 1. Setup Temp Repo
-	tmpDir := t.TempDir()
-
-	repo, err := loam.Init(tmpDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	tmpDir, repo := testutils.SetupTestRepo(t)
 
 	// 2. Create nodes with condition
 	// start -> (condition: secret_ok) -> secret_room

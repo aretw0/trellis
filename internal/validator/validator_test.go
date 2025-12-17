@@ -5,18 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
+	"github.com/aretw0/trellis/internal/testutils"
 )
 
 func TestValidateGraph(t *testing.T) {
 	// 1. Setup
-	tmpDir := t.TempDir()
-
-	repo, err := loam.Init(tmpDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, repo := testutils.SetupTestRepo(t)
 	ctx := context.Background()
 
 	// 2. Scenario A: Valid Graph
@@ -78,7 +73,7 @@ Start`,
 		t.Fatal(err)
 	}
 
-	err = ValidateGraph(repo, "broken_start")
+	err := ValidateGraph(repo, "broken_start")
 	if err == nil {
 		t.Error("Scenario B (Broken) should have failed, but got nil")
 	} else {

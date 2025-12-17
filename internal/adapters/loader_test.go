@@ -8,15 +8,14 @@ import (
 	"github.com/aretw0/loam"
 	"github.com/aretw0/trellis/internal/adapters"
 	"github.com/aretw0/trellis/internal/dto"
+	"github.com/aretw0/trellis/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoamLoader_ListNodes_NormalizesIDs(t *testing.T) {
 	// Setup Temp Repository
-	tmpDir := t.TempDir()
-	repo, err := loam.Init(tmpDir, loam.WithVersioning(false))
-	require.NoError(t, err)
+	tmpDir, repo := testutils.SetupTestRepo(t)
 
 	// Seed files with various extensions
 	files := map[string]string{
@@ -57,12 +56,10 @@ ID is implied from filename`,
 
 func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
 	// Setup Temp Repository
-	tmpDir := t.TempDir()
-	repo, err := loam.Init(tmpDir, loam.WithVersioning(false))
-	require.NoError(t, err)
+	tmpDir, repo := testutils.SetupTestRepo(t)
 
 	// Create a file with explicit ID having extension
-	err = os.WriteFile(filepath.Join(tmpDir, "node.json"), []byte(`{ "id": "node.json", "type": "text" }`), 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, "node.json"), []byte(`{ "id": "node.json", "type": "text" }`), 0644)
 	require.NoError(t, err)
 
 	// Initialize Adapter
