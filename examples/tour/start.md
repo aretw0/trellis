@@ -1,12 +1,17 @@
 ---
 id: start
-type: text
+type: question
 transitions:
+  - to_node_id: inputs
+    condition: input == "Inputs"
   - to_node_id: choice
 ---
-# Welcome to the Tour
+# Welcome to Trellis Tour
 
-This is a **Trellis** example.
-You are reading a Markdown file (`start.md`).
+This is a simple interactive tour.
+Choose where to go:
 
-Type nothing and press Enter to continue.
+- **Inputs**: See how interactive inputs work.
+- **Choice**: See a legacy choice node (JSON).
+
+Type **Inputs** or just press Enter (defaults to Choice).
