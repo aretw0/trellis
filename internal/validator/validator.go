@@ -7,13 +7,13 @@ import (
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/dto"
 )
 
 // ValidateGraph checks for broken links and unreachable nodes starting from startNodeID.
 func ValidateGraph(repo core.Repository, startNodeID string) error {
 	// We use the TypedRepository to easily parse metadata
-	typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
 	ctx := context.Background()
 
 	// 1. Load Start Node

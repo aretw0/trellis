@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/dto"
 )
 
 // TestCertificationSuite runs the certification specs defined in tests/specs.
@@ -47,7 +47,7 @@ func runSpec(t *testing.T, sourcePath string) {
 	if err != nil {
 		t.Fatalf("Loam init failed: %v", err)
 	}
-	typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
 
 	// 4. Crawler / BFS Validation
 	ctx := context.Background()

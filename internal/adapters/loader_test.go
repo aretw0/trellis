@@ -7,6 +7,7 @@ import (
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/dto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +41,7 @@ ID is implied from filename`,
 	}
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
 	loader := adapters.NewLoamLoader(typedRepo)
 
 	// Execute ListNodes
@@ -65,7 +66,7 @@ func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[adapters.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
 	loader := adapters.NewLoamLoader(typedRepo)
 
 	// Execute GetNode using the normalized name "node"
