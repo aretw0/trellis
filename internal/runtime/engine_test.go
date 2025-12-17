@@ -10,7 +10,7 @@ import (
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
-func TestEngine_Step(t *testing.T) {
+func TestEngine_RenderAndNavigate(t *testing.T) {
 	// Setup
 	loader := adapters.NewInMemoryLoader()
 	engine := runtime.NewEngine(loader)
@@ -18,7 +18,7 @@ func TestEngine_Step(t *testing.T) {
 	// Node 1: Start
 	startNode := domain.Node{
 		ID:      "start",
-		Type:    "question",
+		Type:    domain.NodeTypeQuestion,
 		Content: []byte("Start Node"),
 		Transitions: []domain.Transition{
 			{ToNodeID: "middle", Condition: "input == 'yes'"},
@@ -30,7 +30,7 @@ func TestEngine_Step(t *testing.T) {
 	// Node 2: Middle
 	middleNode := domain.Node{
 		ID:      "middle",
-		Type:    "text",
+		Type:    domain.NodeTypeText,
 		Content: []byte("Middle Node"),
 		Transitions: []domain.Transition{
 			{ToNodeID: "end", Condition: ""}, // Always
@@ -42,7 +42,7 @@ func TestEngine_Step(t *testing.T) {
 	// Node 3: End
 	endNode := domain.Node{
 		ID:          "end",
-		Type:        "text",
+		Type:        domain.NodeTypeText,
 		Content:     []byte("End Node"),
 		Transitions: []domain.Transition{},
 	}
@@ -122,4 +122,58 @@ func TestEngine_Step(t *testing.T) {
 			t.Errorf("Expected auto transition to 'end', got '%s'", nextState.CurrentNodeID)
 		}
 	})
+}
+
+func TestEngine_Render_Inputs(t *testing.T) {
+	// Setup
+	loader := adapters.NewInMemoryLoader()
+	engine := runtime.NewEngine(loader)
+
+	// Node 1: Input Node
+	node := domain.Node{
+		ID:           "input",
+		Type:         domain.NodeTypeQuestion,
+		Content:      []byte("Question content"),
+		Transitions:  []domain.Transition{},
+		InputType:    "choice",
+		InputOptions: []string{"A", "B"},
+		InputDefault: "A",
+	}
+	data, _ := json.Marshal(node)
+	loader.AddNode("input", data)
+
+	// Render
+	state := domain.NewState("input")
+	actions, _, err := engine.Render(context.Background(), state)
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+
+	// Assert
+	if len(actions) != 2 {
+		t.Fatalf("Expected 2 actions, got %d", len(actions))
+	}
+
+	// Check text action
+	if actions[0].Type != domain.ActionRenderContent {
+		t.Errorf("Expected first action to be RENDER_CONTENT, got %s", actions[0].Type)
+	}
+
+	// Check input action
+	inputAct := actions[1]
+	if inputAct.Type != domain.ActionRequestInput {
+		t.Errorf("Expected second action to be REQUEST_INPUT, got %s", inputAct.Type)
+	}
+
+	req, ok := inputAct.Payload.(domain.InputRequest)
+	if !ok {
+		t.Fatalf("Payload is NOT InputRequest, got %T", inputAct.Payload)
+	}
+
+	if req.Type != domain.InputChoice {
+		t.Errorf("Expected input type 'choice', got '%s'", req.Type)
+	}
+	if len(req.Options) != 2 {
+		t.Errorf("Expected 2 options, got %d", len(req.Options))
+	}
 }

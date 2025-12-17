@@ -27,6 +27,24 @@ func TestCertificationSuite(t *testing.T) {
 	}
 }
 
+// TestCertification_Examples runs the certification logic on the public examples.
+// This ensures that our detailed documentation/examples are valid graphs.
+func TestCertification_Examples(t *testing.T) {
+	// Examples are located at ../examples
+	cwd, _ := os.Getwd()
+	examplesDir := filepath.Join(cwd, "..", "examples")
+
+	// Validate "tour"
+	tourPath := filepath.Join(examplesDir, "tour")
+	if _, err := os.Stat(tourPath); os.IsNotExist(err) {
+		t.Skip("examples/tour not found (possibly running in different context)")
+	}
+
+	t.Run("tour", func(t *testing.T) {
+		runSpec(t, tourPath)
+	})
+}
+
 func runSpec(t *testing.T, sourcePath string) {
 	// 1. Setup Isolated Temp Dir for this test
 	tempDir := t.TempDir()
@@ -41,9 +59,7 @@ func runSpec(t *testing.T, sourcePath string) {
 	// We use absolute path of tempDir.
 	absPath, _ := filepath.Abs(tempDir)
 
-	// Note: We intentionally allow Loam to use its default behavior or force temp.
-	// Since we are already in a temp dir, it should be fine.
-	repo, err := loam.Init(absPath, loam.WithVersioning(false), loam.WithForceTemp(false))
+	repo, err := loam.Init(absPath)
 	if err != nil {
 		t.Fatalf("Loam init failed: %v", err)
 	}

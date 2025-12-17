@@ -12,7 +12,6 @@ import (
 
 func TestInterpolation(t *testing.T) {
 	// 1. Setup Temp Repo
-	// 1. Setup Temp Repo
 	tmpDir := t.TempDir()
 
 	repo, err := loam.Init(tmpDir)
