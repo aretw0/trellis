@@ -76,13 +76,25 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 	// But in the new architecture, Render is called explicitly before Navigate, so we always render.
 	// It's up to the Runner to decide if it shows it or not based on previous history?
 	// Actually, Render just returns what the node *says*.
-	if node.Type == "text" || node.Type == "question" {
+	if node.Type == domain.NodeTypeText || node.Type == domain.NodeTypeQuestion {
 		text := string(node.Content)
 		text = interpolate(text, currentState.Memory)
 
 		actions = append(actions, domain.ActionRequest{
 			Type:    domain.ActionRenderContent,
 			Payload: text,
+		})
+	}
+
+	// Calculate Input Request
+	if node.InputType != "" {
+		actions = append(actions, domain.ActionRequest{
+			Type: domain.ActionRequestInput,
+			Payload: domain.InputRequest{
+				Type:    domain.InputType(node.InputType),
+				Options: node.InputOptions,
+				Default: node.InputDefault,
+			},
 		})
 	}
 

@@ -71,6 +71,13 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	data["transitions"] = domainTransitions
 	data["content"] = []byte(doc.Content) // As Base64
 
+	// Map Input Configuration
+	if doc.Data.InputType != "" {
+		data["input_type"] = doc.Data.InputType
+		data["input_options"] = doc.Data.InputOptions
+		data["input_default"] = doc.Data.InputDefault
+	}
+
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal node data: %w", err)
