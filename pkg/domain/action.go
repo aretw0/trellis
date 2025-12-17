@@ -11,7 +11,27 @@ const (
 	// ActionRenderContent requests the host to display content to the user.
 	// Payload: string (the content)
 	ActionRenderContent = "RENDER_CONTENT"
+
+	// ActionRequestInput requests the host to collect input from the user.
+	// Payload: InputRequest
+	ActionRequestInput = "REQUEST_INPUT"
 )
+
+// InputType defines the kind of input requested.
+type InputType string
+
+const (
+	InputText    InputType = "text"
+	InputConfirm InputType = "confirm"
+	InputChoice  InputType = "choice"
+)
+
+// InputRequest describes the constraints and type of input needed.
+type InputRequest struct {
+	Type    InputType `json:"type"`
+	Options []string  `json:"options,omitempty"`
+	Default string    `json:"default,omitempty"`
+}
 
 // ActionResponse represents the result of an ActionRequest.
 type ActionResponse struct {
