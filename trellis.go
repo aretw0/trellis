@@ -103,3 +103,12 @@ func (e *Engine) Navigate(ctx context.Context, state *domain.State, input string
 func (e *Engine) Inspect() ([]domain.Node, error) {
 	return e.runtime.Inspect()
 }
+
+// Watch returns a channel that signals when the underlying graph changes.
+// Returns error if the loader does not support watching.
+func (e *Engine) Watch(ctx context.Context) (<-chan struct{}, error) {
+	if w, ok := e.loader.(ports.Watchable); ok {
+		return w.Watch(ctx)
+	}
+	return nil, fmt.Errorf("current loader does not support watching")
+}
