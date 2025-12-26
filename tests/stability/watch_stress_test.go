@@ -18,27 +18,20 @@ func TestWatchStress(t *testing.T) {
 		t.Skip("Skipping stress test in short mode")
 	}
 
-	// 1. Compile Trellis
-	// We build it to a temporary location to ensure we test the actual binary behavior
-	// 1. Compile Trellis
-	// We build it to a temporary location to ensure we test the actual binary behavior
+	// Build the binary to test the actual CLI behavior.
 	tempBinDir := t.TempDir()
-
 	binPath := filepath.Join(tempBinDir, "trellis")
 	if runtime.GOOS == "windows" {
 		binPath += ".exe"
 	}
 
-	// Assume run from project root, so we point to ./cmd/trellis
-	// If running from ./tests/stability, we need to go up.
-	// We'll rely on "go test ./..." being run from root usually,
-	// but let's try to find go.mod to be safe or just assume relative path "../../cmd/trellis"
+	// Tests run in the package directory, so we look up two levels.
 	cmdBuild := exec.Command("go", "build", "-o", binPath, "../../cmd/trellis")
 	if out, err := cmdBuild.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to compile trellis: %v\nOutput: %s", err, string(out))
 	}
 
-	// 2. Setup Test Environment (Repo)
+	// Setup a fresh repo
 	tempRepoDir := t.TempDir()
 
 	startFile := filepath.Join(tempRepoDir, "start.md")
@@ -48,7 +41,6 @@ func TestWatchStress(t *testing.T) {
 		}
 	}
 
-	// Initial valid content
 	writeContent(`---
 id: start
 type: text
@@ -57,17 +49,14 @@ type: text
 Initial content.
 `)
 
-	// 3. Launch Watcher
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, binPath, "run", "--watch", "--dir", tempRepoDir)
-	// We pipe stdout/stderr to monitor output if needed, or just let it print to test log
-	// For stress test, checking exit code is primary.
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// Create a pipe for Stdin so we can keep it open (simulating interactive session)
+	// Keep stdin open to simulate an interactive session
 	stdinPipe, err := cmd.StdinPipe()
 	if err != nil {
 		t.Fatalf("Failed to create stdin pipe: %v", err)
@@ -78,15 +67,13 @@ Initial content.
 		t.Fatalf("Failed to start trellis: %v", err)
 	}
 
-	// Give it a second to startup
+	// Give it a moment to startup
 	time.Sleep(2 * time.Second)
 
-	// 4. Stress Loop
 	iterations := 10
 	t.Logf("Starting stress loop (%d iterations)...", iterations)
 
 	for i := 0; i < iterations; i++ {
-		// Valid update
 		t.Logf("[%d] Updating with Valid Content", i)
 		writeContent(fmt.Sprintf(`---
 id: start
@@ -98,7 +85,6 @@ Updated content.
 
 		time.Sleep(200 * time.Millisecond)
 
-		// Invalid update (Broken YAML)
 		t.Logf("[%d] Updating with Invalid Content (Chaos)", i)
 		writeContent(`---
 id: start
@@ -109,7 +95,7 @@ broken_yaml: [ unclosed list
 		// The watcher should log an error but NOT crash
 		time.Sleep(200 * time.Millisecond)
 
-		// Valid recovery
+		// Recovery
 		writeContent(fmt.Sprintf(`---
 id: start
 type: text
@@ -121,21 +107,14 @@ Recovered content.
 		time.Sleep(300 * time.Millisecond)
 	}
 
-	// 5. Cleanup & Verify
 	t.Log("Stress loop finished. Stopping process...")
-	cancel() // Kills the context -> Kills the process
+	cancel()
 
-	// Wait for process validation
 	err = cmd.Wait()
-
-	// verification logic:
-	// Process killed by context -> err is usually "signal: killed" or similar.
-	// If it crashed EARLIER (during loop), err would be non-nil and exit code != 0 (and not caused by our kill).
 
 	if err != nil {
 		// Check if it was purely our kill signal
 		if ctx.Err() == context.Canceled {
-			// Expected termination via context
 			return
 		}
 		// If we are on Windows, os.Interrupt might result in exit code 1 or similar.
