@@ -58,10 +58,13 @@ Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O obj
 - [x] **Interactive Inputs Prototype**: PoC de como o Engine pode solicitar inputs complexos, delegando a UI para o Host.
   - *Constraint*: O Engine deve solicitar **dados** (ex: "OneOf: [A, B]"), não **widgets** (ex: "SelectBox"). Evitar acoplamento visual.
   - *Certification*: Adicionado `TestCertification_Examples` para validar a integridade dos exemplos públicos (`examples/tour`).
-- [ ] **Dev Mode (Hot Reload)**: Implementar monitoramento de arquivos (Watch) via Loam.
+- [ ] **Consolidate Examples**: Avaliar fusão de `interactive-demo` com `hello-world` para reduzir poluição na raiz.
+- [x] **Dev Mode (Hot Reload)**: Implementar monitoramento de arquivos (Watch) via Loam.
   - *Estratégia*: Utilizar suporte nativo de `Watch` do Loam v0.9.0+.
   - *Caveat (State Handling)*: Não tentar reconciliação complexa de estado. Se o grafo mudar estruturalmente, reiniciar a sessão ou exibir aviso.
-  - *Note*: Loam v0.9.0 já trata "Atomic Saves" e debouncing internamente.
+  - *Status*: Implementado `RunWatch` com tratamento de sinais e debounce.
+- [ ] **Documentation**: Guia explícito para "Interactive Inputs". O exemplo existe, mas falta documentação de referência.
+- [ ] **Hardening**: Testes de estresse para o Watcher (simular falhas de reload e múltiplos saves rápidos).
 
 ### 🚧 v0.3.3: Stateless & Serverless (The "Cloud" Phase)
 
@@ -84,6 +87,7 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
+- **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
 
 ---
 
