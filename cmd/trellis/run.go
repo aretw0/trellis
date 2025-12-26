@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/presentation/tui"
+	"github.com/aretw0/trellis/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -17,28 +16,20 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		repoPath, _ := cmd.Flags().GetString("dir")
 		headless, _ := cmd.Flags().GetBool("headless")
+		watchMode, _ := cmd.Flags().GetBool("watch")
 
-		// Initialize Engine
-		engine, err := trellis.New(repoPath)
-		if err != nil {
-			fmt.Printf("Error initializing trellis: %v\n", err)
+		if watchMode && headless {
+			fmt.Println("Error: --watch and --headless cannot be used together.")
 			os.Exit(1)
 		}
 
-		// Configure Runner
-		runner := trellis.NewRunner()
-		runner.Input = os.Stdin
-		runner.Output = os.Stdout
-		runner.Headless = headless
-
-		if !headless {
-			runner.Renderer = tui.NewRenderer()
-		}
-
-		// Execute
-		if err := runner.Run(engine); err != nil {
-			fmt.Printf("Error running trellis: %v\n", err)
-			os.Exit(1)
+		if watchMode {
+			cli.RunWatch(repoPath)
+		} else {
+			if err := cli.RunInteractive(repoPath, headless); err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
 		}
 	},
 }
@@ -47,6 +38,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.Flags().Bool("headless", false, "Run in headless mode (no prompts, strict IO)")
+	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 
 	// Make 'run' the default if no command is provided?
 	rootCmd.Run = runCmd.Run
