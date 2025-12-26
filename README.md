@@ -44,6 +44,16 @@ trellis graph ./my-flow
 # Outputs: graph TD ...
 ```
 
+### Development Mode (Hot Reload)
+
+Iterate faster on your flows by watching for file changes:
+
+```bash
+trellis run --watch --dir ./my-flow
+```
+
+The engine will monitor your `.md`, `.json`, `.yaml`, and `.yml` files. When you save a change, the session will automatically reload (preserving the workflow loop).
+
 ## Documentação
 
 - [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
