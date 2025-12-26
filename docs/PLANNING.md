@@ -64,7 +64,7 @@ Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O obj
   - *Estratégia*: Utilizar suporte nativo de `Watch` do Loam v0.9.0+.
   - *Caveat (State Handling)*: Não tentar reconciliação complexa de estado. Se o grafo mudar estruturalmente, reiniciar a sessão ou exibir aviso.
   - *Status*: Implementado `RunWatch` com tratamento de sinais e debounce.
-- [ ] **Documentation**: Guia explícito para "Interactive Inputs". O exemplo existe, mas falta documentação de referência.
+- [x] **Documentation**: Guia explícito para "Interactive Inputs". O exemplo existe, mas falta documentação de referência.
 - [ ] **Hardening**: Testes de estresse para o Watcher (simular falhas de reload e múltiplos saves rápidos).
 
 ### 🚧 v0.3.3: Stateless & Serverless (The "Cloud" Phase)

@@ -58,6 +58,7 @@ The engine will monitor your `.md`, `.json`, `.yaml`, and `.yml` files. When you
 
 - [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
 - [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
+- [🎮 Guide: Interactive Inputs](./docs/guides/interactive_inputs.md)
 - [📅 Roadmap & Planning](./docs/PLANNING.md)
 
 ## Estrutura

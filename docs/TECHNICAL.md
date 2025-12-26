@@ -58,7 +58,10 @@ Para evitar a "Complexidade Oculta", seguimos estas restrições:
 A lógica complexa **nunca** deve residir no grafo (Markdown).
 
 - **Errado**: `condition: user.age > 18 && user.status == 'active'` (Isso exige um parser complexo e contexto).
+
 - **Correto**: `condition: is_adult_active` (O Host resolve isso e retorna bool). O Trellis apenas pergunta.
+
+> Veja [Interactive Inputs](../docs/guides/interactive_inputs.md) para detalhes sobre como o Host gerencia inputs.
 
 ### Strict Mode Compiler
 
