@@ -20,11 +20,9 @@ func TestWatchStress(t *testing.T) {
 
 	// 1. Compile Trellis
 	// We build it to a temporary location to ensure we test the actual binary behavior
-	tempBinDir, err := os.MkdirTemp("", "trellis-bin-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp bin dir: %v", err)
-	}
-	defer os.RemoveAll(tempBinDir)
+	// 1. Compile Trellis
+	// We build it to a temporary location to ensure we test the actual binary behavior
+	tempBinDir := t.TempDir()
 
 	binPath := filepath.Join(tempBinDir, "trellis")
 	if runtime.GOOS == "windows" {
@@ -41,11 +39,7 @@ func TestWatchStress(t *testing.T) {
 	}
 
 	// 2. Setup Test Environment (Repo)
-	tempRepoDir, err := os.MkdirTemp("", "trellis-repo-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp repo dir: %v", err)
-	}
-	defer os.RemoveAll(tempRepoDir)
+	tempRepoDir := t.TempDir()
 
 	startFile := filepath.Join(tempRepoDir, "start.md")
 	writeContent := func(content string) {
