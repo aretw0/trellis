@@ -11,12 +11,10 @@ import (
 
 func TestDelegatedLogic(t *testing.T) {
 	// 1. Setup Temp Repo
-	// 1. Setup Temp Repo
 	tmpDir, repo := testutils.SetupTestRepo(t)
 
 	// 2. Create nodes with condition
 	// start -> (condition: secret_ok) -> secret_room
-	// start -> (default) -> public_room
 	startContent := `---
 id: start
 type: text
@@ -34,7 +32,6 @@ Welcome.
 	if err := repo.Save(ctx, core.Document{ID: "secret_room.md", Content: "---\nid: secret_room\n---\nVIP Area"}); err != nil {
 		t.Fatal(err)
 	}
-	// public_room not needed for this flow anymore
 
 	// 3. Define Evaluator that returns true for "is_vip" ONLY if input is "password"
 	evaluator := func(ctx context.Context, condition string, input string) (bool, error) {
