@@ -72,11 +72,13 @@ func (r *Runner) Run(engine *Engine) error {
 
 		// 2. Display Phase & Input Decision
 		hasContent := false
-		if state.CurrentNodeID != lastRenderedID {
-			for _, act := range actions {
-				if act.Type == domain.ActionRenderContent {
-					if msg, ok := act.Payload.(string); ok {
-						hasContent = true
+		for _, act := range actions {
+			if act.Type == domain.ActionRenderContent {
+				if msg, ok := act.Payload.(string); ok {
+					hasContent = true
+
+					// Only print if the node ID has changed (fresh entry)
+					if state.CurrentNodeID != lastRenderedID {
 						output := msg
 						if r.Renderer != nil {
 							rendered, err := r.Renderer(msg)
@@ -89,13 +91,16 @@ func (r *Runner) Run(engine *Engine) error {
 					}
 				}
 			}
+		}
+
+		// Update tracker after potential print
+		if state.CurrentNodeID != lastRenderedID {
 			lastRenderedID = state.CurrentNodeID
 		}
 
 		// 3. Wait Phase (Input)
-		// Policy: If we showed content, we must wait for user acknowledgment/input.
-		// If we didn't show anything (e.g. logic node), we proceed with empty input (auto-skip).
-		// EXCEPTION: If isTerminal is true, we are done. We showed the final message (if any) and we exit.
+		// Policy: If we showed content (or would have show it), we must wait for user acknowledgment/input.
+		// If isTerminal is true, we break (after optionally displaying final content).
 		if isTerminal {
 			break
 		}
@@ -104,7 +109,15 @@ func (r *Runner) Run(engine *Engine) error {
 
 		if needsInput {
 			fmt.Fprint(writer, "> ")
-			text, _ := lineReader.ReadString('\n')
+			text, err := lineReader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					// Graceful exit on EOF
+					break
+				}
+				// Propagate other errors (like "interrupted")
+				return fmt.Errorf("input error: %w", err)
+			}
 			input = strings.TrimSpace(text)
 
 			if input == "exit" || input == "quit" {
