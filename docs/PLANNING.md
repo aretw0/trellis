@@ -71,8 +71,8 @@ Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O obj
 
 Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) típicas de Agentes de IA.
 
-- [ ] **Stateless Engine**: Garantir que as funções `Render` e `Navigate` sejam puramente funcionais.
-- [ ] **JSON IO**: Garantir que o runner possa operar puramente com Input JSON -> Output JSON, sem TTY.
+- [x] **Stateless Engine**: Garantir que as funções `Render` e `Navigate` sejam puramente funcionais.
+- [x] **JSON IO**: Garantir que o runner possa operar puramente com Input JSON -> Output JSON, sem TTY.
 - [ ] **Validator Refactor**: Reimplementar `trellis validate` para operar sobre a abstração `GraphLoader`, permitindo validar grafos em memória ou bancos, não apenas arquivos.
 - [ ] **Strict Serialization**: Resolver o problema de ambiguidade de tipos (`map[string]any`) na serialização/desserialização JSON (int vs float).
 

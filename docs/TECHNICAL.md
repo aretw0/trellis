@@ -41,6 +41,7 @@ O **Loam** atua como bibliotecário e camada de persistência.
 
 - **Responsabilidade**: Garantir integridade e fornecer documentos normalizados (`DocumentModel`).
 - **Trellis Adapter (`LoamLoader`)**: Converte `DocumentModel` para JSON/Structs que o Compiler entende.
+- **Constraints (Dev Mode)**: Quando executado via `go run` (sem build), o Loam força o uso de um diretório temporário para evitar side-effects em arquivos locais. Isso exige cuidado ao testar caminhos relativos em desenvolvimento.
 
 ### Estratégia de Compilação
 
