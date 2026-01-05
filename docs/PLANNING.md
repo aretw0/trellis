@@ -48,7 +48,7 @@ Foco: Reduzir a barreira de entrada, clarificar a arquitetura para novos usuári
   - [x] Atualizar README: Diagrama "Host -> Trellis -> Adapter".
   - [x] Clarificar que Loam é "Batteries Included", mas opcional.
 
-### 🚧 v0.3.2: Reference Implementation (Minimal TUI)
+### ✅ v0.3.2: Reference Implementation (Minimal TUI)
 
 Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O objetivo é inspirar, não criar um framework de UI.
 
