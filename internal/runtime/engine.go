@@ -40,17 +40,16 @@ func DefaultEvaluator(ctx context.Context, condition string, input string) (bool
 }
 
 // NewEngine creates a new engine with dependencies.
-func NewEngine(loader ports.GraphLoader) *Engine {
+// The engine is immutable after creation.
+func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator) *Engine {
+	if evaluator == nil {
+		evaluator = DefaultEvaluator
+	}
 	return &Engine{
 		loader:    loader,
 		parser:    compiler.NewParser(),
-		evaluator: DefaultEvaluator, // Set default
+		evaluator: evaluator,
 	}
-}
-
-// SetEvaluator sets the condition evaluator for the engine.
-func (e *Engine) SetEvaluator(eval ConditionEvaluator) {
-	e.evaluator = eval
 }
 
 // Step executes a single step (Render + Transition).

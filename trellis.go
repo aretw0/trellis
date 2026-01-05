@@ -72,12 +72,7 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 	}
 
 	// Initialize Core Runtime with the selected loader
-	eng.runtime = runtime.NewEngine(eng.loader)
-
-	// Apply runtime-specific options if any
-	if eng.evaluator != nil {
-		eng.runtime.SetEvaluator(eng.evaluator)
-	}
+	eng.runtime = runtime.NewEngine(eng.loader, eng.evaluator)
 
 	return eng, nil
 }

@@ -13,7 +13,7 @@ import (
 func TestEngine_RenderAndNavigate(t *testing.T) {
 	// Setup
 	loader := adapters.NewInMemoryLoader()
-	engine := runtime.NewEngine(loader)
+	engine := runtime.NewEngine(loader, nil)
 
 	// Node 1: Start
 	startNode := domain.Node{
@@ -127,7 +127,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 func TestEngine_Render_Inputs(t *testing.T) {
 	// Setup
 	loader := adapters.NewInMemoryLoader()
-	engine := runtime.NewEngine(loader)
+	engine := runtime.NewEngine(loader, nil)
 
 	// Node 1: Input Node
 	node := domain.Node{
