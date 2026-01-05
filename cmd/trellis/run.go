@@ -17,6 +17,7 @@ var runCmd = &cobra.Command{
 		repoPath, _ := cmd.Flags().GetString("dir")
 		headless, _ := cmd.Flags().GetBool("headless")
 		watchMode, _ := cmd.Flags().GetBool("watch")
+		jsonMode, _ := cmd.Flags().GetBool("json")
 
 		if watchMode && headless {
 			fmt.Println("Error: --watch and --headless cannot be used together.")
@@ -26,7 +27,12 @@ var runCmd = &cobra.Command{
 		if watchMode {
 			cli.RunWatch(repoPath)
 		} else {
-			if err := cli.RunInteractive(repoPath, headless); err != nil {
+			// cli.RunInteractive doesn't support passing handler yet.
+			// We need to instantiate the runner manually or update RunInteractive.
+			// Let's check RunInteractive in session.go.
+			// Actually, let's just inline the runner setup here or update session.go?
+			// Updating session.go is cleaner.
+			if err := cli.RunSession(repoPath, headless, jsonMode); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -38,6 +44,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.Flags().Bool("headless", false, "Run in headless mode (no prompts, strict IO)")
+	runCmd.Flags().Bool("json", false, "Run in JSON mode (NDJSON input/output)")
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 
 	// Make 'run' the default if no command is provided?

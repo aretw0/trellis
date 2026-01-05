@@ -14,8 +14,8 @@ import (
 	"github.com/aretw0/trellis/internal/presentation/tui"
 )
 
-// RunInteractive executes a single session of Trellis.
-func RunInteractive(repoPath string, headless bool) error {
+// RunSession executes a single session of Trellis.
+func RunSession(repoPath string, headless bool, jsonMode bool) error {
 	// Initialize Engine
 	engine, err := trellis.New(repoPath)
 	if err != nil {
@@ -24,12 +24,27 @@ func RunInteractive(repoPath string, headless bool) error {
 
 	// Configure Runner
 	runner := trellis.NewRunner()
-	runner.Input = os.Stdin
-	runner.Output = os.Stdout
 	runner.Headless = headless
 
-	if !headless {
-		runner.Renderer = tui.NewRenderer()
+	if jsonMode {
+		runner.Handler = trellis.NewJSONHandler(os.Stdin, os.Stdout)
+	} else {
+		// Default Text Handler
+		// We can explicitly set it or let runner default fallback.
+		// Explicit is better if we want to attach the renderer.
+		// Wait, NewRunner defaults don't set Handler.
+		// The Runner.Run logic handles fallback.
+		// But we want to attach TUI renderer if not headless.
+
+		// If we rely on fallback, we lose the Ability to set Renderer on the Handler?
+		// TextHandler needs the Renderer.
+		// So we should instantiate TextHandler here.
+
+		th := trellis.NewTextHandler(os.Stdin, os.Stdout)
+		if !headless {
+			th.Renderer = tui.NewRenderer()
+		}
+		runner.Handler = th
 	}
 
 	// Execute
