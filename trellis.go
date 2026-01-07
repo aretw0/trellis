@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/trellis/internal/adapters"
 	"github.com/aretw0/trellis/internal/dto"
 	"github.com/aretw0/trellis/internal/runtime"
@@ -60,8 +61,12 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 			return nil, fmt.Errorf("invalid path: %w", err)
 		}
 
-		// Initialize Loam
-		repo, err := loam.Init(absPath)
+		// Initialize Loam with Strict JSON Serializer to avoid map[string]any ambiguities (int vs float)
+		// Limitation: We target ".json" specifically because strict number parsing (json.Number)
+		// can cause type errors with other parsers (like YAML/Markdown frontmatter) that expect strings or standard types.
+		repo, err := loam.Init(absPath,
+			loam.WithSerializer(".json", fs.NewJSONSerializer(true)),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize loam: %w", err)
 		}
