@@ -1,2 +1,5 @@
 *.exe
 .loam/
+
+.gemini/
+gha-creds-*.json
