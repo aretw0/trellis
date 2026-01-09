@@ -18,5 +18,6 @@ type LoaderTransition struct {
 	FromFull  string `json:"from_node_id" mapstructure:"from_node_id"`
 	To        string `json:"to" mapstructure:"to"`
 	ToFull    string `json:"to_node_id" mapstructure:"to_node_id"`
+	JumpTo    string `json:"jump_to" mapstructure:"jump_to"`
 	Condition string `json:"condition" mapstructure:"condition"`
 }

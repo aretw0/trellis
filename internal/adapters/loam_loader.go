@@ -47,6 +47,9 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 		if to == "" {
 			to = lt.ToFull
 		}
+		if to == "" {
+			to = lt.JumpTo
+		}
 		from := lt.From
 		if from == "" {
 			from = lt.FromFull
@@ -109,9 +112,9 @@ func (l *LoamLoader) ListNodes() ([]string, error) {
 func trimExtension(id string) string {
 	ext := filepath.Ext(id)
 	if ext != "" {
-		return strings.TrimSuffix(id, ext)
+		return filepath.ToSlash(strings.TrimSuffix(id, ext))
 	}
-	return id
+	return filepath.ToSlash(id)
 }
 
 // Watch returns a channel that is signaled when key files change in the Loam repository.
