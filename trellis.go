@@ -63,8 +63,11 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 		// Initialize Loam with global strict mode (v0.10.4+)
 		// This ensures that all adapters (JSON, Markdown/YAML) return consistent numeric types (json.Number),
 		// preventing "float64" ambiguity for large integers.
+		// We also enforce ReadOnly mode (v0.10.6+) to avoid Loam's "sandbox" behavior in dev mode.
+		// The Engine never modifies the graph structure, only reads it.
 		repo, err := loam.Init(absPath,
 			loam.WithStrict(true),
+			loam.WithReadOnly(true),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize loam: %w", err)
@@ -110,4 +113,9 @@ func (e *Engine) Watch(ctx context.Context) (<-chan struct{}, error) {
 		return w.Watch(ctx)
 	}
 	return nil, fmt.Errorf("current loader does not support watching")
+}
+
+// Loader returns the underlying GraphLoader used by the engine.
+func (e *Engine) Loader() ports.GraphLoader {
+	return e.loader
 }
