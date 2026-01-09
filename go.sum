@@ -6,6 +6,8 @@ github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc
 github.com/alecthomas/repr v0.4.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/aretw0/loam v0.10.5 h1:om1eiN1f1x4ATpE/m85GI2mRq1es9acF4HWtpvrco0w=
 github.com/aretw0/loam v0.10.5/go.mod h1:dmVoE+Hrk394X9zZBfT/l5fB5pG7fxWBZD2y1+3zzYU=
+github.com/aretw0/loam v0.10.6 h1:z98uxwhiM1NzYGZwFmgY1V2bNF2Fm+6SEHqlIDkS2Nw=
+github.com/aretw0/loam v0.10.6/go.mod h1:dmVoE+Hrk394X9zZBfT/l5fB5pG7fxWBZD2y1+3zzYU=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/aymanbagabas/go-udiff v0.2.0 h1:TK0fH4MteXUDspT88n8CKzvK0X9O2xu9yQjWpi6yML8=
