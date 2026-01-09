@@ -11,6 +11,13 @@
 
 Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio e as transições permitidas.
 
+## Principais Features
+
+- **Strict Typing & Serialization**: Garante que seus fluxos sejam robustos e livres de erros de digitação.
+- **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`), escalando sua arquitetura.
+- **Hexagonal Architecture**: Core agnóstico (Go Library) desacoplado de FileSystem (Loam Adapter).
+- **Hot Reload**: Desenvolva com feedback instantâneo.
+
 ## Quick Start
 
 ### Instalação

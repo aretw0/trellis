@@ -80,7 +80,7 @@ Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) t
 
 Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda com LLMs.
 
-- [ ] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "checkout_flow.md"`). Permite modularização.
+- [x] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "modules/checkout/start"`). Permite modularização via diretórios e IDs implícitos.
 - [ ] **Stateless Server Mode**: Um adaptador HTTP/gRPC de exemplo que expõe `Render/Navigate`.
 - [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
