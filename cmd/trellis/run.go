@@ -15,6 +15,9 @@ var runCmd = &cobra.Command{
 	Long:  `Starts the Trellis engine in interactive mode with the content from the current directory.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		repoPath, _ := cmd.Flags().GetString("dir")
+		if !cmd.Flags().Changed("dir") && len(args) > 0 {
+			repoPath = args[0]
+		}
 		headless, _ := cmd.Flags().GetBool("headless")
 		watchMode, _ := cmd.Flags().GetBool("watch")
 		jsonMode, _ := cmd.Flags().GetBool("json")

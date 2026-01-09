@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/aretw0/trellis"
@@ -16,6 +17,9 @@ var graphCmd = &cobra.Command{
 	Long:  `Inspects the repository and outputs a Mermaid diagram (graph TD) representing the flow logic.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		repoPath, _ := cmd.Flags().GetString("dir")
+		if !cmd.Flags().Changed("dir") && len(args) > 0 {
+			repoPath = args[0]
+		}
 
 		engine, err := trellis.New(repoPath)
 		if err != nil {
@@ -44,9 +48,21 @@ var graphCmd = &cobra.Command{
 			// Transitions
 			for _, t := range node.Transitions {
 				safeTo := sanitizeMermaidID(t.ToNodeID)
+
+				// Determine if it's a cross-module transition (Jump)
+				fromDir := path.Dir(node.ID)
+				toDir := path.Dir(t.ToNodeID)
+				isJump := fromDir != toDir
+
 				arrow := "-->"
+				if isJump {
+					arrow = "-.->"
+				}
 				if t.Condition != "" {
 					arrow = fmt.Sprintf("-- \"%s\" -->", t.Condition)
+					if isJump {
+						arrow = fmt.Sprintf("-. \"%s\" .->", t.Condition)
+					}
 				}
 				fmt.Printf("    %s %s %s\n", safeID, arrow, safeTo)
 			}
