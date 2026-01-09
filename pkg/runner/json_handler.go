@@ -1,4 +1,4 @@
-package trellis
+package runner
 
 import (
 	"bufio"

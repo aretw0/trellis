@@ -12,6 +12,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/presentation/tui"
+	"github.com/aretw0/trellis/pkg/runner"
 )
 
 // RunSession executes a single session of Trellis.
@@ -23,11 +24,11 @@ func RunSession(repoPath string, headless bool, jsonMode bool) error {
 	}
 
 	// Configure Runner
-	runner := trellis.NewRunner()
-	runner.Headless = headless
+	r := runner.NewRunner()
+	r.Headless = headless
 
 	if jsonMode {
-		runner.Handler = trellis.NewJSONHandler(os.Stdin, os.Stdout)
+		r.Handler = runner.NewJSONHandler(os.Stdin, os.Stdout)
 	} else {
 		// Default Text Handler
 		// We can explicitly set it or let runner default fallback.
@@ -40,15 +41,15 @@ func RunSession(repoPath string, headless bool, jsonMode bool) error {
 		// TextHandler needs the Renderer.
 		// So we should instantiate TextHandler here.
 
-		th := trellis.NewTextHandler(os.Stdin, os.Stdout)
+		th := runner.NewTextHandler(os.Stdin, os.Stdout)
 		if !headless {
 			th.Renderer = tui.NewRenderer()
 		}
-		runner.Handler = th
+		r.Handler = th
 	}
 
 	// Execute
-	if err := runner.Run(engine); err != nil {
+	if err := r.Run(engine); err != nil {
 		return fmt.Errorf("error running trellis: %w", err)
 	}
 	return nil
@@ -90,10 +91,10 @@ func RunWatch(repoPath string) {
 		// 3. Configure Runner with Interruptible Input
 		interruptReader := NewInterruptibleReader(os.Stdin, sessionCtx.Done())
 
-		runner := trellis.NewRunner()
-		runner.Input = interruptReader
-		runner.Output = os.Stdout
-		runner.Renderer = tui.NewRenderer()
+		r := runner.NewRunner()
+		r.Input = interruptReader
+		r.Output = os.Stdout
+		r.Renderer = tui.NewRenderer()
 
 		// 4. Start Watcher Routine
 		go func() {
@@ -124,7 +125,7 @@ func RunWatch(repoPath string) {
 		// Run logic
 		doneCh := make(chan error, 1)
 		go func() {
-			doneCh <- runner.Run(engine)
+			doneCh <- r.Run(engine)
 		}()
 
 		// Wait for Run completion OR Global Signal

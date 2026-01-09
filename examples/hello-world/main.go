@@ -8,6 +8,7 @@ import (
 	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/runner"
 )
 
 func main() {
@@ -44,14 +45,14 @@ func main() {
 	}
 
 	// 3. Configure Runner with TUI
-	runner := trellis.NewRunner()
-	runner.Input = os.Stdin
-	runner.Output = os.Stdout
-	runner.Headless = false
-	runner.Renderer = tui.NewRenderer() // Inject TUI Renderer
+	r := runner.NewRunner()
+	r.Input = os.Stdin
+	r.Output = os.Stdout
+	r.Headless = false
+	r.Renderer = tui.NewRenderer() // Inject TUI Renderer
 
 	// 4. Run!
-	if err := runner.Run(eng); err != nil {
+	if err := r.Run(eng); err != nil {
 		log.Fatalf("Error running: %v", err)
 	}
 }

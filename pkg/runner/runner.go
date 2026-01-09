@@ -1,10 +1,12 @@
-package trellis
+package runner
 
 import (
 	"context"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/aretw0/trellis"
 )
 
 // Runner handles the execution loop of the Trellis engine using provided IO.
@@ -36,7 +38,7 @@ func NewRunner() *Runner {
 }
 
 // Run executes the engine loop until termination.
-func (r *Runner) Run(engine *Engine) error {
+func (r *Runner) Run(engine *trellis.Engine) error {
 	// Resolve Strategy
 	handler := r.Handler
 	if handler == nil {
