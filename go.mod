@@ -3,7 +3,7 @@ module github.com/aretw0/trellis
 go 1.25.4
 
 require (
-	github.com/aretw0/loam v0.10.3
+	github.com/aretw0/loam v0.10.5
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
