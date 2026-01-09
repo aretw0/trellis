@@ -67,7 +67,7 @@ Foco: Prover uma referência de implementação para TUI/SSH sem exageros. O obj
 - [x] **Documentation**: Guia explícito para "Interactive Inputs". O exemplo existe, mas falta documentação de referência.
 - [x] **Hardening**: Testes de estresse para o Watcher (simular falhas de reload e múltiplos saves rápidos).
 
-### 🚧 v0.3.3: Stateless & Serverless (The "Cloud" Phase)
+### ✅ v0.3.3: Stateless & Serverless (The "Cloud" Phase)
 
 Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) típicas de Agentes de IA.
 
