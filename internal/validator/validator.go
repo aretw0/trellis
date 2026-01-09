@@ -1,38 +1,38 @@
 package validator
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/aretw0/loam"
-	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/trellis/internal/dto"
+	"github.com/aretw0/trellis/internal/compiler"
+	"github.com/aretw0/trellis/pkg/ports"
 )
 
 // ValidateGraph checks for broken links and unreachable nodes starting from startNodeID.
-func ValidateGraph(repo core.Repository, startNodeID string) error {
-	// We use the TypedRepository to easily parse metadata
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	ctx := context.Background()
+func ValidateGraph(loader ports.GraphLoader, parser *compiler.Parser, startNodeID string) error {
 
-	// 1. Load Start Node
-	startDoc, err := typedRepo.Get(ctx, startNodeID)
+	// 1. Get raw start node to verify existence and ID
+	startNodeRaw, err := loader.GetNode(startNodeID)
 	if err != nil {
 		return fmt.Errorf("start node '%s' not found: %w", startNodeID, err)
 	}
 
-	// 2. Crawler
-	visited := make(map[string]bool)
-	// We need to resolve the actual ID if "start" maps to "start.md"
-	actualStartID := startDoc.Data.ID
+	startNode, err := parser.Parse(startNodeRaw)
+	if err != nil {
+		return fmt.Errorf("failed to parse start node '%s': %w", startNodeID, err)
+	}
+
+	// Resolve the canonical ID from the parsed node (e.g. if startNodeID alias was used)
+	actualStartID := startNode.ID
 	if actualStartID == "" {
 		actualStartID = startNodeID
 	}
 
+	// 2. Crawler
+	visited := make(map[string]bool)
 	queue := []string{actualStartID}
 
-	// fmt.Printf("Starting validation from '%s'...\n", actualStartID)
+	visited[actualStartID] = true
 
 	var errors []string
 
@@ -40,34 +40,29 @@ func ValidateGraph(repo core.Repository, startNodeID string) error {
 		currentID := queue[0]
 		queue = queue[1:]
 
-		if visited[currentID] {
-			continue
-		}
-		visited[currentID] = true
-
 		// Load Node
-		doc, err := typedRepo.Get(ctx, currentID)
+		raw, err := loader.GetNode(currentID)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Missing node or load error: '%s'", currentID))
 			continue
 		}
 
+		node, err := parser.Parse(raw)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Invalid node content '%s': %v", currentID, err))
+			continue
+		}
+
 		// Inspect Transitions
-		for _, t := range doc.Data.Transitions {
-			target := t.To
-			if target == "" {
-				target = t.ToFull
-			}
+		for _, t := range node.Transitions {
+			target := t.ToNodeID
 
 			if target == "" {
-				continue // Sink state
+				continue // Sink state or conditional without explicit target (shouldn't happen in valid graph?)
 			}
-
-			// Check if target causes error ?
-			// We optimize by just adding to queue.
-			// If target doesn't exist, the next loop iteration's Get() will fail and report it.
 
 			if !visited[target] {
+				visited[target] = true
 				queue = append(queue, target)
 			}
 		}

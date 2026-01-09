@@ -1,79 +1,48 @@
 package validator
 
 import (
-	"context"
 	"strings"
 	"testing"
 
-	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/trellis/internal/testutils"
+	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/compiler"
 )
 
 func TestValidateGraph(t *testing.T) {
 	// 1. Setup
-	_, repo := testutils.SetupTestRepo(t)
-	ctx := context.Background()
+	parser := compiler.NewParser()
+	loader := adapters.NewInMemoryLoader()
 
 	// 2. Scenario A: Valid Graph
 	// start -> a -> b (end)
-	validDocs := []core.Document{
-		{
-			ID: "start.md",
-			Content: `---
-id: start
-type: text
-transitions:
-  - to: a
----
-Start`,
-		},
-		{
-			ID: "a.md",
-			Content: `---
-id: a
-type: text
-transitions:
-  - to: b
----
-Node A`,
-		},
-		{
-			ID: "b.md",
-			Content: `---
-id: b
-type: text
----
-End`,
-		},
-	}
+	loader.AddNode("start", []byte(`{
+		"id": "start",
+		"type": "text",
+		"transitions": [{"to_node_id": "a"}]
+	}`))
+	loader.AddNode("a", []byte(`{
+		"id": "a",
+		"type": "text",
+		"transitions": [{"to_node_id": "b"}]
+	}`))
+	loader.AddNode("b", []byte(`{
+		"id": "b",
+		"type": "text"
+	}`))
 
-	for _, d := range validDocs {
-		if err := repo.Save(ctx, d); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	if err := ValidateGraph(repo, "start"); err != nil {
+	if err := ValidateGraph(loader, parser, "start"); err != nil {
 		t.Errorf("Scenario A (Valid) failed: %v", err)
 	}
 
 	// 3. Scenario B: Broken Link
 	// start -> ghost
-	brokenDoc := core.Document{
-		ID: "broken_start.md",
-		Content: `---
-id: broken_start
-type: text
-transitions:
-  - to: ghost_node
----
-Start`,
-	}
-	if err := repo.Save(ctx, brokenDoc); err != nil {
-		t.Fatal(err)
-	}
+	loader.AddNode("broken_start", []byte(`{
+		"id": "broken_start",
+		"type": "text",
+		"transitions": [{"to_node_id": "ghost_node"}]
+	}`))
 
-	err := ValidateGraph(repo, "broken_start")
+	err := ValidateGraph(loader, parser, "broken_start")
 	if err == nil {
 		t.Error("Scenario B (Broken) should have failed, but got nil")
 	} else {
