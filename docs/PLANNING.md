@@ -73,7 +73,7 @@ Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) t
 
 - [x] **Stateless Engine**: Garantir que as funções `Render` e `Navigate` sejam puramente funcionais.
 - [x] **JSON IO**: Garantir que o runner possa operar puramente com Input JSON -> Output JSON, sem TTY.
-- [ ] **Validator Refactor**: Reimplementar `trellis validate` para operar sobre a abstração `GraphLoader`, permitindo validar grafos em memória ou bancos, não apenas arquivos.
+- [x] **Validator Refactor**: Reimplementar `trellis validate` para operar sobre a abstração `GraphLoader`, permitindo validar grafos em memória ou bancos, não apenas arquivos.
 - [x] **Strict Serialization**: Implementar suporte a `Strict Mode` global (Loam v0.10.4+). Garante consistência de tipos (`json.Number`) tanto para JSON quanto Markdown/YAML. (Regression test: `tests/serialization_test.go`).
 
 ### 🚧 v0.4: Scale, Protocol & Integration (The "System" Phase)
