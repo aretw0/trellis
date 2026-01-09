@@ -2,100 +2,99 @@ package tests
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/loam/pkg/adapters/fs"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestStrictJSONSerialization verifies that the Loam configuration used by Trellis
-// (specifically fs.NewJSONSerializer(true)) correctly preserves integer types
-// during JSON unmarshaling, preventing the "float64 invasion" in map[string]any.
-//
-// This test mimics the internal initialization done in trellis.New.
-func TestStrictJSONSerialization(t *testing.T) {
-	// 1. Setup
+// setupUniqueTestFiles creates sample files with unique basenames to avoid ID conflicts.
+func setupUniqueTestFiles(t *testing.T, dir string) {
+	jsonContent := `{"val": 9007199254740991}`
+	os.WriteFile(filepath.Join(dir, "file_json.json"), []byte(jsonContent), 0644)
+
+	yamlContent := "val: 9007199254740991"
+	os.WriteFile(filepath.Join(dir, "file_yaml.yaml"), []byte(yamlContent), 0644)
+
+	mdContent := "---\nval: 9007199254740991\n---\n"
+	os.WriteFile(filepath.Join(dir, "file_md.md"), []byte(mdContent), 0644)
+}
+
+// TestNormalization verifies that when WithStrict(true) is enabled,
+// ALL formats (JSON, YAML, Markdown) return consistent numeric types (json.Number).
+func TestNormalization(t *testing.T) {
 	tmpDir := t.TempDir()
+	setupUniqueTestFiles(t, tmpDir)
 
-	// Create a JSON file with specific numeric types
-	// "large_int": a number that definitely stays int (e.g. timestamp or ID)
-	// "classic_int": standard 123
-	// "real_float": 1.23
-	content := `{
-		"large_int": 9007199254740991, 
-		"classic_int": 123,
-		"real_float": 1.23
-	}`
-	// Note: 9007199254740991 is MAX_SAFE_INTEGER
-
-	err := os.WriteFile(filepath.Join(tmpDir, "numbers.json"), []byte(content), 0644)
+	// Init Loam with Global Strict Mode
+	repo, err := loam.Init(tmpDir, loam.WithStrict(true))
 	require.NoError(t, err)
 
-	// 2. Initialize Loam with the Strict Serializer (SAME CONFIG AS TRELLIS)
-	repo, err := loam.Init(tmpDir,
-		loam.WithSerializer(".json", fs.NewJSONSerializer(true)),
-	)
-	require.NoError(t, err)
-
-	// 3. Get document from UNTYPED repo to inspect raw types.
-	// This ensures we are testing the Serializer's behavior (Strict vs Default) configuration.
 	ctx := context.Background()
-	doc, err := repo.Get(ctx, "numbers")
+	files := []string{"file_json", "file_yaml", "file_md"}
+
+	for _, id := range files {
+		t.Run(id, func(t *testing.T) {
+			doc, err := repo.Get(ctx, id)
+			require.NoError(t, err)
+			require.NotNil(t, doc.Metadata)
+
+			val, ok := doc.Metadata["val"]
+			require.True(t, ok)
+
+			// Expectation: Strict mode -> json.Number (or compatible string-based number)
+			// assert.IsType(t, json.Number(""), val, "Should be json.Number in strict mode")
+			// Depending on implementation, checking string rep of type is safer for generic assertions
+			assert.Equal(t, "json.Number", fmt.Sprintf("%T", val), "Type mismatch for %s", id)
+
+			// Verify value correctness
+			// json.Number prints as the original string number
+			s := fmt.Sprintf("%v", val)
+			assert.Equal(t, "9007199254740991", s)
+		})
+	}
+}
+
+// TestNoNormalization verifies the REGRESSION: when WithStrict is NOT enabled (default),
+// we get inconsistent types (Schema Drift risk).
+// JSON -> float64 (Dangerous for large ints)
+// YAML/Markdown -> int (Go default for YAML)
+func TestNoNormalization(t *testing.T) {
+	tmpDir := t.TempDir()
+	setupUniqueTestFiles(t, tmpDir)
+
+	// Init Loam WITHOUT strict mode (Default)
+	repo, err := loam.Init(tmpDir) // No options
 	require.NoError(t, err)
-	require.NotNil(t, doc)
 
-	// 4. Inspect Types in doc.Metadata (map[string]any)
-	data := doc.Metadata
-	require.NotNil(t, data, "Metadata should be populated")
+	ctx := context.Background()
 
-	// Verify large_int
-	valLarge, ok := data["large_int"]
-	require.True(t, ok, "large_int missing from Metadata")
-	t.Logf("large_int type: %T, value: %v", valLarge, valLarge)
+	// 1. Check JSON (Expected: float64)
+	docJSON, err := repo.Get(ctx, "file_json")
+	require.NoError(t, err)
+	valJSON := docJSON.Metadata["val"]
+	assert.Equal(t, "float64", fmt.Sprintf("%T", valJSON), "Default JSON should be float64")
 
-	// With strict=true, we expect int64 or json.Number.
-	// Default (strict=false) would be float64.
-	switch v := valLarge.(type) {
-	case float64:
-		require.Fail(t, "Strict mode failed: large_int is float64")
-	case int64, int:
-		// Success
-	case json.Number:
-		// Success (if configured to use Number, checking it converts to int64)
-		_, err := v.Int64()
-		require.NoError(t, err, "json.Number should compile to Int64")
-	default:
-		t.Logf("Got type %T", v)
-		// If it's something else, we might need to adjust expectation, but definitely NOT float64.
-	}
+	// 2. Check YAML (Expected: int or int64 depending on parser default)
+	docYAML, err := repo.Get(ctx, "file_yaml")
+	require.NoError(t, err)
+	valYAML := docYAML.Metadata["val"]
+	// Usually int in 64-bit systems
+	isInt := fmt.Sprintf("%T", valYAML) == "int" || fmt.Sprintf("%T", valYAML) == "int64"
+	assert.True(t, isInt, "Default YAML should be int/int64, got %T", valYAML)
 
-	// Verify classic_int
-	valClassic, ok := data["classic_int"]
-	require.True(t, ok)
-	switch v := valClassic.(type) {
-	case float64:
-		require.Fail(t, "Strict mode failed: classic_int is float64")
-	case int64, int, json.Number:
-		// Success
-		_ = v
-	}
+	// 3. Check Markdown (Expected: int same as YAML)
+	docMD, err := repo.Get(ctx, "file_md")
+	require.NoError(t, err)
+	valMD := docMD.Metadata["val"]
+	isIntMD := fmt.Sprintf("%T", valMD) == "int" || fmt.Sprintf("%T", valMD) == "int64"
+	assert.True(t, isIntMD, "Default Markdown should be int/int64, got %T", valMD)
 
-	// Verify real_float
-	valFloat, ok := data["real_float"]
-	require.True(t, ok)
-	switch v := valFloat.(type) {
-	case float64:
-		// Expected for actual floats
-	default:
-		// json.Number is also valid
-		if _, ok := v.(json.Number); ok {
-			// valid
-		} else {
-			t.Logf("Unexpected real_float type: %T", v)
-		}
-	}
+	// 4. Assert Inconsistency
+	assert.NotEqual(t, fmt.Sprintf("%T", valJSON), fmt.Sprintf("%T", valMD),
+		"Without Strict mode, types should be INCONSISTENT (float64 vs int)")
 }
