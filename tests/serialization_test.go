@@ -14,6 +14,8 @@ import (
 
 // setupUniqueTestFiles creates sample files with unique basenames to avoid ID conflicts.
 func setupUniqueTestFiles(t *testing.T, dir string) {
+	t.Helper()
+
 	jsonContent := `{"val": 9007199254740991}`
 	os.WriteFile(filepath.Join(dir, "file_json.json"), []byte(jsonContent), 0644)
 

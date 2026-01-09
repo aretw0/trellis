@@ -1,17 +1,78 @@
-package adapters_test
+package adapters
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/trellis/internal/dto"
 	"github.com/aretw0/trellis/internal/testutils"
+	"github.com/aretw0/trellis/pkg/ports/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLoamLoader_Contract(t *testing.T) {
+	// 1. Setup Loam (via testutils which ensures Strict Mode)
+	// dir, repo := testutils.SetupTestRepo(t)
+	// Actually we need the directory path only if we were writing files manually.
+	// But `repo.Save` handles saving documents.
+	// We need `repo` for the adapter.
+
+	_, repo := testutils.SetupTestRepo(t)
+
+	// 2. Setup Data
+	ctx := context.Background()
+
+	// Node A: Regular
+	// Node B: With transitions
+
+	setupData := map[string][]byte{
+		"a": []byte(`{"content":"Tm9kZSBB","id":"a","transitions":[],"type":"text"}`),                   // Base64 "Node A"
+		"b": []byte(`{"content":"Tm9kZSBC","id":"b","transitions":[{"to_node_id":"a"}],"type":"text"}`), // Base64 "Node B"
+	}
+
+	// We need to save these as Loam documents first
+	// Note: LoamLoader.GetNode returns JSON compatible with domain.Node.
+	// But to populate Loam, we write Markdown/YAML.
+
+	docA := core.Document{
+		ID: "a.md",
+		Content: `---
+id: a
+type: text
+---
+Node A`,
+	}
+
+	docB := core.Document{
+		ID: "b.md",
+		Content: `---
+id: b
+type: text
+transitions:
+  - to: a
+---
+Node B`,
+	}
+
+	if err := repo.Save(ctx, docA); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.Save(ctx, docB); err != nil {
+		t.Fatal(err)
+	}
+
+	// 3. Create Adapter
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	loader := NewLoamLoader(typedRepo)
+
+	// 4. Run Contract
+	tests.GraphLoaderContractTest(t, loader, setupData)
+}
 
 func TestLoamLoader_ListNodes_NormalizesIDs(t *testing.T) {
 	// Setup Temp Repository
@@ -41,7 +102,7 @@ ID is implied from filename`,
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := adapters.NewLoamLoader(typedRepo)
+	loader := NewLoamLoader(typedRepo)
 
 	// Execute ListNodes
 	ids, err := loader.ListNodes()
@@ -64,7 +125,7 @@ func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := adapters.NewLoamLoader(typedRepo)
+	loader := NewLoamLoader(typedRepo)
 
 	// Execute GetNode using the normalized name "node"
 	data, err := loader.GetNode("node")

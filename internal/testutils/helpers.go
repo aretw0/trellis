@@ -22,7 +22,9 @@ func SetupTestRepo(t *testing.T, opts ...loam.Option) (string, core.Repository) 
 	absPath, err := filepath.Abs(tmpDir)
 	require.NoError(t, err, "Failed to get absolute path for temp dir")
 
-	repo, err := loam.Init(absPath, opts...)
+	// Enforce strict mode for all tests to match production behavior
+	finalOpts := append([]loam.Option{loam.WithStrict(true)}, opts...)
+	repo, err := loam.Init(absPath, finalOpts...)
 	require.NoError(t, err, "Failed to init loam repo")
 
 	return absPath, repo
