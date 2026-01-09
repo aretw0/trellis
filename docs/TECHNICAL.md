@@ -20,6 +20,65 @@ As interfaces que o engine usa para buscar dados.
 - `GraphLoader.GetNode(id)`: Abstração para carregar nós. O **Loam** implementa isso via adapter.
 - `GraphLoader.ListNodes()`: Descoberta de nós para introspecção.
 
+### Diagrama de Arquitetura (Hexagonal)
+
+```mermaid
+graph TD
+    Host[Host Application / CLI] -->|Driver Port| Engine
+    subgraph "Trellis Core"
+        Engine[Engine - Runtime]
+        Domain[Domain - Node, State]
+    end
+    Engine -->|Driven Port| Loader[GraphLoader Interface]
+    Loader -.->|Adapter| Loam[Loam - File System]
+    Loader -.->|Adapter| Mem[Memory - Testing]
+```
+
+### Fluxo de Execução
+
+```mermaid
+sequenceDiagram
+    participant Host
+    participant Engine
+    participant Loader
+    
+    Host->>Engine: Start()
+    Engine->>Loader: GetNode("start")
+    Loader-->>Engine: Node
+    Engine-->>Host: State(Start)
+    
+    loop Game Loop
+        Host->>Engine: Render(State)
+        Engine-->>Host: Actions (View)
+        Host->>Host: User Input / Logic
+        Host->>Engine: Navigate(State, Input)
+        Engine->>Engine: Evaluate Transitions
+        Engine->>Loader: GetNode(NextID)
+        Loader-->>Engine: Node
+        Engine-->>Host: NewState
+    end
+```
+
+## 3. Global Strict Serialization (Integridade de Dados)
+
+O Trellis adota uma postura de "Strict Types" para garantir a determinística da máquina de estados, especialmente ao lidar com `map[string]any` (Metadados).
+
+### O Problema do `float64`
+
+Por padrão, decodificadores JSON em Go tratam números arbitrários como `float64`. Isso é catastrófico para:
+
+- IDs numéricos grandes (ex: Snowflake IDs).
+- Timestamps de alta precisão.
+- Inteiros que não devem virar decimais (ex: `count: 1` virando `1.0`).
+
+### A Solução: Global Strict Mode
+
+A partir da integração com **Loam v0.10.4**, o Trellis força o modo estrito em **todos** os adaptadores (JSON e Markdown/YAML).
+Isso garante que:
+
+- Números são decodificados como `json.Number` (string-based) ou `int64`, nunca `float64` impreciso.
+- Existe consistência de tipos entre formatos diferentes (JSON vs YAML não causam "drift" de esquema).
+
 ## Estrutura de Diretórios e Decisões
 
 ```text
