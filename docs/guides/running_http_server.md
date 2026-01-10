@@ -19,7 +19,26 @@ go run ./cmd/trellis serve --dir ./examples/tour --port 8080
 make serve-tour
 ```
 
-## 2. Accessing Swagger UI
+## 2. Hot Reload (SSE)
+
+The server exposes a `/events` endpoint for real-time updates using Server-Sent Events (SSE). This is used by clients to trigger reloads when the graph changes.
+
+Test it with curl:
+
+```bash
+curl -N http://localhost:8080/events
+```
+
+Output:
+
+```text
+event: ping
+data: connected
+
+data: reload
+```
+
+## 3. Accessing Swagger UI
 
 Once the server is running, open your browser to:
 
@@ -27,7 +46,7 @@ Once the server is running, open your browser to:
 
 You will see the interactive API documentation.
 
-## 3. Usage Examples (The Tour)
+## 4. Usage Examples (The Tour)
 
 The `tour` flow starts at the `start` node. Since the server is stateless, **you (the client)** are responsible for holding the `state` object and passing it back to the server for each step.
 

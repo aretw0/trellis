@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/go-chi/chi/v5"
@@ -175,7 +176,8 @@ func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			fmt.Printf("Visualizer Event: %s\n", event)
+			// Log event to server console for DX
+			fmt.Printf("[%s] SSE Broadcast: %s\n", time.Now().Format("15:04:05"), event)
 			fmt.Fprintf(w, "data: %s\n\n", event)
 			flusher.Flush()
 		}
