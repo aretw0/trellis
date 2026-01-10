@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -33,7 +35,7 @@ func NewServer(engine Engine, loader ports.GraphLoader) *Server {
 	s := &Server{
 		engine:    engine,
 		loader:    loader,
-		mcpServer: server.NewMCPServer("trellis-mcp", "0.0.1"), // TODO: Use actual version
+		mcpServer: server.NewMCPServer("trellis-mcp", strings.TrimSpace(trellis.Version)),
 	}
 	s.registerTools()
 	s.registerResources()
