@@ -54,3 +54,7 @@ O Trellis ocupa um espaço crítico na arquitetura de **Agentes de IA (LLMs)**, 
   - **MemoryLoader**: Permite injetar grafos dinamicamente em memória, ideal para ambientes onde o fluxo é gerado on-the-fly.
 
 > "Use o Trellis para garantir que o Agente siga o processo de compliance, e o LLM para garantir que ele seja educado enquanto faz isso."
+
+## Related Guides
+
+- [Running HTTP Server](./guides/running_http_server.md): Guide for using Trellis as a stateless backend for Agents.

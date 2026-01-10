@@ -69,8 +69,11 @@ If you are building a custom integration, you need to handle the `ActionRequestI
 ```go
 for _, act := range actions {
     if req, ok := act.Payload.(domain.InputRequest); ok {
-        // Render your custom UI widget here
         // Then pass the result to engine.Navigate(ctx, state, result)
     }
 }
 ```
+
+## Related Guides
+
+- [Running HTTP Server](./running_http_server.md): Learn how to handle inputs over a stateless JSON API.

@@ -43,8 +43,9 @@ go run ./cmd/trellis ./examples/tour
 # Interactive mode
 trellis run ./my-flow
 
-# Headless mode (for automation/pipes)
-echo "start\nyes" | trellis run --headless ./my-flow
+# HTTP Server Mode (Stateless)
+trellis serve --dir ./my-flow --port 8080
+# Swagger UI available at: http://localhost:8080/swagger
 ```
 
 ### Introspection
@@ -56,8 +57,17 @@ trellis graph ./my-flow
 # Outputs: graph TD ...
 ```
 
-### Development Mode (Hot Reload)
+### Development Mode
 
+**Using Makefile (Recommended):**
+
+```bash
+make gen    # Generate Go code from OpenAPI spec
+make serve  # Run server with 'tour' example
+make test   # Run tests
+```
+
+**Manual Hot Reload:**
 Iterate faster on your flows by watching for file changes:
 
 ```bash
@@ -70,6 +80,7 @@ The engine will monitor your `.md`, `.json`, `.yaml`, and `.yml` files. When you
 
 - [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
 - [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
+- [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
 - [🎮 Guide: Interactive Inputs](./docs/guides/interactive_inputs.md)
 - [📅 Roadmap & Planning](./docs/PLANNING.md)
 

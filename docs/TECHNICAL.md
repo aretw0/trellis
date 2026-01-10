@@ -136,5 +136,17 @@ A lógica complexa **nunca** deve residir no grafo (Markdown).
 O compilador deve ser implacável.
 
 - Variáveis não declaradas resultam em erro de compilação.
-- Links quebrados resultam em erro de compilação.
 - O objetivo é **Confiança Total**: Se compilou, não existem "Dead Ends" lógicos causados por typos.
+
+## 6. Stateless Server Mode (v0.4+)
+
+Introduzido na versão 0.4.0, o Trellis pode operar como um servidor HTTP stateless.
+
+- **Contract-First**: A API é definida em `api/openapi.yaml` e as interfaces Go são geradas via `oapi-codegen`.
+- **Implementação**: `internal/adapters/http` usa `chi` como roteador.
+- **Endpoints**:
+  - `GET /graph`: Retorna o grafo completo (Introspecção).
+  - `POST /render`: Recebe `State`, retorna `View` (Actions).
+  - `POST /navigate`: Recebe `State` + `Input`, retorna `NewState`.
+
+> Para um guia prático de uso com Swagger UI, veja [Running HTTP Server](../docs/guides/running_http_server.md).

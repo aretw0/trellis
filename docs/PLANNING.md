@@ -81,7 +81,11 @@ Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) t
 Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda com LLMs.
 
 - [x] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "modules/checkout/start"`). Permite modularização via diretórios e IDs implícitos.
-- [ ] **Stateless Server Mode**: Um adaptador HTTP/gRPC de exemplo que expõe `Render/Navigate`.
+- [/] **Stateless & Protocol Adapters**:
+  - [x] **HTTP Server**: Adaptador JSON via `net/http`. [Veja o Guia](../docs/guides/running_http_server.md).
+  - [ ] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.
+  - [ ] **Server-Sent Events (SSE)**: Endpoint para notificar hot-reload em clientes web.
+  - [ ] **gRPC**: (Backlog) Interface para alta performance interna.
 - [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
 ### 🔮 Backlog / Concepts
