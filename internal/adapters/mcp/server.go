@@ -52,11 +52,26 @@ func (s *Server) ServeSSE(port int) error {
 	sseServer := server.NewSSEServer(s.mcpServer, server.WithBaseURL(baseURL))
 
 	mux := http.NewServeMux()
-	mux.Handle("/sse", sseServer.SSEHandler())
-	mux.Handle("/messages", sseServer.MessageHandler())
+	mux.Handle("/sse", corsMiddleware(sseServer.SSEHandler()))
+	mux.Handle("/messages", corsMiddleware(sseServer.MessageHandler()))
 
-	fmt.Printf("MCP Server listening on %s (SSE)...\n", addr)
+	fmt.Printf("MCP Server listening on %s (SSE)....\n", addr)
 	return http.ListenAndServe(addr, mux)
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Baggage, Sentry-Trace")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) registerTools() {
