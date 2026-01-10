@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Trellis Stateless Server
-  version: 0.1.0
+  version: 0.2.0
   description: |
     API for interacting with the Trellis State Machine Engine in a stateless manner.
 servers:
@@ -151,8 +151,26 @@ components:
         state:
           $ref: "#/components/schemas/State"
         input:
+          description: The user input or tool result.
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/ToolResult"
+
+    ToolResult:
+      type: object
+      required:
+        - id
+      properties:
+        id:
           type: string
-          description: The user input to drive the transition.
+          description: Corresponds to the ToolCall ID.
+        result:
+          nullable: true
+          description: The output of the tool execution.
+        is_error:
+          type: boolean
+        error:
+          type: string
 
     RenderResponse:
       type: object

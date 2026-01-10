@@ -15,6 +15,10 @@ const (
 	// ActionRequestInput requests the host to collect input from the user.
 	// Payload: InputRequest
 	ActionRequestInput = "REQUEST_INPUT"
+
+	// ActionCallTool requests the host to execute a side-effect (tool).
+	// Payload: ToolCall
+	ActionCallTool = "CALL_TOOL"
 )
 
 // InputType defines the kind of input requested.

@@ -96,8 +96,8 @@ func (e *Engine) Render(ctx context.Context, state *domain.State) ([]domain.Acti
 	return e.runtime.Render(ctx, state)
 }
 
-// Navigate calculates the next state based on the current state and input.
-func (e *Engine) Navigate(ctx context.Context, state *domain.State, input string) (*domain.State, error) {
+// Navigate determines the next state based on input.
+func (e *Engine) Navigate(ctx context.Context, state *domain.State, input any) (*domain.State, error) {
 	return e.runtime.Navigate(ctx, state, input)
 }
 

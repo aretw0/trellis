@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/pkg/domain"
 )
 
 // Runner handles the execution loop of the Trellis engine using provided IO.
@@ -70,49 +71,77 @@ func (r *Runner) Run(engine *trellis.Engine) error {
 			return fmt.Errorf("output error: %w", err)
 		}
 
-		// Optimization: Only update lastRendered if we actually moved?
-		// Logic preserved from original: if we output something, we usually moved.
+		// Optimization: Update lastRendered
 		if state.CurrentNodeID != lastRenderedID {
 			lastRenderedID = state.CurrentNodeID
 		}
 
-		// 3. Wait Phase (Input)
 		if isTerminal {
+			// Deprecated check: state.Terminated is also set by Engine
 			break
 		}
 
-		var input string
+		// 3. Input/Action Phase
+		var nextInput any
 
-		// Logic Check: If the handler says it *needs* or *expects* input (or if it's generic text mode)
-		// For TextHandler, Output returns true if it printed content.
-		if needsInput || !r.Headless {
-			// In legacy headless, we still read input, just didn't prompt "> ".
-			// TextHandler.Input adds prompt.
-			// We might need to adjust TextHandler to respect "Headless" or let the user config it.
-			// For now, let's assume the Handler handles the prompting.
+		if state.Status == domain.StatusWaitingForTool {
+			// Find the ToolCall in actions that matches the pending call
+			var pendingCall *domain.ToolCall
 
-			val, err := handler.Input(context.Background())
+			// We iterate actions to find the one that triggered this wait.
+			// Ideally, Render should return it, or we find it in the actions payload.
+			for _, act := range actions {
+				if act.Type == domain.ActionCallTool {
+					if call, ok := act.Payload.(domain.ToolCall); ok {
+						if call.ID == state.PendingToolCall {
+							pendingCall = &call
+							break
+						}
+					}
+				}
+			}
+
+			if pendingCall == nil {
+				return fmt.Errorf("state is waiting for tool %s but no corresponding action produced", state.PendingToolCall)
+			}
+
+			// Execute Tool (Mechanic: Pause -> host executes -> Result)
+			result, err := handler.HandleTool(context.Background(), *pendingCall)
 			if err != nil {
-				if err == io.EOF {
+				return fmt.Errorf("tool execution failed: %w", err)
+			}
+			nextInput = result
+
+		} else {
+			// Active State: Standard User Input
+			if needsInput || !r.Headless {
+				val, err := handler.Input(context.Background())
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return fmt.Errorf("input error: %w", err)
+				}
+
+				if val == "exit" || val == "quit" {
 					break
 				}
-				return fmt.Errorf("input error: %w", err)
-			}
-			input = val
-
-			if input == "exit" || input == "quit" {
-				// TODO: Handler should probably handle "Bye!" message too?
-				break
+				nextInput = val
+			} else {
+				// No input needed (auto-transition?), but usually this implies a Wait or immediate move.
+				// If headless and no input needed, we might Loop forever if logic is broken.
+				// For now, pass empty string.
+				nextInput = ""
 			}
 		}
 
 		// 4. Navigate Phase (Controller)
-		nextState, err := engine.Navigate(context.Background(), state, input)
+		nextState, err := engine.Navigate(context.Background(), state, nextInput)
 		if err != nil {
 			return fmt.Errorf("navigation error: %w", err)
 		}
 
-		if nextState.Terminated {
+		if nextState.Terminated || nextState.Status == domain.StatusTerminated {
 			break
 		}
 		state = nextState

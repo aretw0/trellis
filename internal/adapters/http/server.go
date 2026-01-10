@@ -19,7 +19,7 @@ import (
 // Engine defines the interface for the Trellis state machine core.
 type Engine interface {
 	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
-	Navigate(ctx context.Context, state *domain.State, input string) (*domain.State, error)
+	Navigate(ctx context.Context, state *domain.State, input any) (*domain.State, error)
 	Inspect() ([]domain.Node, error)
 	Watch(ctx context.Context) (<-chan string, error)
 }

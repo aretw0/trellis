@@ -207,5 +207,48 @@ O Trellis desacopla a fonte de eventos do transporte SSE:
 
 > **Limitações Atuais (v0.3.3)**:
 >
-> - O watcher monitora recursivamente todos os arquivos suportados (`.md`, `.json`, `.yaml`). Edições rápidas podem disparar múltiplos reloads (debounce básico implementado).
 > - Não há distinção de qual arquivo mudou no payload do evento SSE (apenas `data: reload`).
+
+## 8. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
+
+Introduzido na v0.4.0, o protocolo de side-effects permite que o Trellis solicite a execução de código externo (ferramentas) de forma determinística e segura.
+
+### 8.1. Filosofia: "Syscalls" para a IA
+
+O Trellis trata chamadas de ferramenta como "Chamadas de Sistema" (Syscalls). O Engine não executa a ferramenta; ele **pausa** e solicita ao Host que a execute.
+
+1. **Intenção (Intent)**: O Engine renderiza um nó do tipo `tool` e emite uma ação `CALL_TOOL`.
+2. **Suspensão (Yield)**: O Engine entra em estado `WaitingForTool`, aguardando o resultado.
+3. **Dispatch**: O Host (CLI, Servidor HTTP, MCP) recebe a solicitação e executa a lógica (ex: chamar API, rodar script).
+4. **Resumo (Resume)**: O Host chama `Navigate` passando o `ToolResult`. O Engine retoma a execução verificando transições baseadas nesse resultado.
+
+### 8.2. Ciclo de Vida da Chamada de Ferramenta
+
+```mermaid
+sequenceDiagram
+    participant Engine
+    participant Host
+    participant External as "External API/Script"
+
+    Note over Engine: Estado: Active (Node A)
+    Engine->>Host: Render() -> ActionCallTool(ID="tool_1", Name="calc", Args={op:"add"})
+    
+    Note over Engine: Estado: WaitingForTool (Pending="tool_1")
+    
+    Host->>External: Executa Ferramenta (Async)
+    External-->>Host: Retorna Resultado (ex: "42")
+    
+    Host->>Engine: Navigate(State, Input=ToolResult{ID="tool_1", Success=true, Result="42"})
+    
+    Note over Engine: Valida ID & Resume
+    Engine->>Engine: Avalia Transições do Node A (ex: if input == "42")
+    Engine->>Host: NewState (Node B)
+```
+
+### 8.3. Universal Dispatcher
+
+Graças a este desacoplamento, a mesma definição de grafo pode usar ferramentas implementadas de formas diferentes dependendo do adaptador:
+
+- **CLI Runner**: Executa scripts locais (`.sh`, `.py`) ou funções Go embutidas.
+- **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
+- **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).

@@ -85,12 +85,19 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [x] **HTTP Server**: Adaptador JSON via `net/http`. [Veja o Guia](../docs/guides/running_http_server.md).
   - [x] **Server-Sent Events (SSE)**: Endpoint para notificar hot-reload em clientes web.
   - [x] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.
-- [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
+- [x] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
 ### 🚧 v0.4.1: Polimento & Extensibilidade
 
 - [ ] **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
-- [ ] **Side-Effect Protocol Integration**: Implementar adaptadores HTTP para execução de ferramentas.
+- [ ] **Side-Effect Protocol Integration (Phase 2)**:
+  - [ ] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
+  - [ ] **Human-in-the-loop**: Implementar confirmação de execução de ferramentas no `TextHandler`.
+  - [ ] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
+- [ ] **Tech Debt & Caveats**:
+  - [ ] **Interpolation Engine**: Substituir `strings.ReplaceAll` por template engine robusto (segurança e func maps).
+  - [ ] **Async JSON Runner**: Refatorar `JSONHandler` para evitar bloqueio no Stdin (Event Loop ou Channels).
+  - [ ] **OpenAPI Sync**: Garantir geração automatizada do código a partir do `openapi.yaml` atualizado (v0.1.1).
 
 ### 🔮 Backlog / Concepts
 

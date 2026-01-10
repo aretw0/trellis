@@ -19,7 +19,7 @@ import (
 // Engine defines the interface required by the MCP server to interact with Trellis.
 type Engine interface {
 	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
-	Navigate(ctx context.Context, state *domain.State, input string) (*domain.State, error)
+	Navigate(ctx context.Context, state *domain.State, input any) (*domain.State, error)
 	Inspect() ([]domain.Node, error)
 }
 

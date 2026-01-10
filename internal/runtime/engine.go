@@ -97,12 +97,68 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		})
 	}
 
+	// Calculate Tool Request
+	if node.Type == domain.NodeTypeTool {
+		if node.ToolCall == nil {
+			// Fallback if ToolCall is missing in struct but Type is Tool
+			return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
+		}
+		// Interpolate Args? (For Phase 1, we assume static or basic string args)
+		// TODO: Deep interpolation of ToolCall.Args
+
+		actions = append(actions, domain.ActionRequest{
+			Type:    domain.ActionCallTool,
+			Payload: *node.ToolCall,
+		})
+	}
+
 	isTerminal := len(node.Transitions) == 0
 	return actions, isTerminal, nil
 }
 
 // Navigate determines the next state based on input.
-func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input string) (*domain.State, error) {
+// Input can be a string (user text) or a domain.ToolResult (side-effect result).
+func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input any) (*domain.State, error) {
+	// 1. Handle State: WaitingForTool
+	if currentState.Status == domain.StatusWaitingForTool {
+		result, ok := input.(domain.ToolResult)
+		if !ok {
+			return nil, fmt.Errorf("expected ToolResult input when in WaitingForTool status")
+		}
+		if result.ID != currentState.PendingToolCall {
+			return nil, fmt.Errorf("tool result ID %s does not match pending call %s", result.ID, currentState.PendingToolCall)
+		}
+
+		// Resume execution:
+		// We need to find the node and evaluate transitions based on the RESULT.
+		// For now, let's treat the result.Result (any) as the "Input" for condition matching.
+		// Use a string representation for the default string evaluator?
+		// Or update Evaluator to accept `any`?
+		// Let's coerce to string for compatibility with existing string-based conditions.
+		inputStr := fmt.Sprintf("%v", result.Result)
+
+		// Create a clean "Active" state to proceed with regular logic
+		// We are effectively "resuming" from the same node, checking transitions again.
+		// Note: The node logic must have "on_tool_result" transitions or similar.
+		// For Phase 1 compatibility, we assume standard transitions match against the result string.
+		resumedState := *currentState
+		resumedState.Status = domain.StatusActive
+		resumedState.PendingToolCall = ""
+
+		return e.navigateInternal(ctx, &resumedState, inputStr)
+	}
+
+	// 2. Handle State: Active (Standard Input)
+	inputStr, ok := input.(string)
+	if !ok {
+		// Try to stringify?
+		inputStr = fmt.Sprintf("%v", input)
+	}
+	return e.navigateInternal(ctx, currentState, inputStr)
+}
+
+// navigateInternal contains the core transition logic (Node loading + Condition eval)
+func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.State, input string) (*domain.State, error) {
 	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
@@ -135,12 +191,37 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 	}
 
 	nextState := *currentState
+
+	// Default to whatever the current status was (usually Active if calling internal)
+	// But if we fail to transition, we stay in the same state?
+	// If no transition found, term?
 	if len(node.Transitions) == 0 {
-		nextState.Terminated = true
+		nextState.Status = domain.StatusTerminated
+		nextState.Terminated = true // Deprecated
 	}
+
 	if nextNodeID != "" {
+		// Update State to new Node
 		nextState.CurrentNodeID = nextNodeID
 		nextState.History = append(nextState.History, nextNodeID)
+		nextState.Status = domain.StatusActive // Default active
+
+		// Check Next Node Type to set Status eagerly
+		nextRaw, err := e.loader.GetNode(nextNodeID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load next node %s: %w", nextNodeID, err)
+		}
+		nextNode, err := e.parser.Parse(nextRaw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse next node %s: %w", nextNodeID, err)
+		}
+
+		if nextNode.Type == domain.NodeTypeTool {
+			nextState.Status = domain.StatusWaitingForTool
+			if nextNode.ToolCall != nil {
+				nextState.PendingToolCall = nextNode.ToolCall.ID
+			}
+		}
 	}
 
 	return &nextState, nil

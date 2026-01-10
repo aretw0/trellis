@@ -9,13 +9,16 @@ const (
 	NodeTypeQuestion = "question"
 	// NodeTypeLogic executes internal script/logic (silent step).
 	NodeTypeLogic = "logic"
+
+	// NodeTypeTool executes an external side-effect (tool).
+	NodeTypeTool = "tool"
 )
 
 // Node represents a logical unit in the graph.
 // It can contain text content (for Wiki-style) or logic instructions (for Logic-style).
 type Node struct {
 	ID   string `json:"id"`
-	Type string `json:"type"` // e.g., "text", "question", "logic"
+	Type string `json:"type"` // e.g., "text", "question", "logic", "tool"
 
 	// Content holds the raw data for this node.
 	// For a text node, it might be the markdown content.
@@ -32,4 +35,7 @@ type Node struct {
 	InputType    string   `json:"input_type,omitempty"`
 	InputOptions []string `json:"input_options,omitempty"`
 	InputDefault string   `json:"input_default,omitempty"`
+
+	// Tool Configuration (Optional, used if Type == "tool")
+	ToolCall *ToolCall `json:"tool_call,omitempty"`
 }

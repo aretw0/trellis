@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -16,6 +17,7 @@ type JSONHandler struct {
 	Reader  *bufio.Reader
 	Writer  io.Writer
 	Encoder *json.Encoder
+	Decoder *json.Decoder
 }
 
 // NewJSONHandler creates a handler for JSON IO.
@@ -30,6 +32,7 @@ func NewJSONHandler(r io.Reader, w io.Writer) *JSONHandler {
 		Reader:  bufio.NewReader(r),
 		Writer:  w,
 		Encoder: json.NewEncoder(w),
+		Decoder: json.NewDecoder(r),
 	}
 }
 
@@ -76,4 +79,39 @@ func (h *JSONHandler) Input(ctx context.Context) (string, error) {
 
 	// Fallback: return raw text (e.g. if they just sent plain text)
 	return text, nil
+}
+
+// HandleTool for JSONHandler emits the tool call as JSON.
+// In a real headless/JSON scenario, the Host should intercept this ActionRequest in the 'Output' phase
+// and perform the action, or the Runner should handle this differently.
+// For now, to satisfy the interface, we log it or return a mock if needed.
+// Ideally, the JSON Runner shouldn't "execute" tools, it should just "pass through" the request to the caller.
+// But the Runner loop calls this during StatusWaitingForTool.
+func (h *JSONHandler) HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error) {
+	// Emit the tool call as an event/output
+	// payload := map[string]any{
+	// 	"type": "tool_call",
+	// 	"data": call,
+	// }
+	// h.Encoder.Encode(payload)
+	//
+	// PROBLEM: The Runner expects a synchronous result here.
+	// For JSON mode (Headless), we can't really "block and wait" unless we read stdin?
+	// Let's assume we read stdin for the result.
+
+	// 1. Emit Request
+	req := domain.ActionRequest{
+		Type:    domain.ActionCallTool,
+		Payload: call,
+	}
+	if err := h.Encoder.Encode([]domain.ActionRequest{req}); err != nil {
+		return domain.ToolResult{}, err
+	}
+
+	// 2. Read Response from Stdin
+	var result domain.ToolResult
+	if err := h.Decoder.Decode(&result); err != nil {
+		return domain.ToolResult{}, fmt.Errorf("failed to decode tool result: %w", err)
+	}
+	return result, nil
 }
