@@ -81,7 +81,7 @@ Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) t
 Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda com LLMs.
 
 - [x] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "modules/checkout/start"`). Permite modularização via diretórios e IDs implícitos.
-- [/] **Stateless & Protocol Adapters**:
+- [x] **Stateless & Protocol Adapters**:
   - [x] **HTTP Server**: Adaptador JSON via `net/http`. [Veja o Guia](../docs/guides/running_http_server.md).
   - [x] **Server-Sent Events (SSE)**: Endpoint para notificar hot-reload em clientes web.
   - [x] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.

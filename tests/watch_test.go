@@ -10,7 +10,7 @@ import (
 
 // MockWatchableLoader implements GraphLoader and Watchable
 type MockWatchableLoader struct {
-	watchCh chan struct{}
+	watchCh chan string
 }
 
 func (m *MockWatchableLoader) GetNode(id string) ([]byte, error) {
@@ -21,7 +21,7 @@ func (m *MockWatchableLoader) ListNodes() ([]string, error) {
 	return nil, nil
 }
 
-func (m *MockWatchableLoader) Watch(ctx context.Context) (<-chan struct{}, error) {
+func (m *MockWatchableLoader) Watch(ctx context.Context) (<-chan string, error) {
 	return m.watchCh, nil
 }
 
@@ -33,11 +33,11 @@ func (m *MockLoader) ListNodes() ([]string, error)      { return nil, nil }
 
 func TestEngine_Watch_Success(t *testing.T) {
 	mockLoader := &MockWatchableLoader{
-		watchCh: make(chan struct{}),
+		watchCh: make(chan string),
 	}
 	// Pre-fill channel to verify we receive it
 	go func() {
-		mockLoader.watchCh <- struct{}{}
+		mockLoader.watchCh <- "reload"
 	}()
 
 	engine, err := trellis.New("", trellis.WithLoader(mockLoader))
