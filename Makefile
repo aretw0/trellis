@@ -23,6 +23,11 @@ mcp-tour: gen
 inspect-tour: gen
 	npx @modelcontextprotocol/inspector go run ./cmd/trellis mcp --dir ./examples/tour
 
+# Run the MCP Inspector against a running SSE server (requires 'make mcp-tour' in another terminal)
+inspect-tour-sse:
+	npx @modelcontextprotocol/inspector --server-url http://localhost:8080/sse
+
+
 # Run all tests
 test:
 	go test ./...

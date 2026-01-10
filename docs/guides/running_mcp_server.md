@@ -135,21 +135,35 @@ If your Gemini environment supports MCP (Model Context Protocol), it likely foll
 
 ## 5. Debugging with MCP Inspector
 
-You can use the official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to interactively test and debug your server.
+You can use the official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to interactively test your server.
 
-**Using Make (Recommended):**
+### Option A: Stdio Mode (Easiest)
+
+The inspector spawns the Trellis process directly. This is the default.
 
 ```bash
 make inspect-tour
 ```
 
-**Manual Command:**
+*In the Inspector UI:* Select **Transport Type: Stdio**.
+
+### Option B: SSE Mode (Advanced)
+
+Useful for debugging remote connections or HTTP issues. Requires two terminals.
+
+**Terminal 1 (Start Server):**
 
 ```bash
-npx @modelcontextprotocol/inspector go run ./cmd/trellis mcp --dir ./examples/tour
+make mcp-tour
 ```
 
-This will start a web interface (usually at `http://localhost:5173`) where you can list tools, run them, and inspect resources.
+**Terminal 2 (Start Inspector):**
+
+```bash
+make inspect-tour-sse
+```
+
+*In the Inspector UI:* Select **Transport Type: SSE**. The URL should pre-fill as `http://localhost:8080/sse`.
 
 ## 6. Common Issues
 
