@@ -86,7 +86,7 @@ O **Loam** atua como bibliotecário e camada de persistência.
 
 ### 1.5. Model Context Protocol (MCP) Adapter
 
-Introduzido na v0.4.1, o adaptador MCP (`internal/adapters/mcp`) expõe o Trellis como um Servidor MCP.
+Introduzido na v0.3.3 (Experimental), o adaptador MCP (`internal/adapters/mcp`) expõe o Trellis como um Servidor MCP.
 
 - **Tools**:
   - `render_state`: Mapeia para `Engine.Render`.
@@ -150,17 +150,20 @@ O compilador deve ser implacável.
 - Variáveis não declaradas resultam em erro de compilação.
 - O objetivo é **Confiança Total**: Se compilou, não existem "Dead Ends" lógicos causados por typos.
 
-## 6. Stateless Server Mode (v0.4+)
+## 6. Stateless Server Mode (v0.3.3+)
 
-Introduzido na versão 0.4.0, o Trellis pode operar como um servidor HTTP stateless.
+Introduzido na versão 0.3.3, o Trellis pode operar como um servidor HTTP stateless.
 
-- **Contract-First**: A API é definida em `api/openapi.yaml` e as interfaces Go são geradas via `oapi-codegen`.
+- **Contract-First**: A API é definida em `api/openapi.yaml`.
 - **Implementação**: `internal/adapters/http` usa `chi` como roteador.
-- **Endpoints**:
-  - `GET /graph`: Retorna o grafo completo (Introspecção).
+- **Endpoints de Dados**:
+  - `GET /graph`: Retorna o grafo completo.
   - `POST /navigate`: Recebe `State` + `Input`, retorna `NewState`.
+- **Endpoints de Gerenciamento**:
+  - `GET /health`: Liveness probe.
+  - `GET /info`: Metadados e versões.
 
-> Para um guia prático de uso com Swagger UI, veja [Running HTTP Server](../docs/guides/running_http_server.md).
+> Para um guia prático, veja [Running HTTP Server](../docs/guides/running_http_server.md).
 
 ## 7. Real-Time & Events (SSE)
 

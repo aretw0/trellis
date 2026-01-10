@@ -162,11 +162,15 @@ func (s *Server) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 // GetInfo handles the GET /info request.
 func (s *Server) GetInfo(w http.ResponseWriter, r *http.Request) {
-	// TODO: Get API version dynamically from somewhere if possible, currently hardcoded to match openapi.yaml
+	apiVersion := "unknown"
+	if swagger, err := GetSwagger(); err == nil && swagger.Info != nil {
+		apiVersion = swagger.Info.Version
+	}
+
 	resp := map[string]string{
 		"app":         "trellis-http",
 		"version":     strings.TrimSpace(trellis.Version),
-		"api_version": "0.1.0",
+		"api_version": apiVersion,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)

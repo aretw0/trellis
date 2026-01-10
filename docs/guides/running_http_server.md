@@ -46,7 +46,14 @@ Once the server is running, open your browser to:
 
 You will see the interactive API documentation.
 
-## 4. Usage Examples (The Tour)
+## 4. Management Endpoints
+
+- **Health Check**: `GET /health` -> `{"status": "ok"}`
+- **Server Info**: `GET /info` -> Returns version metadata using the Separation of Concerns strategy:
+  - `version`: The Trellis software version (e.g. `0.3.3`)
+  - `api_version`: The OpenAPI Contract version (e.g. `0.1.0`)
+
+## 5. Usage Examples (The Tour)
 
 The `tour` flow starts at the `start` node. Since the server is stateless, **you (the client)** are responsible for holding the `state` object and passing it back to the server for each step.
 
