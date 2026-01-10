@@ -5,7 +5,6 @@ all: gen build
 
 # Generate Go code from OpenAPI spec using oapi-codegen
 gen:
-	copy api\openapi.yaml internal\adapters\http\openapi.yaml
 	go generate ./internal/adapters/http
 
 # Build the Trellis CLI

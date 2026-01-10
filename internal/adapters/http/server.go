@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,10 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-//go:embed openapi.yaml
-var openAPISpec []byte
-
-//go:generate go tool oapi-codegen -package http -generate types,chi-server -o api.gen.go ../../../api/openapi.yaml
+//go:generate go tool oapi-codegen -package http -generate types,chi-server,spec -o api.gen.go ../../../api/openapi.yaml
 
 // Engine defines the interface for the Trellis state machine core.
 type Engine interface {
@@ -39,7 +35,13 @@ func NewHandler(engine Engine) http.Handler {
 	// Swagger UI
 	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/yaml")
-		w.Write(openAPISpec)
+		// Use the generated rawSpec function to get the embedded spec
+		spec, err := rawSpec()
+		if err != nil {
+			http.Error(w, "Failed to load spec", http.StatusInternalServerError)
+			return
+		}
+		w.Write(spec)
 	})
 	r.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
