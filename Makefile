@@ -19,6 +19,10 @@ serve-tour: gen
 mcp-tour: gen
 	go run ./cmd/trellis mcp --dir ./examples/tour --transport sse --port 8080
 
+# Run the MCP Inspector against the Tour example (using Stdio)
+inspect-tour: gen
+	npx @modelcontextprotocol/inspector go run ./cmd/trellis mcp --dir ./examples/tour
+
 # Run all tests
 test:
 	go test ./...

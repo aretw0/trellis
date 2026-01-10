@@ -106,10 +106,11 @@ Antigravity natively supports MCP. Add the server to your `mcp_config.json`:
       "command": "go",
       "args": [
         "run", 
-        "C:/Users/aretw/Documents/GitHub/trellis/cmd/trellis", 
+        "C:/path/to/trellis/cmd/trellis", 
         "mcp", 
         "--dir", 
-        "C:/Users/aretw/Documents/GitHub/trellis/examples/tour"
+        "C:/path/to/trellis/examples/tour"
+      ]
       ]
     }
   }
@@ -132,10 +133,28 @@ If your Gemini environment supports MCP (Model Context Protocol), it likely foll
 
 - `trellis://graph`: A read-only JSON resource containing the entire graph structure.
 
-## 4. Debugging
+## 5. Debugging with MCP Inspector
+
+You can use the official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to interactively test and debug your server.
+
+**Using Make (Recommended):**
+
+```bash
+make inspect-tour
+```
+
+**Manual Command:**
+
+```bash
+npx @modelcontextprotocol/inspector go run ./cmd/trellis mcp --dir ./examples/tour
+```
+
+This will start a web interface (usually at `http://localhost:5173`) where you can list tools, run them, and inspect resources.
+
+## 6. Common Issues
 
 If the connection fails:
 
 - Check the local logs in Claude Desktop.
-- Ensure the path to your flow directory is absolute and correct.
+- Ensure the path to your flow directory is **absolute** and correct.
 - Verify `trellis` compiles and runs via `trellis run` first.
