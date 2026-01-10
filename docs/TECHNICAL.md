@@ -252,3 +252,17 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 - **CLI Runner**: Executa scripts locais (`.sh`, `.py`) ou funções Go embutidas.
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
+
+### 8.4. Limitações Conhecidas (Phase 1)
+
+1. **Interpolação de Strings**:
+   - O motor utiliza `strings.ReplaceAll` para template simples (`{{ key }}`).
+   - **Não suporta**: Acesso a campos aninhados (`user.address.city`) ou formatação.
+   - **Segurança**: Não há sanitização de output. Evite injetar dados não confiáveis diretamente em comandos de ferramenta.
+
+2. **Bloqueio de I/O (JSON Adapter)**:
+   - Em modo headless via Stdin/Stdout, o Engine pode bloquear se o Host não enviar a resposta da ferramenta imediatamente.
+   - O Runner utiliza uma goroutine para leitura, permitindo cancelamento via Contexto (timeout), mas a goroutine de leitura subjacente pode vazar até o processo terminar (limitação de pipes em Go).
+
+3. **Confirmação Visual (CLI)**:
+   - O `TextHandler` solicita confirmação (`[y/N]`) antes de executar ferramentas. Em scripts automatizados, garanta que o input contenha as confirmações ou use o modo headless.
