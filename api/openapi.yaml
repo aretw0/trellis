@@ -5,10 +5,14 @@ info:
   description: |
     API for interacting with the Trellis State Machine Engine in a stateless manner.
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:{port}
     description: Local Dev Server
+    variables:
+      port:
+        default: "8080"
+        description: Server port
   - url: /
-    description: Relative Path (Production)
+    description: Current Host (Relative)
 paths:
   /graph:
     get:
