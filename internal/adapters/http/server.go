@@ -17,6 +17,7 @@ type Engine interface {
 	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
 	Navigate(ctx context.Context, state *domain.State, input string) (*domain.State, error)
 	Inspect() ([]domain.Node, error)
+	Watch(ctx context.Context) (<-chan string, error)
 }
 
 // Server implements the generated ServerInterface
@@ -139,6 +140,45 @@ func (s *Server) GetGraph(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(nodes); err != nil {
 		fmt.Printf("GetGraph encode error: %v\n", err)
+	}
+}
+
+// SubscribeEvents handles the GET /events request (SSE).
+func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	events, err := s.Engine.Watch(r.Context())
+	if err != nil {
+		// Log error but we can't write to W anymore if we started flushing?
+		// Actually we haven't flushed yet, so we can try.
+		http.Error(w, fmt.Sprintf("Watch error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Send initial connection message? Optional. Let's send a ping.
+	fmt.Fprintf(w, "event: ping\ndata: connected\n\n")
+	flusher.Flush()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case event, ok := <-events:
+			if !ok {
+				return
+			}
+			fmt.Printf("Visualizer Event: %s\n", event)
+			fmt.Fprintf(w, "data: %s\n\n", event)
+			flusher.Flush()
+		}
 	}
 }
 

@@ -14,6 +14,18 @@ servers:
   - url: /
     description: Current Host (Relative)
 paths:
+  /events:
+    get:
+      summary: Subscribe to server-sent events for graph changes
+      operationId: SubscribeEvents
+      responses:
+        "200":
+          description: Event stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "data: reload\n\n"
   /graph:
     get:
       summary: Introspect the full state machine graph

@@ -83,15 +83,20 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 - [x] **Sub-Grafos (Namespaces)**: Capacidade de um nó apontar para outro arquivo/grafo (`jump_to: "modules/checkout/start"`). Permite modularização via diretórios e IDs implícitos.
 - [/] **Stateless & Protocol Adapters**:
   - [x] **HTTP Server**: Adaptador JSON via `net/http`. [Veja o Guia](../docs/guides/running_http_server.md).
+  - [ ] **Server-Sent Events (SSE)**: Endpoint para notificar hot-reload em clientes web..
   - [ ] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.
-  - [ ] **Server-Sent Events (SSE)**: Endpoint para notificar hot-reload em clientes web.
-  - [ ] **gRPC**: (Backlog) Interface para alta performance interna.
 - [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
+
+### 🚧 v0.4.1: Polimento & Extensibilidade
+
+- [ ] **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
+- [ ] **Side-Effect Protocol Integration**: Implementar adaptadores HTTP para execução de ferramentas.
 
 ### 🔮 Backlog / Concepts
 
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
+- **gRPC**: Interface para alta performance interna.
 - **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
 
 ---

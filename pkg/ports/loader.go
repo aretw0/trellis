@@ -18,6 +18,6 @@ type GraphLoader interface {
 // This is typically used for hot-reload or dev-mode functionality.
 type Watchable interface {
 	// Watch returns a channel that is signaled when the underlying graph changes.
-	// It abstracts away the specific event details, signaling only that a reload is required.
-	Watch(ctx context.Context) (<-chan struct{}, error)
+	// It returns a string (the event type, e.g. "reload") or an error.
+	Watch(ctx context.Context) (<-chan string, error)
 }

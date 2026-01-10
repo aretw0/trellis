@@ -108,7 +108,7 @@ func (e *Engine) Inspect() ([]domain.Node, error) {
 
 // Watch returns a channel that signals when the underlying graph changes.
 // Returns error if the loader does not support watching.
-func (e *Engine) Watch(ctx context.Context) (<-chan struct{}, error) {
+func (e *Engine) Watch(ctx context.Context) (<-chan string, error) {
 	if w, ok := e.loader.(ports.Watchable); ok {
 		return w.Watch(ctx)
 	}

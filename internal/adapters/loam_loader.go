@@ -117,8 +117,8 @@ func trimExtension(id string) string {
 	return filepath.ToSlash(id)
 }
 
-// Watch returns a channel that is signaled when key files change in the Loam repository.
-func (l *LoamLoader) Watch(ctx context.Context) (<-chan struct{}, error) {
+// Watch implements ports.Watchable.
+func (l *LoamLoader) Watch(ctx context.Context) (<-chan string, error) {
 	// Watch for all relevant files (recursive) using doublestar pattern supported by Loam/Doublestar
 	// This avoids manual filtering loop.
 	events, err := l.Repo.Watch(ctx, "**/*.{md,json,yaml,yml}")
@@ -126,10 +126,10 @@ func (l *LoamLoader) Watch(ctx context.Context) (<-chan struct{}, error) {
 		return nil, fmt.Errorf("failed to start loam watcher: %w", err)
 	}
 
-	reloadCh := make(chan struct{}, 1)
+	ch := make(chan string, 1)
 
 	go func() {
-		defer close(reloadCh)
+		defer close(ch)
 		for {
 			select {
 			case <-ctx.Done():
@@ -138,15 +138,16 @@ func (l *LoamLoader) Watch(ctx context.Context) (<-chan struct{}, error) {
 				if !ok {
 					return
 				}
-				// Debounce logic could be here, but for now we just notify.
-				// Non-blocking send to avoid stalling if receiver isn't ready
+				// For now, we just signal a generic "reload" event.
+				// In the future, we could inspect the event to see exactly what changed.
 				select {
-				case reloadCh <- struct{}{}:
+				case ch <- "reload":
 				default:
+					// Drop event if channel is full (debounce)
 				}
 			}
 		}
 	}()
 
-	return reloadCh, nil
+	return ch, nil
 }

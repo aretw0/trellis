@@ -146,7 +146,50 @@ Introduzido na versão 0.4.0, o Trellis pode operar como um servidor HTTP statel
 - **Implementação**: `internal/adapters/http` usa `chi` como roteador.
 - **Endpoints**:
   - `GET /graph`: Retorna o grafo completo (Introspecção).
-  - `POST /render`: Recebe `State`, retorna `View` (Actions).
   - `POST /navigate`: Recebe `State` + `Input`, retorna `NewState`.
 
 > Para um guia prático de uso com Swagger UI, veja [Running HTTP Server](../docs/guides/running_http_server.md).
+
+## 7. Real-Time & Events (SSE)
+
+Para suportar experiências dinâmicas (como **Hot-Reload** no navegador), o Trellis utiliza **Server-Sent Events (SSE)**.
+
+### 7.1. Por que SSE e não WebSockets?
+
+- **Simplicidade**: SSE usa HTTP padrão (`Content-Type: text/event-stream`). Não requer upgrade de protocolo ou handshake complexo.
+- **Unidirecional**: O Trellis é o "State of Truth". O cliente apenas reage a mudanças (ex: arquivo salvo no disco -> notifica cliente -> cliente recarrega). Para enviar dados (inputs), o cliente continua usando `POST /navigate` (HTTP padrão).
+- **Reconexão Nativa**: O objeto `EventSource` do navegador gerencia reconexões automaticamente.
+
+### 7.2. Fluxo de Hot-Reload
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Loam as Loam (FileWatcher)
+    participant Server as HTTP Server
+    participant Client as Browser (UI)
+
+    Client->>Server: GET /events (Inscreve-se)
+    Server-->>Client: 200 OK (Stream aberto)
+    
+    Dev->>Loam: Salva arquivo MD/JSON
+    Loam->>Server: Notifica FileChangeEvent
+    Server->>Client: Envia SSE: "reload"
+    Client->>Client: window.location.reload()
+    Client->>Server: GET /render (Busca estado atualizado)
+```
+
+### 7.3. Event Source & Caveats
+
+O Trellis desacopla a fonte de eventos do transporte SSE:
+
+1. **Fonte (Source)**: O `LoamLoader` utiliza `fsnotify` (via biblioteca Loam) para monitorar o sistema de arquivos.
+    - *Nota*: Atualmente, o evento emitido é genérico (`"reload"`), sinalizando que *alguma coisa* mudou.
+    - *Futuro*: A interface `Watch` retorna `chan string`, permitindo eventos granulares como `update:docs/start.md` ou `delete:modules/auth.json`.
+
+2. **Transporte**: O handler SSE (`Server.SubscribeEvents`) apenas repassa as strings recebidas pelo canal para o cliente HTTP.
+
+> **Limitações Atuais (v0.3.3)**:
+>
+> - O watcher monitora recursivamente todos os arquivos suportados (`.md`, `.json`, `.yaml`). Edições rápidas podem disparar múltiplos reloads (debounce básico implementado).
+> - Não há distinção de qual arquivo mudou no payload do evento SSE (apenas `data: reload`).
