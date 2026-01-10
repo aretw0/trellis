@@ -88,7 +88,7 @@ func (s *Server) ServeSSE(ctx context.Context, port int) error {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slog.Debug("CORS Middleware", "method", r.Method, "path", r.URL.Path)
+		fmt.Printf("DEBUG: Method=%s Path=%s\n", r.Method, r.URL.Path)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Baggage, Sentry-Trace")
