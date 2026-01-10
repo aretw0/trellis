@@ -16,7 +16,7 @@ serve-tour: gen
 	go run ./cmd/trellis serve --dir ./examples/tour --port 8080
 
 # Run the MCP Server in SSE mode (requires `tour` example)
-mcp-tour: gen
+mcp-tour:
 	go run ./cmd/trellis mcp --dir ./examples/tour --transport sse --port 8080
 
 # Run the MCP Inspector against the Tour example (using Stdio)

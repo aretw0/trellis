@@ -1,9 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
+	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/adapters/mcp"
@@ -30,7 +34,6 @@ Supported Transports:
 		port, _ := cmd.Flags().GetInt("port")
 
 		// 1. Initialize Engine
-		// Use ReadOnly mode implicitly via trellis.New (which sets Loam to ReadOnly)
 		engine, err := trellis.New(repoPath)
 		if err != nil {
 			log.Fatalf("Error initializing trellis: %v", err)
@@ -44,15 +47,26 @@ Supported Transports:
 		case "stdio":
 			// Ensure logs don't corrupt JSON-RPC on Stdout
 			log.SetOutput(os.Stderr)
-			fmt.Fprintln(os.Stderr, "Starting Trellis MCP Server (Stdio)...")
+			slog.Info("Starting Trellis MCP Server (Stdio)...")
 			if err := srv.ServeStdio(); err != nil {
-				log.Fatalf("MCP Server execution failed: %v", err)
+				slog.Error("MCP Server execution failed", "error", err)
+				os.Exit(1)
 			}
 		case "sse":
-			fmt.Printf("Starting Trellis MCP Server (SSE) on port %d...\n", port)
-			if err := srv.ServeSSE(port); err != nil {
-				log.Fatalf("MCP Server execution failed: %v", err)
+			slog.Info("Starting Trellis MCP Server (SSE)", "port", port)
+
+			// Create a context that cancels on interrupt signal
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+
+			if err := srv.ServeSSE(ctx, port); err != nil {
+				// Ignore server closed error if it was caused by context cancellation
+				if err != http.ErrServerClosed {
+					slog.Error("MCP Server execution failed", "error", err)
+					os.Exit(1)
+				}
 			}
+			slog.Info("MCP Server stopped gracefully")
 		default:
 			log.Fatalf("Unknown transport: %s. Supported: stdio, sse", transport)
 		}

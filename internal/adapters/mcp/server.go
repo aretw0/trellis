@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
@@ -44,7 +46,7 @@ func (s *Server) ServeStdio() error {
 }
 
 // ServeSSE starts the server on the given port using SSE.
-func (s *Server) ServeSSE(port int) error {
+func (s *Server) ServeSSE(ctx context.Context, port int) error {
 	addr := fmt.Sprintf(":%d", port)
 	baseURL := fmt.Sprintf("http://localhost:%d", port)
 
@@ -55,12 +57,38 @@ func (s *Server) ServeSSE(port int) error {
 	mux.Handle("/sse", corsMiddleware(sseServer.SSEHandler()))
 	mux.Handle("/messages", corsMiddleware(sseServer.MessageHandler()))
 
-	fmt.Printf("MCP Server listening on %s (SSE)....\n", addr)
-	return http.ListenAndServe(addr, mux)
+	httpServer := &http.Server{
+		Addr:    addr,
+		Handler: mux,
+	}
+
+	// Channel to listen for errors coming from the listener.
+	serverErrors := make(chan error, 1)
+
+	go func() {
+		slog.Info("MCP Server listening (SSE)", "address", addr)
+		serverErrors <- httpServer.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErrors:
+		return err
+	case <-ctx.Done():
+		// Create a timeout context for the graceful shutdown
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		fmt.Println("\nShutdown signal received, shutting down server...")
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("could not stop server gracefully: %w", err)
+		}
+		return nil
+	}
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.Debug("CORS Middleware", "method", r.Method, "path", r.URL.Path)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Baggage, Sentry-Trace")
