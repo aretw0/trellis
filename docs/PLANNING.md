@@ -84,7 +84,7 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 - [/] **Stateless & Protocol Adapters**:
   - [x] **HTTP Server**: Adaptador JSON via `net/http`. [Veja o Guia](../docs/guides/running_http_server.md).
   - [x] **Server-Sent Events (SSE)**: Endpoint para notificar hot-reload em clientes web.
-  - [ ] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.
+  - [x] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.
 - [ ] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
 ### 🚧 v0.4.1: Polimento & Extensibilidade
@@ -98,6 +98,11 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
 - **gRPC**: Interface para alta performance interna.
 - **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
+- **MCP Enrichment**:
+  - **Prompts Support**: Implementar `prompts/list` para iniciar fluxos comuns (ex: "Start Tour", "Debug Auth").
+  - **Granular Resources**: Permitir subscrição a arquivos específicos (`trellis://file/start.md`).
+  - **Sampling**: Permitir que o servidor solicite completions ao cliente (Human/LLM in the loop).
+  - **Docker**: Imagem oficial para deployment fácil do servidor MCP.
 
 ---
 
