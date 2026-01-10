@@ -34,10 +34,18 @@ Supported Transports:
 		port, _ := cmd.Flags().GetInt("port")
 
 		// 1. Initialize Engine
+		// Use ReadOnly mode implicitly via trellis.New (which sets Loam to ReadOnly)
 		engine, err := trellis.New(repoPath)
 		if err != nil {
 			log.Fatalf("Error initializing trellis: %v", err)
 		}
+
+		// Configure logger
+		opts := &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}
+		logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
+		slog.SetDefault(logger)
 
 		// 2. Initialize MCP Server Adapter
 		srv := mcp.NewServer(engine, engine.Loader())
