@@ -1,0 +1,67 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/internal/adapters/mcp"
+	"github.com/spf13/cobra"
+)
+
+// mcpCmd represents the mcp command
+var mcpCmd = &cobra.Command{
+	Use:   "mcp",
+	Short: "Run the Model Context Protocol (MCP) server",
+	Long: `Starts the Trellis engine as an MCP Server.
+This allows AI agents (like Claude Desktop) to interact with Trellis flows as tools.
+
+Supported Transports:
+- stdio (default): Uses Standard Input/Output. Ideal for local process integration.
+- sse: Uses Server-Sent Events over HTTP. Ideal for remote agents or debuggers.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		repoPath, _ := cmd.Flags().GetString("dir")
+		if !cmd.Flags().Changed("dir") && len(args) > 0 {
+			repoPath = args[0]
+		}
+
+		transport, _ := cmd.Flags().GetString("transport")
+		port, _ := cmd.Flags().GetInt("port")
+
+		// 1. Initialize Engine
+		// Use ReadOnly mode implicitly via trellis.New (which sets Loam to ReadOnly)
+		engine, err := trellis.New(repoPath)
+		if err != nil {
+			log.Fatalf("Error initializing trellis: %v", err)
+		}
+
+		// 2. Initialize MCP Server Adapter
+		srv := mcp.NewServer(engine, engine.Loader())
+
+		// 3. Start Server based on Transport
+		switch transport {
+		case "stdio":
+			// Ensure logs don't corrupt JSON-RPC on Stdout
+			log.SetOutput(os.Stderr)
+			fmt.Fprintln(os.Stderr, "Starting Trellis MCP Server (Stdio)...")
+			if err := srv.ServeStdio(); err != nil {
+				log.Fatalf("MCP Server execution failed: %v", err)
+			}
+		case "sse":
+			fmt.Printf("Starting Trellis MCP Server (SSE) on port %d...\n", port)
+			if err := srv.ServeSSE(port); err != nil {
+				log.Fatalf("MCP Server execution failed: %v", err)
+			}
+		default:
+			log.Fatalf("Unknown transport: %s. Supported: stdio, sse", transport)
+		}
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(mcpCmd)
+
+	mcpCmd.Flags().String("transport", "stdio", "Transport protocol to use: 'stdio' or 'sse'")
+	mcpCmd.Flags().Int("port", 8080, "Port to listen on (only for SSE)")
+}
