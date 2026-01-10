@@ -8,6 +8,8 @@ This turns Trellis into a "Tool" for AI, enabling agents to:
 2. **Render** the current state for context.
 3. **Inspect** the graph structure to understand the document map.
 
+> **Note**: The MCP Server automatically reports the same version as the Trellis CLI (e.g. `v0.3.3`), simplifying compatibility checks.
+
 ## 1. Quick Start (Claude Desktop)
 
 To use Trellis with Claude Desktop, you need to configure it as a local MCP server.
@@ -62,7 +64,7 @@ make mcp-tour
 The server will be available at:
 
 - **SSE Endpoint**: `http://localhost:8080/sse`
-- **Messages Endpoint**: `http://localhost:8080/messages`
+- **Messages Endpoint**: `http://localhost:8080/message`
 
 You can connect to this using any MCP-compliant client (e.g., [MCP Inspector](https://github.com/modelcontextprotocol/inspector)).
 

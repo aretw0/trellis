@@ -47,6 +47,11 @@ trellis run ./my-flow
 # HTTP Server Mode (Stateless)
 trellis serve --dir ./my-flow --port 8080
 # Swagger UI available at: http://localhost:8080/swagger
+
+# MCP Server Mode (Claude Desktop / Agent)
+trellis mcp --dir ./my-flow
+# Or with SSE:
+trellis mcp --dir ./my-flow --transport sse --port 8080
 ```
 
 ### Introspection

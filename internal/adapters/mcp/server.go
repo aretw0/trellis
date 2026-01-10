@@ -59,8 +59,6 @@ func (s *Server) ServeSSE(ctx context.Context, port int) error {
 	mux.Handle("/sse", corsMiddleware(sseServer.SSEHandler()))
 	mux.Handle("/message", corsMiddleware(sseServer.MessageHandler()))
 
-	// Catch-all handler for debugging (removed)
-
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: mux,
