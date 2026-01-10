@@ -57,6 +57,12 @@ func (s *Server) ServeSSE(ctx context.Context, port int) error {
 	mux.Handle("/sse", corsMiddleware(sseServer.SSEHandler()))
 	mux.Handle("/messages", corsMiddleware(sseServer.MessageHandler()))
 
+	// Catch-all handler for debugging
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("DEBUG: Unhandled Request: Method=%s Path=%s\n", r.Method, r.URL.Path)
+		http.NotFound(w, r)
+	})
+
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: mux,
