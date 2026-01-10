@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/go-chi/chi/v5"
 )
@@ -149,6 +151,25 @@ func (s *Server) GetGraph(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(nodes); err != nil {
 		slog.Error("GetGraph response encode failed", "error", err)
 	}
+}
+
+// GetHealth handles the GET /health request.
+func (s *Server) GetHealth(w http.ResponseWriter, r *http.Request) {
+	resp := map[string]string{"status": "ok"}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetInfo handles the GET /info request.
+func (s *Server) GetInfo(w http.ResponseWriter, r *http.Request) {
+	// TODO: Get API version dynamically from somewhere if possible, currently hardcoded to match openapi.yaml
+	resp := map[string]string{
+		"app":         "trellis-http",
+		"version":     strings.TrimSpace(trellis.Version),
+		"api_version": "0.1.0",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // SubscribeEvents handles the GET /events request (SSE).

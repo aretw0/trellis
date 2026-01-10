@@ -14,6 +14,42 @@ servers:
   - url: /
     description: Current Host (Relative)
 paths:
+  /health:
+    get:
+      summary: Liveness probe
+      operationId: GetHealth
+      responses:
+        "200":
+          description: Server is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+  /info:
+    get:
+      summary: Server metadata and version information
+      operationId: GetInfo
+      responses:
+        "200":
+          description: Server metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  app:
+                    type: string
+                    example: "trellis-http"
+                  version:
+                    type: string
+                    example: "0.3.3"
+                  api_version:
+                    type: string
+                    example: "0.1.0"
   /events:
     get:
       summary: Subscribe to server-sent events for graph changes
