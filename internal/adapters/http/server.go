@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"time"
+	"os"
 
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/go-chi/chi/v5"
@@ -41,6 +42,7 @@ func NewHandler(engine Engine) http.Handler {
 		spec, err := rawSpec()
 		if err != nil {
 			http.Error(w, "Failed to load spec", http.StatusInternalServerError)
+			slog.Error("Failed to load OpenAPI spec", "error", err)
 			return
 		}
 		w.Write(spec)
@@ -82,6 +84,7 @@ func (s *Server) Render(w http.ResponseWriter, r *http.Request) {
 	var body RenderJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		slog.Warn("Render: Invalid request body", "error", err)
 		return
 	}
 
@@ -89,6 +92,7 @@ func (s *Server) Render(w http.ResponseWriter, r *http.Request) {
 	actions, terminal, err := s.Engine.Render(r.Context(), &domainState)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Render error: %v", err), http.StatusInternalServerError)
+		slog.Error("Render failed", "error", err)
 		return
 	}
 
@@ -99,7 +103,7 @@ func (s *Server) Render(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		fmt.Printf("Render encode error: %v\n", err)
+		slog.Error("Render response encode failed", "error", err)
 	}
 }
 
@@ -108,6 +112,7 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 	var body NavigateJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		slog.Warn("Navigate: Invalid request body", "error", err)
 		return
 	}
 
@@ -120,13 +125,14 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 	newState, err := s.Engine.Navigate(r.Context(), &domainState, input)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Navigate error: %v", err), http.StatusInternalServerError)
+		slog.Error("Navigate failed", "error", err)
 		return
 	}
 
 	resp := mapStateFromDomain(*newState)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		fmt.Printf("Navigate encode error: %v\n", err)
+		slog.Error("Navigate response encode failed", "error", err)
 	}
 }
 
@@ -135,12 +141,13 @@ func (s *Server) GetGraph(w http.ResponseWriter, r *http.Request) {
 	nodes, err := s.Engine.Inspect()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Inspect error: %v", err), http.StatusInternalServerError)
+		slog.Error("Inspect failed", "error", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(nodes); err != nil {
-		fmt.Printf("GetGraph encode error: %v\n", err)
+		slog.Error("GetGraph response encode failed", "error", err)
 	}
 }
 
@@ -149,6 +156,7 @@ func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+		slog.Error("SubscribeEvents: Streaming not supported")
 		return
 	}
 
@@ -158,30 +166,37 @@ func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 
 	events, err := s.Engine.Watch(r.Context())
 	if err != nil {
-		// Log error but we can't write to W anymore if we started flushing?
-		// Actually we haven't flushed yet, so we can try.
 		http.Error(w, fmt.Sprintf("Watch error: %v", err), http.StatusInternalServerError)
+		slog.Error("Watch failed", "error", err)
 		return
 	}
 
 	// Send initial connection message? Optional. Let's send a ping.
 	fmt.Fprintf(w, "event: ping\ndata: connected\n\n")
 	flusher.Flush()
+	slog.Info("SSE Client Connected")
 
 	for {
 		select {
 		case <-r.Context().Done():
+			slog.Info("SSE Client Disconnected")
 			return
 		case event, ok := <-events:
 			if !ok {
 				return
 			}
 			// Log event to server console for DX
-			fmt.Printf("[%s] SSE Broadcast: %s\n", time.Now().Format("15:04:05"), event)
+			slog.Info("SSE Broadcast", "event", event)
 			fmt.Fprintf(w, "data: %s\n\n", event)
 			flusher.Flush()
 		}
 	}
+}
+
+func init() {
+	// Configure default slog to output JSON to stderr
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
 }
 
 // -- Helpers --
