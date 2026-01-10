@@ -42,7 +42,7 @@ Supported Transports:
 
 		// Configure logger
 		opts := &slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level: slog.LevelInfo,
 		}
 		logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 		slog.SetDefault(logger)
