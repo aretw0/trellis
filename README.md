@@ -15,6 +15,7 @@ Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (o
 
 - **Strict Typing & Serialization**: Garante que seus fluxos sejam robustos e livres de erros de digitação.
 - **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`), escalando sua arquitetura.
+- **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, etc.).
 - **Hexagonal Architecture**: Core agnóstico (Go Library) desacoplado de FileSystem (Loam Adapter).
 - **Hot Reload**: Desenvolva com feedback instantâneo.
 

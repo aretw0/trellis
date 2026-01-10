@@ -84,6 +84,18 @@ O **Loam** atua como bibliotecário e camada de persistência.
 - **Trellis Adapter (`LoamLoader`)**: Converte `DocumentModel` para JSON/Structs que o Compiler entende.
 - **Constraints**: Em modo de desenvolvimento, o Loam facilita o hot-reload e a leitura segura de arquivos.
 
+### 1.5. Model Context Protocol (MCP) Adapter
+
+Introduzido na v0.4.1, o adaptador MCP (`internal/adapters/mcp`) expõe o Trellis como um Servidor MCP.
+
+- **Tools**:
+  - `render_state`: Mapeia para `Engine.Render`.
+  - `navigate`: Mapeia para `Engine.Navigate`.
+  - `get_graph`: Mapeia para `Engine.Inspect`.
+- **Resources**:
+  - `trellis://graph`: Retorna o grafo via `Engine.Inspect`.
+- **Transports**: Suporta `Stdio` (para agentes locais) e `SSE` (para remoto/debug).
+
 ### 3.2. Global Strict Serialization
 
 O Trellis adota uma postura de "Strict Types" para garantir a determinística da máquina de estados.
