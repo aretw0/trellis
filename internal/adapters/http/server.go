@@ -1,0 +1,189 @@
+package http
+
+import (
+	"context"
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/go-chi/chi/v5"
+)
+
+//go:embed openapi.yaml
+var openAPISpec []byte
+
+//go:generate go tool oapi-codegen -package http -generate types,chi-server -o api.gen.go ../../../api/openapi.yaml
+
+// Engine defines the interface for the Trellis state machine core.
+type Engine interface {
+	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
+	Navigate(ctx context.Context, state *domain.State, input string) (*domain.State, error)
+	Inspect() ([]domain.Node, error)
+}
+
+// Server implements the generated ServerInterface
+type Server struct {
+	Engine Engine
+}
+
+// Ensure Server implements ServerInterface
+var _ ServerInterface = (*Server)(nil)
+
+// NewHandler creates a new HTTP handler for the engine.
+func NewHandler(engine Engine) http.Handler {
+	server := &Server{Engine: engine}
+	r := chi.NewRouter()
+
+	// Swagger UI
+	r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/yaml")
+		w.Write(openAPISpec)
+	})
+	r.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(swaggerHTML))
+	})
+
+	return HandlerFromMux(server, r)
+}
+
+const swaggerHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trellis API Documentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" crossorigin></script>
+<script>
+    window.onload = () => {
+    window.ui = SwaggerUIBundle({
+        url: '/openapi.yaml',
+        dom_id: '#swagger-ui',
+    });
+    };
+</script>
+</body>
+</html>
+`
+
+// Render handles the POST /render request.
+func (s *Server) Render(w http.ResponseWriter, r *http.Request) {
+	var body RenderJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	domainState := mapStateToDomain(body)
+	actions, terminal, err := s.Engine.Render(r.Context(), &domainState)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Render error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	resp := RenderResponse{
+		Actions:  ptr(mapActionsFromDomain(actions)),
+		Terminal: &terminal,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("Render encode error: %v\n", err)
+	}
+}
+
+// Navigate handles the POST /navigate request.
+func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
+	var body NavigateJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	domainState := mapStateToDomain(body.State)
+	input := ""
+	if body.Input != nil {
+		input = *body.Input
+	}
+
+	newState, err := s.Engine.Navigate(r.Context(), &domainState, input)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Navigate error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	resp := mapStateFromDomain(*newState)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("Navigate encode error: %v\n", err)
+	}
+}
+
+// GetGraph handles the GET /graph request.
+func (s *Server) GetGraph(w http.ResponseWriter, r *http.Request) {
+	nodes, err := s.Engine.Inspect()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Inspect error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(nodes); err != nil {
+		fmt.Printf("GetGraph encode error: %v\n", err)
+	}
+}
+
+// -- Helpers --
+
+func ptr[T any](v T) *T {
+	return &v
+}
+
+func mapStateToDomain(s State) domain.State {
+	d := domain.State{
+		CurrentNodeID: s.CurrentNodeId,
+		Memory:        make(map[string]any),
+		History:       []string{},
+		Terminated:    false,
+	}
+	if s.Memory != nil {
+		d.Memory = *s.Memory
+	}
+	if s.History != nil {
+		d.History = *s.History
+	}
+	if s.Terminated != nil {
+		d.Terminated = *s.Terminated
+	}
+	return d
+}
+
+func mapStateFromDomain(d domain.State) State {
+	s := State{
+		CurrentNodeId: d.CurrentNodeID,
+		Memory:        ptr(d.Memory),
+		Terminated:    &d.Terminated,
+	}
+	if d.History != nil {
+		s.History = &d.History
+	}
+	return s
+}
+
+func mapActionsFromDomain(actions []domain.ActionRequest) []ActionRequest {
+	res := make([]ActionRequest, len(actions))
+	for i, a := range actions {
+		res[i] = ActionRequest{
+			Type:    a.Type,
+			Payload: a.Payload,
+		}
+	}
+	return res
+}

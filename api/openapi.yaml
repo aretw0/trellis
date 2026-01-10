@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: Trellis Stateless Server
+  version: 0.1.0
+  description: |
+    API for interacting with the Trellis State Machine Engine in a stateless manner.
+servers:
+  - url: http://localhost:8080
+    description: Local Dev Server
+  - url: /
+    description: Relative Path (Production)
+paths:
+  /graph:
+    get:
+      summary: Introspect the full state machine graph
+      operationId: GetGraph
+      responses:
+        "200":
+          description: The full graph definition
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+  /render:
+    post:
+      summary: Get the current view (actions) for a given state
+      operationId: Render
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/State"
+      responses:
+        "200":
+          description: Successful rendering
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RenderResponse"
+        "400":
+          description: Invalid state input
+        "500":
+          description: Internal server error
+
+  /navigate:
+    post:
+      summary: Transition to the next state based on input
+      operationId: Navigate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NavigateRequest"
+      responses:
+        "200":
+          description: New state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: Invalid input
+        "500":
+          description: Internal server error
+
+components:
+  schemas:
+    State:
+      type: object
+      required:
+        - current_node_id
+      properties:
+        current_node_id:
+          type: string
+          description: The identifier of the active node.
+        memory:
+          type: object
+          description: Key-value store for session variables.
+          additionalProperties: true
+        history:
+          type: array
+          description: Trace of visited nodes.
+          items:
+            type: string
+        terminated:
+          type: boolean
+          description: Indicates if the execution has reached a sink state.
+
+    NavigateRequest:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          $ref: "#/components/schemas/State"
+        input:
+          type: string
+          description: The user input to drive the transition.
+
+    RenderResponse:
+      type: object
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionRequest"
+        terminal:
+          type: boolean
+          description: True if the current node has no outgoing transitions.
+
+    ActionRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: The type of action (e.g., RENDER_CONTENT, REQUEST_INPUT).
+        payload:
+          description: Dynamic payload depending on the action type.
+          nullable: true

@@ -3,3 +3,6 @@
 
 .gemini/
 gha-creds-*.json
+
+# Generated Artifacts
+internal/adapters/http/openapi.yaml
