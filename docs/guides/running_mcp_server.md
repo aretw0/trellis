@@ -113,7 +113,6 @@ Antigravity natively supports MCP. Add the server to your `mcp_config.json`:
         "--dir", 
         "C:/path/to/trellis/examples/tour"
       ]
-      ]
     }
   }
 }

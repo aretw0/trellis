@@ -25,6 +25,7 @@ As interfaces que o engine usa para buscar dados.
 ```mermaid
 graph TD
     Host[Host Application / CLI] -->|Driver Port| Engine
+    MCP[MCP Client / Inspector] -->|Driver Port| Engine
     subgraph "Trellis Core"
         Engine[Engine - Runtime]
         Domain[Domain - Node, State]
