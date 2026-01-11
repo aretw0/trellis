@@ -65,14 +65,18 @@ sequenceDiagram
 ```text
 trellis/
 ├── cmd/
-│   └── trellis/       # Entrypoint (Wiring dos Ports e Adapters)
+│   └── trellis/       # Entrypoint (CLI)
 ├── internal/          # Detalhes de implementação (Privado)
+│   ├── adapters/      # Implementações (Loam, HTTP, MCP)
+│   ├── presentation/  # TUI & Renderização
 │   ├── runtime/       # Engine de execução
-│   └── adapters/      # Implementações (Loam, HTTP, MCP)
+│   └── validator/     # Lógica de validação
 ├── pkg/               # Contratos Públicos (Safe to import)
 │   ├── adapters/      # Adaptadores de Infraestrutura (Inmemory)
-│   ├── domain/        # Node, Transition, Action (Structs puras)
-│   └── ports/         # Interfaces (Driver & Driven)
+│   ├── domain/        # Core Domain (Node, State)
+│   ├── ports/         # Interfaces (Driver & Driven)
+│   ├── registry/      # Registro de Ferramentas
+│   └── runner/        # Loop de Execução e Handlers
 └── go.mod
 ```
 
