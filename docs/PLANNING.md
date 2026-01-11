@@ -91,15 +91,14 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 
 - [ ] **Side-Effect Protocol Integration (Phase 2)**:
   - [ ] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
-  - [ ] **Human-in-the-loop**: Implementar confirmação de execução de ferramentas no `TextHandler`.
+  - [x] **Human-in-the-loop**: Implementado via `ConfirmationMiddleware`.
   - [ ] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
-- [ ] **Protocol Refinement (Technical Debt)**:
-  - [ ] **System Messages**: Adicionar suporte a `IOHandler.SystemOutput` para separar mensagens de sistema (ex: "Allow tool?") do conteúdo do fluxo.
-  - [ ] **Metadata-driven Safety**: Permitir que nodes definam `metadata.confirm_msg` para personalizar prompts de confirmação, consumidos pelo Middleware.
-- [ ] **Tech Debt & Caveats**:
-  - [ ] **Interpolation Engine**: Substituir `strings.ReplaceAll` por template engine robusto (segurança e func maps).
-  - [ ] **Async JSON Runner**: Refatorar `JSONHandler` para evitar bloqueio no Stdin (Event Loop ou Channels).
-  - [ ] **OpenAPI Sync**: Garantir geração automatizada do código a partir do `openapi.yaml` atualizado (v0.1.1).
+- [ ] **Technical Debt & Hardening**:
+  - [ ] **System Messages**: Adicionar suporte a `IOHandler.SystemOutput` para separar mensagens de sistema do conteúdo.
+  - [ ] **Metadata-driven Safety**: Permitir `metadata.confirm_msg` para personalizar prompts do Middleware.
+  - [ ] **Interpolation Engine**: Substituir `strings.ReplaceAll` por template engine robusto.
+  - [ ] **Async JSON Runner**: Refatorar `JSONHandler` para evitar bloqueio no Stdin (Event Loop).
+  - [ ] **OpenAPI Sync**: Garantir geração automatizada do código (oapi-codegen).
 
 ### 🧠 v0.5: Semantic Cleanup (The "Pure" Phase)
 
