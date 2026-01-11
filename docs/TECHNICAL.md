@@ -68,7 +68,7 @@ trellis/
 │   └── trellis/       # Entrypoint (Wiring dos Ports e Adapters)
 ├── internal/          # Detalhes de implementação (Privado)
 │   ├── runtime/       # Engine de execução
-│   └── adapters/      # Adaptadores de Protocolo (HTTP, MCP)
+│   └── adapters/      # Implementações (Loam, HTTP, MCP)
 ├── pkg/               # Contratos Públicos (Safe to import)
 │   ├── adapters/      # Adaptadores de Infraestrutura (Inmemory)
 │   ├── domain/        # Node, Transition, Action (Structs puras)
