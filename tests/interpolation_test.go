@@ -43,9 +43,9 @@ Hello, {{ username }}!
 		t.Fatalf("Failed to init engine: %v", err)
 	}
 
-	// 4. Manually seed state with memory
+	// 4. Manually seed state with context
 	state := domain.NewState("welcome")
-	state.Memory["username"] = "Alice"
+	state.Context["username"] = "Alice"
 
 	// 5. Run Render
 	// We only care about the Output actions here.

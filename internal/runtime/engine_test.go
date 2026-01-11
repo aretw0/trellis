@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/memory"
+	"github.com/aretw0/trellis/pkg/adapters/inmemory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -35,7 +35,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 		Transitions: []domain.Transition{},
 	}
 
-	loader, _ := memory.NewFromNodes(startNode, middleNode, endNode)
+	loader, _ := inmemory.NewFromNodes(startNode, middleNode, endNode)
 	engine := runtime.NewEngine(loader, nil)
 
 	t.Run("Initial Render", func(t *testing.T) {
@@ -126,7 +126,7 @@ func TestEngine_Render_Inputs(t *testing.T) {
 		InputDefault: "A",
 	}
 
-	loader, _ := memory.NewFromNodes(node)
+	loader, _ := inmemory.NewFromNodes(node)
 	engine := runtime.NewEngine(loader, nil)
 
 	// Render

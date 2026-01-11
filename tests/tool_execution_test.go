@@ -86,7 +86,7 @@ func TestToolExecutionFlow(t *testing.T) {
 	state := &domain.State{
 		CurrentNodeID: "start",
 		Status:        domain.StatusActive,
-		Memory:        make(map[string]any),
+		Context:       make(map[string]any),
 	}
 
 	// 2. Navigate from Start -> Tool Node

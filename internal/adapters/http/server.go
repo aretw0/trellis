@@ -233,12 +233,12 @@ func ptr[T any](v T) *T {
 func mapStateToDomain(s State) domain.State {
 	d := domain.State{
 		CurrentNodeID: s.CurrentNodeId,
-		Memory:        make(map[string]any),
+		Context:       make(map[string]any),
 		History:       []string{},
 		Terminated:    false,
 	}
 	if s.Memory != nil {
-		d.Memory = *s.Memory
+		d.Context = *s.Memory
 	}
 	if s.History != nil {
 		d.History = *s.History
@@ -252,7 +252,7 @@ func mapStateToDomain(s State) domain.State {
 func mapStateFromDomain(d domain.State) State {
 	s := State{
 		CurrentNodeId: d.CurrentNodeID,
-		Memory:        ptr(d.Memory),
+		Memory:        ptr(d.Context),
 		Terminated:    &d.Terminated,
 	}
 	if d.History != nil {

@@ -110,11 +110,12 @@ func (s *Server) registerTools() {
 		mcp.WithDescription("Render the view for a given valid state. If state is omitted, renders the start node."),
 		mcp.WithString("node_id", mcp.Description("The ID of the node to render (optional if state is provided)")),
 		mcp.WithString("history", mcp.Description("JSON array of node IDs visited (optional)")),
-		mcp.WithString("memory", mcp.Description("JSON object representing the current memory (optional)")),
+		mcp.WithString("history", mcp.Description("JSON array of node IDs visited (optional)")),
+		mcp.WithString("context", mcp.Description("JSON object representing the current context (optional)")),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 
 		state := &domain.State{
-			Memory:  make(map[string]interface{}),
+			Context: make(map[string]interface{}),
 			History: []string{},
 		}
 
@@ -129,8 +130,11 @@ func (s *Server) registerTools() {
 			_ = json.Unmarshal([]byte(histStr), &state.History)
 		}
 
-		if memStr, ok := args["memory"].(string); ok {
-			_ = json.Unmarshal([]byte(memStr), &state.Memory)
+		if ctxStr, ok := args["context"].(string); ok {
+			_ = json.Unmarshal([]byte(ctxStr), &state.Context)
+		} else if memStr, ok := args["memory"].(string); ok {
+			// Backwards compatibility for 'memory'
+			_ = json.Unmarshal([]byte(memStr), &state.Context)
 		}
 
 		if nodeID != "" {
@@ -161,7 +165,7 @@ func (s *Server) registerTools() {
 		mcp.WithString("node_id", mcp.Required(), mcp.Description("Current node ID")),
 		mcp.WithString("input", mcp.Required(), mcp.Description("User input string")),
 		mcp.WithString("history", mcp.Description("JSON array of visit history")),
-		mcp.WithString("memory", mcp.Description("JSON object of memory")),
+		mcp.WithString("context", mcp.Description("JSON object of context")),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 
 		args, ok := request.Params.Arguments.(map[string]interface{})
@@ -174,15 +178,17 @@ func (s *Server) registerTools() {
 
 		state := &domain.State{
 			CurrentNodeID: nodeID,
-			Memory:        make(map[string]interface{}),
+			Context:       make(map[string]interface{}),
 			History:       []string{},
 		}
 
 		if histStr, ok := args["history"].(string); ok {
 			_ = json.Unmarshal([]byte(histStr), &state.History)
 		}
-		if memStr, ok := args["memory"].(string); ok {
-			_ = json.Unmarshal([]byte(memStr), &state.Memory)
+		if ctxStr, ok := args["context"].(string); ok {
+			_ = json.Unmarshal([]byte(ctxStr), &state.Context)
+		} else if memStr, ok := args["memory"].(string); ok {
+			_ = json.Unmarshal([]byte(memStr), &state.Context)
 		}
 
 		newState, err := s.engine.Navigate(ctx, state, input)

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/memory"
+	"github.com/aretw0/trellis/pkg/adapters/inmemory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/require"
 )
@@ -45,8 +45,8 @@ func TestEngine_Subgraphs(t *testing.T) {
 		},
 	}
 
-	// Load into MemoryLoader (Pre-compiled Domain Nodes)
-	loader, err := memory.NewFromNodes(rootNode, subNode, endNode)
+	// Load into inmemoryLoader (Pre-compiled Domain Nodes)
+	loader, err := inmemory.NewFromNodes(rootNode, subNode, endNode)
 	require.NoError(t, err)
 
 	engine := runtime.NewEngine(loader, nil)

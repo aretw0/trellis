@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/memory"
+	"github.com/aretw0/trellis/pkg/adapters/inmemory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -14,7 +14,7 @@ import (
 // This is useful for testing, embedded scenarios, or when you don't want to rely on the file system.
 func ExampleNew_memory() {
 	// 1. Define your graph using helper NewFromNodes for clean, type-safe construction.
-	loader, err := memory.NewFromNodes(
+	loader, err := inmemory.NewFromNodes(
 		domain.Node{
 			ID:      "start",
 			Type:    "question",

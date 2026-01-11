@@ -6,14 +6,14 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/presentation/tui"
-	"github.com/aretw0/trellis/pkg/adapters/memory"
+	"github.com/aretw0/trellis/pkg/adapters/inmemory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 )
 
 func main() {
 	// 1. Define the Graph using Go Structs
-	loader, err := memory.NewFromNodes(
+	loader, err := inmemory.NewFromNodes(
 		domain.Node{
 			ID:      "start",
 			Type:    "question",

@@ -20,8 +20,8 @@ type State struct {
 	// PendingToolCall holds the ID of the tool call we are waiting for (if Status == WaitingForTool).
 	PendingToolCall string
 
-	// Memory holds variable state for the session.
-	Memory map[string]any
+	// Context holds variable state for the session.
+	Context map[string]any
 
 	// History could track the path taken (optional for now, but good for debugging)
 	History []string
@@ -36,7 +36,7 @@ func NewState(startNodeID string) *State {
 	return &State{
 		CurrentNodeID: startNodeID,
 		Status:        StatusActive,
-		Memory:        make(map[string]any),
+		Context:       make(map[string]any),
 		History:       []string{startNodeID},
 	}
 }

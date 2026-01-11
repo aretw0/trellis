@@ -77,7 +77,7 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 	// Actually, Render just returns what the node *says*.
 	if node.Type == domain.NodeTypeText || node.Type == domain.NodeTypeQuestion {
 		text := string(node.Content)
-		text = interpolate(text, currentState.Memory)
+		text = interpolate(text, currentState.Context)
 
 		actions = append(actions, domain.ActionRequest{
 			Type:    domain.ActionRenderContent,
@@ -228,11 +228,11 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 }
 
 // interpolate replaces {{ key }} with values from memory
-func interpolate(text string, memory map[string]any) string {
-	if memory == nil {
+func interpolate(text string, context map[string]any) string {
+	if context == nil {
 		return text
 	}
-	for key, val := range memory {
+	for key, val := range context {
 		placeholder := fmt.Sprintf("{{ %s }}", key)
 		// Basic string replacement for now.
 		// Ideally we would use a regex to handle spacing variations like {{key}}.
