@@ -10,14 +10,16 @@ import (
 	"strings"
 
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/registry"
 )
 
 // JSONHandler implements the IOHandler interface for structured JSON-Lines communication.
 type JSONHandler struct {
-	Reader  *bufio.Reader
-	Writer  io.Writer
-	Encoder *json.Encoder
-	Decoder *json.Decoder
+	Reader   *bufio.Reader
+	Writer   io.Writer
+	Encoder  *json.Encoder
+	Decoder  *json.Decoder
+	Registry *registry.Registry
 }
 
 // NewJSONHandler creates a handler for JSON IO.
@@ -88,18 +90,38 @@ func (h *JSONHandler) Input(ctx context.Context) (string, error) {
 // Ideally, the JSON Runner shouldn't "execute" tools, it should just "pass through" the request to the caller.
 // But the Runner loop calls this during StatusWaitingForTool.
 func (h *JSONHandler) HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error) {
-	// Emit the tool call as an event/output
-	// payload := map[string]any{
-	// 	"type": "tool_call",
-	// 	"data": call,
-	// }
-	// h.Encoder.Encode(payload)
-	//
-	// PROBLEM: The Runner expects a synchronous result here.
-	// For JSON mode (Headless), we can't really "block and wait" unless we read stdin?
-	// Let's assume we read stdin for the result.
+	// 1. Try Local Execution (Registry)
+	if h.Registry != nil {
+		// Check if the tool exists locally
+		result, err := h.Registry.Execute(ctx, call.Name, call.Args)
+		if err == nil {
+			// Success: Return immediately, skip network IO
+			return domain.ToolResult{
+				ID:     call.ID,
+				Result: result,
+			}, nil
+		}
+		// If error is "tool not found", fall through to network/JSON fallback.
+		// If it's a legitimate execution error, we should probably return it.
+		// But how can we distinguish "not found" cleanly from Registry.Execute?
+		// Registry.Execute returns error if not found.
+		// Let's rely on the error string for now or peek.
+		// Actually, standardizing: IF Registry is present, we SHOULD execute it or fail?
+		// Current plan: Server-side tools (Registry) + Client-side instruments (JSON/Fallback).
+		// So if Registry.Execute fails with "tool not found", PROCEED to fallback.
+		// If it fails with execution error, RETURN error.
+		if err.Error() != fmt.Sprintf("tool not found: %s", call.Name) {
+			return domain.ToolResult{
+				ID:      call.ID,
+				IsError: true,
+				Error:   err.Error(),
+			}, nil
+		}
+		// Tool not found in registry -> Fallback to client side
+	}
 
-	// 1. Emit Request
+	// 2. Fallback: Network/JSON (Client Execution)
+	// Emit Request
 	req := domain.ActionRequest{
 		Type:    domain.ActionCallTool,
 		Payload: call,
@@ -108,7 +130,7 @@ func (h *JSONHandler) HandleTool(ctx context.Context, call domain.ToolCall) (dom
 		return domain.ToolResult{}, err
 	}
 
-	// 2. Read Response from Stdin
+	// 3. Read Response from Stdin
 	var result domain.ToolResult
 	if err := h.Decoder.Decode(&result); err != nil {
 		return domain.ToolResult{}, fmt.Errorf("failed to decode tool result: %w", err)
