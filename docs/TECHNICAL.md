@@ -262,7 +262,15 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 
 2. **Bloqueio de I/O (JSON Adapter)**:
    - Em modo headless via Stdin/Stdout, o Engine pode bloquear se o Host não enviar a resposta da ferramenta imediatamente.
-   - O Runner utiliza uma goroutine para leitura, permitindo cancelamento via Contexto (timeout), mas a goroutine de leitura subjacente pode vazar até o processo terminar (limitação de pipes em Go).
+   - O Runner utiliza pipes padrão que podem bloquear se não consumidos corretamente pelo Host.
 
-3. **Confirmação Visual (CLI)**:
-   - O `TextHandler` solicita confirmação (`[y/N]`) antes de executar ferramentas. Em scripts automatizados, garanta que o input contenha as confirmações ou use o modo headless.
+### 8.5. Segurança e Policies (Interceptor)
+
+Para mitigar riscos de execução arbitrária, introduzimos o padrão **Interceptor** no Runner:
+
+```go
+type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error)
+```
+
+- **ConfirmationMiddleware**: Padrão para modo interativo. Intercepta a chamada e solicita confirmação explícita (`[y/N]`) ao usuário antes de permitir a execução.
+- **AutoApproveMiddleware**: Padrão para modo Headless/Automação.

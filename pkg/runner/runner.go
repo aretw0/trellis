@@ -18,6 +18,10 @@ type Runner struct {
 	// Handler is the strategy for IO. If nil, it falls back to legacy fields.
 	Handler IOHandler
 
+	// Interceptor is a middleware for tool execution policy.
+	// If nil, defaults to AutoApprove (Phase 1 behavior).
+	Interceptor ToolInterceptor
+
 	// Deprecated: Use Handler instead. These are kept for backward compatibility.
 	Input    io.Reader
 	Output   io.Writer
@@ -57,6 +61,22 @@ func (r *Runner) Run(engine *trellis.Engine) error {
 
 	state := engine.Start()
 	lastRenderedID := ""
+
+	// Resolve Interceptor
+	interceptor := r.Interceptor
+	if interceptor == nil {
+		// Default Policy:
+		// If Headless -> AutoApprove (Automation)
+		// If Interactive -> Confirmation (Safety)
+		// For backward compatibility with Phase 1 "mock" behavior, we might want AutoApprove.
+		// BUT, we want to upgrade security.
+		// Let's implement smart default: If Headless, AutoApprove. If Interactive, Confirm.
+		if r.Headless {
+			interceptor = AutoApproveMiddleware()
+		} else {
+			interceptor = ConfirmationMiddleware(handler)
+		}
+	}
 
 	for {
 		// 1. Render Phase (View)
@@ -105,12 +125,23 @@ func (r *Runner) Run(engine *trellis.Engine) error {
 				return fmt.Errorf("state is waiting for tool %s but no corresponding action produced", state.PendingToolCall)
 			}
 
-			// Execute Tool (Mechanic: Pause -> host executes -> Result)
-			result, err := handler.HandleTool(context.Background(), *pendingCall)
+			// Interceptor / Policy Check
+			allowed, policyResult, err := interceptor(context.Background(), *pendingCall)
 			if err != nil {
-				return fmt.Errorf("tool execution failed: %w", err)
+				return fmt.Errorf("tool interceptor error: %w", err)
 			}
-			nextInput = result
+
+			if !allowed {
+				// Blocked by policy, return the policy result (denial)
+				nextInput = policyResult
+			} else {
+				// Approved: Execute Tool (Mechanic: Pause -> host executes -> Result)
+				result, err := handler.HandleTool(context.Background(), *pendingCall)
+				if err != nil {
+					return fmt.Errorf("tool execution failed: %w", err)
+				}
+				nextInput = result
+			}
 
 		} else {
 			// Active State: Standard User Input

@@ -94,6 +94,9 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [ ] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
   - [ ] **Human-in-the-loop**: Implementar confirmação de execução de ferramentas no `TextHandler`.
   - [ ] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
+- [ ] **Protocol Refinement (Technical Debt)**:
+  - [ ] **System Messages**: Adicionar suporte a `IOHandler.SystemOutput` para separar mensagens de sistema (ex: "Allow tool?") do conteúdo do fluxo.
+  - [ ] **Metadata-driven Safety**: Permitir que nodes definam `metadata.confirm_msg` para personalizar prompts de confirmação, consumidos pelo Middleware.
 - [ ] **Tech Debt & Caveats**:
   - [ ] **Interpolation Engine**: Substituir `strings.ReplaceAll` por template engine robusto (segurança e func maps).
   - [ ] **Async JSON Runner**: Refatorar `JSONHandler` para evitar bloqueio no Stdin (Event Loop ou Channels).
