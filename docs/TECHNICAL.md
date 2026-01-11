@@ -32,7 +32,7 @@ graph TD
     end
     Engine -->|Driven Port| Loader[GraphLoader Interface]
     Loader -.->|Adapter| Loam[Loam - File System]
-    Loader -.->|Adapter| Mem[Memory - Testing]
+    Loader -.->|Adapter| Mem[InMemory - Testing]
 ```
 
 ### 1.4. Fluxo de Execução
@@ -67,9 +67,10 @@ trellis/
 ├── cmd/
 │   └── trellis/       # Entrypoint (Wiring dos Ports e Adapters)
 ├── internal/          # Detalhes de implementação (Privado)
-│   ├── adapters/      # Implementações (Loam, Memory) e Loaders
-│   └── runtime/       # Engine de execução
+│   ├── runtime/       # Engine de execução
+│   └── adapters/      # Adaptadores de Protocolo (HTTP, MCP)
 ├── pkg/               # Contratos Públicos (Safe to import)
+│   ├── adapters/      # Adaptadores de Infraestrutura (Inmemory)
 │   ├── domain/        # Node, Transition, Action (Structs puras)
 │   └── ports/         # Interfaces (Driver & Driven)
 └── go.mod
