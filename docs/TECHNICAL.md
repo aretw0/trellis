@@ -264,6 +264,11 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
    - Em modo headless via Stdin/Stdout, o Engine pode bloquear se o Host não enviar a resposta da ferramenta imediatamente.
    - O Runner utiliza pipes padrão que podem bloquear se não consumidos corretamente pelo Host.
 
+3. **Semântica de Texto e Bloqueio (UX)**:
+   - Atualmente, o `TextHandler` (CLI) assume que qualquer nó `type: text` com renderização exige pausa para leitura (espera `Enter`).
+   - Isso impede "Pass-through Nodes" (ex: Templates) que apenas mostram dados e avançam.
+   - **Plano (v0.5)**: Tornar `text` não-bloqueante por padrão e introduzir `type: prompt` para pausas explícitas.
+
 ### 8.5. Segurança e Policies (Interceptor)
 
 Para mitigar riscos de execução arbitrária, introduzimos o padrão **Interceptor** no Runner:

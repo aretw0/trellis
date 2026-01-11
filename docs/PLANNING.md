@@ -89,7 +89,6 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 
 ### 🚧 v0.4.1: Polimento & Extensibilidade
 
-- [ ] **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
 - [ ] **Side-Effect Protocol Integration (Phase 2)**:
   - [ ] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
   - [ ] **Human-in-the-loop**: Implementar confirmação de execução de ferramentas no `TextHandler`.
@@ -102,8 +101,17 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [ ] **Async JSON Runner**: Refatorar `JSONHandler` para evitar bloqueio no Stdin (Event Loop ou Channels).
   - [ ] **OpenAPI Sync**: Garantir geração automatizada do código a partir do `openapi.yaml` atualizado (v0.1.1).
 
+### 🧠 v0.5: Semantic Cleanup (The "Pure" Phase)
+
+Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com semântica de State Machine pura.
+
+- [ ] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
+- [ ] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
+- [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
+
 ### 🔮 Backlog / Concepts
 
+- **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
 - **gRPC**: Interface para alta performance interna.
