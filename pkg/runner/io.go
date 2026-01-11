@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/registry"
 )
 
 // IOHandler defines the strategy for interacting with the user.
@@ -32,6 +33,7 @@ type TextHandler struct {
 	Reader   *bufio.Reader
 	Writer   io.Writer
 	Renderer ContentRenderer
+	Registry *registry.Registry
 }
 
 // NewTextHandler creates a handler for standard text IO.
@@ -82,6 +84,24 @@ func (h *TextHandler) Input(ctx context.Context) (string, error) {
 // HandleTool for TextHandler mocks the execution by printing to stdout.
 func (h *TextHandler) HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error) {
 	fmt.Fprintf(h.Writer, "[Tool Call] ID=%s Name=%s Args=%v\n", call.ID, call.Name, call.Args)
+
+	if h.Registry != nil {
+		result, err := h.Registry.Execute(ctx, call.Name, call.Args)
+		if err != nil {
+			// If tool execution fails, we return it as an error result, but not necessarily a Go error.
+			// However, depending on semantics, we might want to fail the transition.
+			// For now, let's return the error in the result.
+			return domain.ToolResult{
+				ID:      call.ID,
+				IsError: true,
+				Error:   err.Error(),
+			}, nil
+		}
+		return domain.ToolResult{
+			ID:     call.ID,
+			Result: result,
+		}, nil
+	}
 
 	// For Phase 1, we just return a success mock.
 	// In the future, this could ask the user "Allow execution?" or actually run a local script.
