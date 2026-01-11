@@ -2,20 +2,16 @@ package runtime_test
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
-	"github.com/aretw0/trellis/internal/adapters"
 	"github.com/aretw0/trellis/internal/runtime"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
 func TestEngine_RenderAndNavigate(t *testing.T) {
 	// Setup
-	loader := adapters.NewInMemoryLoader()
-	engine := runtime.NewEngine(loader, nil)
-
-	// Node 1: Start
+	// Setup Declartive Nodes
 	startNode := domain.Node{
 		ID:      "start",
 		Type:    domain.NodeTypeQuestion,
@@ -24,10 +20,6 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 			{ToNodeID: "middle", Condition: "input == 'yes'"},
 		},
 	}
-	data1, _ := json.Marshal(startNode)
-	loader.AddNode("start", data1)
-
-	// Node 2: Middle
 	middleNode := domain.Node{
 		ID:      "middle",
 		Type:    domain.NodeTypeText,
@@ -36,18 +28,15 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 			{ToNodeID: "end", Condition: ""}, // Always
 		},
 	}
-	data2, _ := json.Marshal(middleNode)
-	loader.AddNode("middle", data2)
-
-	// Node 3: End
 	endNode := domain.Node{
 		ID:          "end",
 		Type:        domain.NodeTypeText,
 		Content:     []byte("End Node"),
 		Transitions: []domain.Transition{},
 	}
-	data3, _ := json.Marshal(endNode)
-	loader.AddNode("end", data3)
+
+	loader, _ := memory.NewFromNodes(startNode, middleNode, endNode)
+	engine := runtime.NewEngine(loader, nil)
 
 	t.Run("Initial Render", func(t *testing.T) {
 		state := domain.NewState("start")
@@ -126,9 +115,6 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 
 func TestEngine_Render_Inputs(t *testing.T) {
 	// Setup
-	loader := adapters.NewInMemoryLoader()
-	engine := runtime.NewEngine(loader, nil)
-
 	// Node 1: Input Node
 	node := domain.Node{
 		ID:           "input",
@@ -139,8 +125,9 @@ func TestEngine_Render_Inputs(t *testing.T) {
 		InputOptions: []string{"A", "B"},
 		InputDefault: "A",
 	}
-	data, _ := json.Marshal(node)
-	loader.AddNode("input", data)
+
+	loader, _ := memory.NewFromNodes(node)
+	engine := runtime.NewEngine(loader, nil)
 
 	// Render
 	state := domain.NewState("input")
