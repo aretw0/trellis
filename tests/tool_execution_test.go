@@ -80,7 +80,7 @@ func TestToolExecutionFlow(t *testing.T) {
 	}
 
 	loader := &InMemoryLoader{Nodes: rawNodes}
-	engine := runtime.NewEngine(loader, nil) // Default evaluator
+	engine := runtime.NewEngine(loader, nil, nil) // Default evaluator and interpolator
 
 	// 1. Start (Initial State)
 	state := &domain.State{

@@ -49,7 +49,7 @@ func TestEngine_Subgraphs(t *testing.T) {
 	loader, err := inmemory.NewFromNodes(rootNode, subNode, endNode)
 	require.NoError(t, err)
 
-	engine := runtime.NewEngine(loader, nil)
+	engine := runtime.NewEngine(loader, nil, nil)
 
 	// 1. Start at Root
 	state := domain.NewState(rootID)

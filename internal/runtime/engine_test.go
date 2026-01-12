@@ -36,7 +36,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 	}
 
 	loader, _ := inmemory.NewFromNodes(startNode, middleNode, endNode)
-	engine := runtime.NewEngine(loader, nil)
+	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Initial Render", func(t *testing.T) {
 		state := domain.NewState("start")
@@ -127,7 +127,7 @@ func TestEngine_Render_Inputs(t *testing.T) {
 	}
 
 	loader, _ := inmemory.NewFromNodes(node)
-	engine := runtime.NewEngine(loader, nil)
+	engine := runtime.NewEngine(loader, nil, nil)
 
 	// Render
 	state := domain.NewState("input")
@@ -162,5 +162,71 @@ func TestEngine_Render_Inputs(t *testing.T) {
 	}
 	if len(req.Options) != 2 {
 		t.Errorf("Expected 2 options, got %d", len(req.Options))
+	}
+}
+
+func TestEngine_Interpolation(t *testing.T) {
+	node := domain.Node{
+		ID:      "tmpl",
+		Type:    domain.NodeTypeText,
+		Content: []byte("Hello {{ .Name }}! VIP: {{ if .VIP }}Yes{{ else }}No{{ end }}"),
+	}
+	loader, _ := inmemory.NewFromNodes(node)
+	engine := runtime.NewEngine(loader, nil, nil) // Uses DefaultInterpolator (text/template)
+
+	t.Run("Standard Template", func(t *testing.T) {
+		state := domain.NewState("tmpl")
+		state.Context["Name"] = "Alice"
+		state.Context["VIP"] = true
+
+		actions, _, err := engine.Render(context.Background(), state)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		if len(actions) != 1 {
+			t.Fatal("Expected 1 action")
+		}
+		if actions[0].Payload != "Hello Alice! VIP: Yes" {
+			t.Errorf("Unexpected output: %s", actions[0].Payload)
+		}
+	})
+
+	t.Run("Missing Variable", func(t *testing.T) {
+		state := domain.NewState("tmpl")
+		state.Context["VIP"] = false
+		// Name is missing
+
+		actions, _, err := engine.Render(context.Background(), state)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := "Hello ! VIP: No"
+		if actions[0].Payload != expected {
+			t.Errorf("Expected '%s', got '%s'", expected, actions[0].Payload)
+		}
+	})
+}
+
+func TestEngine_LegacyInterpolation(t *testing.T) {
+	node := domain.Node{
+		ID:      "legacy",
+		Type:    domain.NodeTypeText,
+		Content: []byte("Hello {{ Name }}"), // Old syntax
+	}
+	loader, _ := inmemory.NewFromNodes(node)
+
+	// Inject LegacyInterpolator
+	engine := runtime.NewEngine(loader, nil, runtime.LegacyInterpolator)
+
+	state := domain.NewState("legacy")
+	state.Context["Name"] = "Bob"
+
+	actions, _, err := engine.Render(context.Background(), state)
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+
+	if actions[0].Payload != "Hello Bob" {
+		t.Errorf("Expected 'Hello Bob', got '%s'", actions[0].Payload)
 	}
 }

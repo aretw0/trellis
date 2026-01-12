@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"strings"
 
 	"github.com/aretw0/trellis/internal/compiler"
@@ -15,9 +16,10 @@ type ConditionEvaluator func(ctx context.Context, condition string, input string
 
 // Engine is the core state machine runner.
 type Engine struct {
-	loader    ports.GraphLoader
-	parser    *compiler.Parser
-	evaluator ConditionEvaluator
+	loader       ports.GraphLoader
+	parser       *compiler.Parser
+	evaluator    ConditionEvaluator
+	interpolator Interpolator
 }
 
 // DefaultEvaluator implements the basic "condition: input == 'value'" logic.
@@ -39,16 +41,61 @@ func DefaultEvaluator(ctx context.Context, condition string, input string) (bool
 	return false, nil
 }
 
+// Interpolator is a function that replaces variables in a string with values from data.
+type Interpolator func(ctx context.Context, templateStr string, data any) (string, error)
+
+// DefaultInterpolator uses Go's text/template logic.
+func DefaultInterpolator(ctx context.Context, templateStr string, data any) (string, error) {
+	// Fast path: no template tokens
+	if !strings.Contains(templateStr, "{{") {
+		return templateStr, nil
+	}
+
+	tmpl, err := template.New("node").Parse(templateStr)
+	if err != nil {
+		// Fallback: return raw string if parse fails, or error?
+		// For robustness in text UIs, maybe returning error is better so dev sees mistake.
+		return "", fmt.Errorf("invalid template '%s': %w", templateStr, err)
+	}
+
+	var sb strings.Builder
+	if err := tmpl.Execute(&sb, data); err != nil {
+		return "", fmt.Errorf("template execution failed: %w", err)
+	}
+	return sb.String(), nil
+}
+
+// LegacyInterpolator implements the simple "strings.ReplaceAll" logic for backward compatibility.
+func LegacyInterpolator(ctx context.Context, templateStr string, data any) (string, error) {
+	ctxMap, ok := data.(map[string]any)
+	if !ok || ctxMap == nil {
+		return templateStr, nil
+	}
+
+	text := templateStr
+	for key, val := range ctxMap {
+		placeholder := fmt.Sprintf("{{ %s }}", key)
+		// Basic string replacement compatible with previous version
+		text = strings.ReplaceAll(text, placeholder, fmt.Sprint(val))
+	}
+	return text, nil
+}
+
 // NewEngine creates a new engine with dependencies.
 // The engine is immutable after creation.
-func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator) *Engine {
+// interpolator is optional; if nil, DefaultInterpolator (Standard Go Templates) is used.
+func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpolator Interpolator) *Engine {
 	if evaluator == nil {
 		evaluator = DefaultEvaluator
 	}
+	if interpolator == nil {
+		interpolator = DefaultInterpolator
+	}
 	return &Engine{
-		loader:    loader,
-		parser:    compiler.NewParser(),
-		evaluator: evaluator,
+		loader:       loader,
+		parser:       compiler.NewParser(),
+		evaluator:    evaluator,
+		interpolator: interpolator,
 	}
 }
 
@@ -74,7 +121,17 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 	// Actually, Render just returns what the node *says*.
 	if node.Type == domain.NodeTypeText || node.Type == domain.NodeTypeQuestion {
 		text := string(node.Content)
-		text = interpolate(text, currentState.Context)
+
+		// Apply Interpolation
+		if e.interpolator != nil {
+			interpolated, err := e.interpolator(ctx, text, currentState.Context)
+			if err != nil {
+				// If interpolation fails, we currently error out.
+				// Alternative: log error and return original text.
+				return nil, false, fmt.Errorf("rendering failed during interpolation: %w", err)
+			}
+			text = interpolated
+		}
 
 		actions = append(actions, domain.ActionRequest{
 			Type:    domain.ActionRenderContent,
@@ -232,20 +289,6 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	}
 
 	return &nextState, nil
-}
-
-// interpolate replaces {{ key }} with values from memory
-func interpolate(text string, context map[string]any) string {
-	if context == nil {
-		return text
-	}
-	for key, val := range context {
-		placeholder := fmt.Sprintf("{{ %s }}", key)
-		// Basic string replacement for now.
-		// Ideally we would use a regex to handle spacing variations like {{key}}.
-		text = strings.ReplaceAll(text, placeholder, fmt.Sprint(val))
-	}
-	return text
 }
 
 // Inspect returns a structured view of the entire graph by walking all nodes.

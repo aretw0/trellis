@@ -16,9 +16,10 @@ import (
 // Engine is the high-level entry point for the Trellis library.
 // It wraps the internal runtime and provides a simplified API for consumers.
 type Engine struct {
-	runtime   *runtime.Engine
-	loader    ports.GraphLoader
-	evaluator runtime.ConditionEvaluator
+	runtime      *runtime.Engine
+	loader       ports.GraphLoader
+	evaluator    runtime.ConditionEvaluator
+	interpolator runtime.Interpolator
 }
 
 // Option defines a functional option for configuring the Engine.
@@ -35,6 +36,13 @@ func WithLoader(l ports.GraphLoader) Option {
 func WithConditionEvaluator(eval runtime.ConditionEvaluator) Option {
 	return func(e *Engine) {
 		e.evaluator = eval
+	}
+}
+
+// WithInterpolator sets a custom interpolator for the engine.
+func WithInterpolator(interp runtime.Interpolator) Option {
+	return func(e *Engine) {
+		e.interpolator = interp
 	}
 }
 
@@ -79,7 +87,7 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 	}
 
 	// Initialize Core Runtime with the selected loader
-	eng.runtime = runtime.NewEngine(eng.loader, eng.evaluator)
+	eng.runtime = runtime.NewEngine(eng.loader, eng.evaluator, eng.interpolator)
 
 	return eng, nil
 }

@@ -31,7 +31,7 @@ func TestInterpolation(t *testing.T) {
 id: welcome
 type: text
 ---
-Hello, {{ username }}!
+Hello, {{ .username }}!
 `
 	if err := repo.Save(context.Background(), core.Document{ID: "welcome.md", Content: content}); err != nil {
 		t.Fatal(err)
