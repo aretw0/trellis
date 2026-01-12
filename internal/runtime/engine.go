@@ -100,8 +100,8 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			// Fallback if ToolCall is missing in struct but Type is Tool
 			return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
 		}
-		// Interpolate Args? (For Phase 1, we assume static or basic string args)
-		// TODO: Deep interpolation of ToolCall.Args
+		// TODO: Implement deep interpolation for ToolCall.Args logic.
+		// Currently we propagate arguments as-is (static).
 
 		// Propagate Node Metadata to Tool Call
 		// This enables Middleware to see "confirm_msg" etc.

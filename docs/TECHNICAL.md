@@ -114,6 +114,22 @@ Por padrão, decodificadores JSON em Go tratam números arbitrários como `float
 
 O Trellis força o modo estrito em **todos** os adaptadores. Isso garante que números sejam decodificados como `json.Number` ou `int64`, e que exista consistência entre JSON e YAML.
 
+### 3.3. Fluxo de Dados e Serialização
+
+O Trellis utiliza múltiplas camadas de serialização, o que explica a presença de diferentes tags (`json`, `yaml`, `mapstructure`) nas structs do domínio.
+
+1. **Entrada (Source)**: Arquivos `.md` (YAML Frontmatter) ou `.json`.
+2. **Leitura (Loam)**: A biblioteca Loam usa `mapstructure` para decodificar YAML/JSON genérico em structs de DTO (`internal/dto`).
+3. **Adaptação (Loader)**: O `LoamLoader` converte os DTOs em um novo JSON limpo, estritamente tipado para o domínio.
+4. **Compilação (Engine)**: O `Compiler` lê esse JSON interno e popula as structs de Domínio (`pkg/domain`).
+
+**Por que a mistura de tags?**
+Para evitar a duplicação excessiva de structs, alguns tipos do Domínio (como `ToolCall`) são reutilizados nos DTOs.
+
+- `json`: Usado pelo **Compiler** (interno) e pela API REST/MCP (externo).
+- `mapstructure`: Usado pelo **Loam** para ler arquivos de disco.
+- `yaml`: Usado apenas para documentação ou ferramentas de exportação futuras (não utilizado no load crítico).
+
 ## 4. Escalabilidade: Sub-Grafos e Namespaces (v0.4+)
 
 Para escalar fluxos complexos, o Trellis suporta **Sub-Grafos** via organização de diretórios.
