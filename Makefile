@@ -20,7 +20,7 @@ mcp-tour:
 	go run ./cmd/trellis mcp --dir ./examples/tour --transport sse --port 8080
 
 # Run the MCP Inspector against the Tour example (using Stdio)
-inspect-tour: gen
+inspect-tour:
 	npx @modelcontextprotocol/inspector go run ./cmd/trellis mcp --dir ./examples/tour
 
 # Run the MCP Inspector against a running SSE server (requires 'make mcp-tour' in another terminal)
