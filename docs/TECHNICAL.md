@@ -172,7 +172,7 @@ Trellis supports two primary modes of operation:
 
 Para evitar a "Complexidade Oculta", seguimos estas restrições:
 
-### 5.1. Logic-Data Decoupling
+### 6.1. Logic-Data Decoupling
 
 A lógica complexa **nunca** deve residir no grafo (Markdown).
 
@@ -207,13 +207,13 @@ Introduzido na versão 0.3.3, o Trellis pode operar como um servidor HTTP statel
 
 Para suportar experiências dinâmicas (como **Hot-Reload** no navegador), o Trellis utiliza **Server-Sent Events (SSE)**.
 
-### 7.1. Por que SSE e não WebSockets?
+### 8.1. Por que SSE e não WebSockets?
 
 - **Simplicidade**: SSE usa HTTP padrão (`Content-Type: text/event-stream`). Não requer upgrade de protocolo ou handshake complexo.
 - **Unidirecional**: O Trellis é o "State of Truth". O cliente apenas reage a mudanças (ex: arquivo salvo no disco -> notifica cliente -> cliente recarrega). Para enviar dados (inputs), o cliente continua usando `POST /navigate` (HTTP padrão).
 - **Reconexão Nativa**: O objeto `EventSource` do navegador gerencia reconexões automaticamente.
 
-### 7.2. Fluxo de Hot-Reload
+### 8.2. Fluxo de Hot-Reload
 
 ```mermaid
 sequenceDiagram
@@ -232,7 +232,7 @@ sequenceDiagram
     Client->>Server: GET /render (Busca estado atualizado)
 ```
 
-### 7.3. Event Source & Caveats
+### 8.3. Event Source & Caveats
 
 O Trellis desacopla a fonte de eventos do transporte SSE:
 
@@ -250,7 +250,7 @@ O Trellis desacopla a fonte de eventos do transporte SSE:
 
 Introduzido na v0.4.0, o protocolo de side-effects permite que o Trellis solicite a execução de código externo (ferramentas) de forma determinística e segura.
 
-### 8.1. Filosofia: "Syscalls" para a IA
+### 9.1. Filosofia: "Syscalls" para a IA
 
 O Trellis trata chamadas de ferramenta como "Chamadas de Sistema" (Syscalls). O Engine não executa a ferramenta; ele **pausa** e solicita ao Host que a execute.
 
@@ -259,7 +259,7 @@ O Trellis trata chamadas de ferramenta como "Chamadas de Sistema" (Syscalls). O 
 3. **Dispatch**: O Host (CLI, Servidor HTTP, MCP) recebe a solicitação e executa a lógica (ex: chamar API, rodar script).
 4. **Resumo (Resume)**: O Host chama `Navigate` passando o `ToolResult`. O Engine retoma a execução verificando transições baseadas nesse resultado.
 
-### 8.2. Ciclo de Vida da Chamada de Ferramenta
+### 9.2. Ciclo de Vida da Chamada de Ferramenta
 
 ```mermaid
 sequenceDiagram
@@ -282,7 +282,7 @@ sequenceDiagram
     Engine->>Host: NewState (Node B)
 ```
 
-### 8.3. Universal Dispatcher
+### 9.3. Universal Dispatcher
 
 Graças a este desacoplamento, a mesma definição de grafo pode usar ferramentas implementadas de formas diferentes dependendo do adaptador:
 
@@ -290,23 +290,14 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
 
-### 8.4. Limitações Conhecidas
+### 9.4. Limitações Conhecidas
 
-1. **Interpolação de Strings (Legado)**:
-   - Até v0.4.0, era utilizado `strings.ReplaceAll` (`{{ key }}`).
-   - **v0.4.1+**: Suportado `Interpolator` Interface (Default: Go Templates `{{ .key }}`).
-   - **Nota**: A compatibilidade com sintaxe antiga é mantida via `LegacyInterpolator` opcional.
-
-2. **Bloqueio de I/O (JSON Adapter)**:
-   - Em modo headless via Stdin/Stdout, o Engine pode bloquear se o Host não enviar a resposta da ferramenta imediatamente.
-   - O Runner utiliza pipes padrão que podem bloquear se não consumidos corretamente pelo Host.
-
-3. **Semântica de Texto e Bloqueio (UX)**:
+1. **Semântica de Texto e Bloqueio (UX)**:
    - Atualmente, o `TextHandler` (CLI) assume que qualquer nó `type: text` com renderização exige pausa para leitura (espera `Enter`).
    - Isso impede "Pass-through Nodes" (ex: Templates) que apenas mostram dados e avançam.
    - **Plano (v0.5)**: Tornar `text` não-bloqueante por padrão e introduzir `type: prompt` para pausas explícitas.
 
-### 8.5. Segurança e Policies (Interceptor)
+### 9.5. Segurança e Policies (Interceptor)
 
 Para mitigar riscos de execução arbitrária, introduzimos o padrão **Interceptor** no Runner:
 
@@ -317,7 +308,7 @@ type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error
 - **ConfirmationMiddleware**: Padrão para modo interativo. Intercepta a chamada e solicita confirmação explícita (`[y/N]`) ao usuário antes de permitir a execução.
 - **AutoApproveMiddleware**: Padrão para modo Headless/Automação.
 
-### 8.6. Metadata-Driven Safety (v0.4.1+)
+### 9.6. Metadata-Driven Safety (v0.4.1+)
 
 Além da confirmação padrão, o Trellis permite que o autor do fluxo personalize a mensagem de segurança via metadados.
 
@@ -331,7 +322,7 @@ metadata:
 
 O `ConfirmationMiddleware` detecta o campo `confirm_msg` e o utiliza no prompt, permitindo alertas contextuais ricos.
 
-### 8.7. Protocolo de Mensagens de Sistema (System Messages)
+### 9.7. Protocolo de Mensagens de Sistema (System Messages)
 
 Para permitir que o sistema se comunique com o usuário fora do fluxo principal (sem ser conteúdo de nó), a v0.4.1 introduziu `ActionSystemMessage` (`SYSTEM_MESSAGE`).
 
@@ -354,7 +345,7 @@ Para permitir que o sistema se comunique com o usuário fora do fluxo principal 
 
 A partir da v0.4.1, o Trellis adota uma arquitetura plugável para interpolação de variáveis.
 
-### 9.1. Interpolator Interface
+### 10.1. Interpolator Interface
 
 O motor define a interface `Interpolator` em `pkg/runtime`:
 
@@ -364,7 +355,7 @@ type Interpolator func(ctx context.Context, templateStr string, data any) (strin
 
 Isso permite que consumidores da biblioteca (Hosts) injetem sua própria lógica de template (ex: Mustache, Jinja2, Lua) se desejarem.
 
-### 9.2. Default Strategy: Go Templates
+### 10.2. Default Strategy: Go Templates
 
 A implementação padrão (`DefaultInterpolator`) utiliza a biblioteca nativa `text/template` do Go.
 
@@ -372,7 +363,7 @@ A implementação padrão (`DefaultInterpolator`) utiliza a biblioteca nativa `t
 - **Robustez**: Suporta acesso a campos aninhados, condicionais, loops e pipes.
 - **Segurança**: Executa em contexto isolado, mas requer cuidado ao renderizar HTML (use `html/template` no Host se necessário, o Trellis foca em Texto/Dados).
 
-### 9.3. Legacy Strategy
+### 10.3. Legacy Strategy
 
 Para facilitar a migração, o Trellis fornece `LegacyInterpolator`, que mantém o comportamento antigo de `strings.ReplaceAll` com a sintaxe `{{ Key }}` (sem ponto).
 
