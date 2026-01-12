@@ -112,6 +112,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 
 ### 🔮 Backlog / Concepts
 
+- **Go DSL / Builders**: Criar helpers (`pkg/dsl` ou `pkg/builder`) para facilitar a criação de grafos em Go puro, reduzindo a verbosidade de instanciar structs manualmente e preenchendo o gap de DX em relação ao Markdown.
 - **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
