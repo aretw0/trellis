@@ -53,5 +53,5 @@ func TestGetInfo(t *testing.T) {
 
 	assert.Equal(t, "trellis-http", resp["app"])
 	assert.NotEmpty(t, resp["version"])
-	assert.Equal(t, "0.1.0", resp["api_version"])
+	assert.Equal(t, "0.2.0", resp["api_version"])
 }
