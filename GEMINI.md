@@ -35,7 +35,7 @@ go run ./cmd/trellis run ./examples/tour
 - **Run in headless mode for automation:**
 
     ```bash
-    echo "input1\ninput2" | go run ./cmd/trellis run --headless <path_to_flow_directory>
+    echo "\"input1\"\n\"input2\"" | go run ./cmd/trellis run --headless <path_to_flow_directory>
     ```
 
 - **Visualize a flow (outputs Mermaid graph):**

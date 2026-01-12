@@ -152,7 +152,23 @@ transitions:
 1. **Implicit IDs**: Arquivos em subdiretórios herdam o caminho como ID (ex: `modules/checkout/start`).
 2. **Normalization**: O Adapter normaliza todos os IDs para usar `/` (forward slash), garantindo que fluxos criados no Windows rodem no Linux sem alterações.
 
-## 5. Princípios de Design (Constraints)
+## 5. Runner & IO Architecture
+
+The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware (like confirmation), and delegates IO to an `IOHandler`.
+
+### Stateless & Async IO
+
+Trellis supports two primary modes of operation:
+
+1. **Text Mode** (`TextHandler`): For interactive TUI/CLI usage. Blocks on user input.
+2. **JSON Mode** (`JSONHandler`): For headless automation and API integration.
+
+**Key constraint for JSON Mode:**
+
+- **Strict JSON Lines (JSONL)**: All inputs to the `JSONHandler`, including tool results, must be single-line JSON strings.
+- **Async/Non-Blocking**: The handler reads from Stdin in a background goroutine. This allows the Engine to cancel wait operations (e.g. timeout or interrupt) without hanging on OS-level read syscalls.
+
+## 6. Princípios de Design (Constraints)
 
 Para evitar a "Complexidade Oculta", seguimos estas restrições:
 
@@ -165,14 +181,14 @@ A lógica complexa **nunca** deve residir no grafo (Markdown).
 
 > Veja [Interactive Inputs](../docs/guides/interactive_inputs.md) para detalhes sobre como o Host gerencia inputs.
 
-### 5.2. Strict Mode Compiler
+### 6.2. Strict Mode Compiler
 
 O compilador deve ser implacável.
 
 - Variáveis não declaradas resultam em erro de compilação.
 - O objetivo é **Confiança Total**: Se compilou, não existem "Dead Ends" lógicos causados por typos.
 
-## 6. Stateless Server Mode (v0.3.3+)
+## 7. Stateless Server Mode (v0.3.3+)
 
 Introduzido na versão 0.3.3, o Trellis pode operar como um servidor HTTP stateless.
 
@@ -187,7 +203,7 @@ Introduzido na versão 0.3.3, o Trellis pode operar como um servidor HTTP statel
 
 > Para um guia prático, veja [Running HTTP Server](../docs/guides/running_http_server.md).
 
-## 7. Real-Time & Events (SSE)
+## 8. Real-Time & Events (SSE)
 
 Para suportar experiências dinâmicas (como **Hot-Reload** no navegador), o Trellis utiliza **Server-Sent Events (SSE)**.
 
@@ -230,7 +246,7 @@ O Trellis desacopla a fonte de eventos do transporte SSE:
 >
 > - Não há distinção de qual arquivo mudou no payload do evento SSE (apenas `data: reload`).
 
-## 8. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
+## 9. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
 
 Introduzido na v0.4.0, o protocolo de side-effects permite que o Trellis solicite a execução de código externo (ferramentas) de forma determinística e segura.
 
@@ -334,7 +350,7 @@ Para permitir que o sistema se comunique com o usuário fora do fluxo principal 
 
 - **Diferença para RenderContent**: `RenderContent` é *Conteúdo do Nó* (parte da narrativa). `SystemMessage` é *Metadado da Infraestrutura*.
 
-## 9. Variable Interpolation (v0.4.1+)
+## 10. Variable Interpolation (v0.4.1+)
 
 A partir da v0.4.1, o Trellis adota uma arquitetura plugável para interpolação de variáveis.
 
