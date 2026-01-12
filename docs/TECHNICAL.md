@@ -276,10 +276,10 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 
 ### 8.4. Limitações Conhecidas
 
-1. **Interpolação de Strings**:
-   - O motor utiliza `strings.ReplaceAll` para template simples (`{{ key }}`).
-   - **Não suporta**: Acesso a campos aninhados (`user.address.city`) ou formatação.
-   - **Segurança**: Não há sanitização de output. Evite injetar dados não confiáveis diretamente em comandos de ferramenta.
+1. **Interpolação de Strings (Legado)**:
+   - Até v0.4.0, era utilizado `strings.ReplaceAll` (`{{ key }}`).
+   - **v0.4.1+**: Suportado `Interpolator` Interface (Default: Go Templates `{{ .key }}`).
+   - **Nota**: A compatibilidade com sintaxe antiga é mantida via `LegacyInterpolator` opcional.
 
 2. **Bloqueio de I/O (JSON Adapter)**:
    - Em modo headless via Stdin/Stdout, o Engine pode bloquear se o Host não enviar a resposta da ferramenta imediatamente.
@@ -333,3 +333,35 @@ Para permitir que o sistema se comunique com o usuário fora do fluxo principal 
   ```
 
 - **Diferença para RenderContent**: `RenderContent` é *Conteúdo do Nó* (parte da narrativa). `SystemMessage` é *Metadado da Infraestrutura*.
+
+## 9. Variable Interpolation (v0.4.1+)
+
+A partir da v0.4.1, o Trellis adota uma arquitetura plugável para interpolação de variáveis.
+
+### 9.1. Interpolator Interface
+
+O motor define a interface `Interpolator` em `pkg/runtime`:
+
+```go
+type Interpolator func(ctx context.Context, templateStr string, data any) (string, error)
+```
+
+Isso permite que consumidores da biblioteca (Hosts) injetem sua própria lógica de template (ex: Mustache, Jinja2, Lua) se desejarem.
+
+### 9.2. Default Strategy: Go Templates
+
+A implementação padrão (`DefaultInterpolator`) utiliza a biblioteca nativa `text/template` do Go.
+
+- **Sintaxe**: Standard Go Templates (`{{ .UserName }}`, `{{ if .IsVIP }}...{{ end }}`).
+- **Robustez**: Suporta acesso a campos aninhados, condicionais, loops e pipes.
+- **Segurança**: Executa em contexto isolado, mas requer cuidado ao renderizar HTML (use `html/template` no Host se necessário, o Trellis foca em Texto/Dados).
+
+### 9.3. Legacy Strategy
+
+Para facilitar a migração, o Trellis fornece `LegacyInterpolator`, que mantém o comportamento antigo de `strings.ReplaceAll` com a sintaxe `{{ Key }}` (sem ponto).
+
+Para usar, basta configurar o Engine:
+
+```go
+engine, err := trellis.New(dir, trellis.WithInterpolator(runtime.LegacyInterpolator))
+```

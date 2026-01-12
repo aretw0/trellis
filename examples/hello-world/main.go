@@ -17,7 +17,7 @@ func main() {
 		domain.Node{
 			ID:      "start",
 			Type:    "question",
-			Content: []byte("Welcome to the **Trellis TUI Demo**!\nDo you see this in *rich text*? [yes] [no]"),
+			Content: []byte("Welcome to the **Trellis TUI Demo**, {{ .User }}!\nDo you see this in *rich text*? [yes] [no]"),
 			Transitions: []domain.Transition{
 				{ToNodeID: "yes", Condition: "input == 'yes'"},
 				{ToNodeID: "no"},
@@ -51,8 +51,12 @@ func main() {
 	r.Headless = false
 	r.Renderer = tui.NewRenderer() // Inject TUI Renderer
 
-	// 4. Run!
-	if err := r.Run(eng); err != nil {
+	// 4. Seed Data (Verification of Interpolation)
+	startState := eng.Start()
+	startState.Context["User"] = "World"
+
+	// 5. Run!
+	if err := r.Run(eng, startState); err != nil {
 		log.Fatalf("Error running: %v", err)
 	}
 }
