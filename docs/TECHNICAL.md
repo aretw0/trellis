@@ -258,7 +258,7 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
 
-### 8.4. Limitações Conhecidas (Phase 1)
+### 8.4. Limitações Conhecidas
 
 1. **Interpolação de Strings**:
    - O motor utiliza `strings.ReplaceAll` para template simples (`{{ key }}`).
@@ -284,3 +284,22 @@ type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error
 
 - **ConfirmationMiddleware**: Padrão para modo interativo. Intercepta a chamada e solicita confirmação explícita (`[y/N]`) ao usuário antes de permitir a execução.
 - **AutoApproveMiddleware**: Padrão para modo Headless/Automação.
+
+### 8.6. Protocolo de Mensagens de Sistema (System Messages)
+
+Para permitir que o sistema se comunique com o usuário fora do fluxo principal (sem ser conteúdo de nó), a v0.4.1 introduziu `ActionSystemMessage` (`SYSTEM_MESSAGE`).
+
+- **Finalidade**: Logs, feedback de status ("Salvando...", "Executando ferramenta..."), avisos de erro não-fatais.
+- **Semântica**: Notificação Unidirecional (Fire-and-forget). O cliente deve exibir a mensagem mas não precisa responder.
+- **Formato**:
+
+  ```json
+  [
+    {
+      "Type": "SYSTEM_MESSAGE",
+      "Payload": "Tool 'calc' returned 42"
+    }
+  ]
+  ```
+
+- **Diferença para RenderContent**: `RenderContent` é *Conteúdo do Nó* (parte da narrativa). `SystemMessage` é *Metadado da Infraestrutura*.
