@@ -37,7 +37,16 @@ func MultiInterceptor(interceptors ...ToolInterceptor) ToolInterceptor {
 func ConfirmationMiddleware(handler IOHandler) ToolInterceptor {
 	return func(ctx context.Context, call domain.ToolCall) (bool, domain.ToolResult, error) {
 		// 1. Construct Actions to show the user (System Message)
-		if err := handler.SystemOutput(ctx, fmt.Sprintf("Tool Request: '%s' (ID: %s)\nArgs: %v\nAllow execution?", call.Name, call.ID, call.Args)); err != nil {
+		msg := fmt.Sprintf("Tool Request: '%s' (ID: %s)\nArgs: %v\nAllow execution?", call.Name, call.ID, call.Args)
+
+		// Metadata Override
+		if call.Metadata != nil {
+			if customMsg, ok := call.Metadata["confirm_msg"]; ok && customMsg != "" {
+				msg = customMsg
+			}
+		}
+
+		if err := handler.SystemOutput(ctx, msg); err != nil {
 			return false, domain.ToolResult{}, err
 		}
 

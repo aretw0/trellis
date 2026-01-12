@@ -285,7 +285,21 @@ type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error
 - **ConfirmationMiddleware**: Padrão para modo interativo. Intercepta a chamada e solicita confirmação explícita (`[y/N]`) ao usuário antes de permitir a execução.
 - **AutoApproveMiddleware**: Padrão para modo Headless/Automação.
 
-### 8.6. Protocolo de Mensagens de Sistema (System Messages)
+### 8.6. Metadata-Driven Safety (v0.4.1+)
+
+Além da confirmação padrão, o Trellis permite que o autor do fluxo personalize a mensagem de segurança via metadados.
+
+```yaml
+type: tool
+tool_call:
+  name: delete_database
+metadata:
+  confirm_msg: "⚠️  DANGER: This will destroy production data. Are you sure?"
+```
+
+O `ConfirmationMiddleware` detecta o campo `confirm_msg` e o utiliza no prompt, permitindo alertas contextuais ricos.
+
+### 8.7. Protocolo de Mensagens de Sistema (System Messages)
 
 Para permitir que o sistema se comunique com o usuário fora do fluxo principal (sem ser conteúdo de nó), a v0.4.1 introduziu `ActionSystemMessage` (`SYSTEM_MESSAGE`).
 

@@ -91,7 +91,7 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 
 - [ ] **Technical Debt & Hardening**:
   - [x] **System Messages**: Adicionar suporte a `IOHandler.SystemOutput` para separar mensagens de sistema do conteúdo.
-  - [ ] **Metadata-driven Safety**: Permitir `metadata.confirm_msg` para personalizar prompts do Middleware.
+  - [x] **Metadata-driven Safety**: Permitir `metadata.confirm_msg` para personalizar prompts do Middleware.
   - [ ] **Interpolation Engine**: Substituir `strings.ReplaceAll` por template engine robusto.
   - [ ] **Async JSON Runner**: Refatorar `JSONHandler` para evitar bloqueio no Stdin (Event Loop).
   - [ ] **OpenAPI Sync**: Garantir geração automatizada do código (oapi-codegen).

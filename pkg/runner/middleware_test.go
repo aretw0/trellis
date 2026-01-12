@@ -119,3 +119,38 @@ func TestMultiInterceptor(t *testing.T) {
 		t.Error("Expected denial result")
 	}
 }
+
+func TestConfirmationMiddleware_Metadata(t *testing.T) {
+	mock := &MockIOHandler{
+		InputBehavior: func() (string, error) { return "y\n", nil },
+	}
+
+	interceptor := ConfirmationMiddleware(mock)
+	call := domain.ToolCall{
+		ID:   "1",
+		Name: "dangerous_op",
+		Metadata: map[string]string{
+			"confirm_msg": "WARNING: Do you really want to destroy the world?",
+		},
+	}
+
+	allowed, _, err := interceptor(context.Background(), call)
+	if err != nil {
+		t.Fatalf("Middleware error: %v", err)
+	}
+	if !allowed {
+		t.Error("Expected to be allowed")
+	}
+
+	foundCustomMsg := false
+	for _, act := range mock.CapturedOutput {
+		if act.Type == domain.ActionSystemMessage {
+			if strings.Contains(act.Payload.(string), "WARNING: Do you really want to destroy the world?") {
+				foundCustomMsg = true
+			}
+		}
+	}
+	if !foundCustomMsg {
+		t.Error("Expected custom confirmation message from metadata")
+	}
+}

@@ -81,6 +81,16 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 		data["input_default"] = doc.Data.InputDefault
 	}
 
+	// Map Tool Configuration
+	if doc.Data.ToolCall != nil {
+		data["tool_call"] = doc.Data.ToolCall
+	}
+
+	// Map Metadata
+	if doc.Data.Metadata != nil {
+		data["metadata"] = doc.Data.Metadata
+	}
+
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal node data: %w", err)

@@ -52,9 +52,6 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator) *Engine {
 	}
 }
 
-// Step executes a single step (Render + Transition).
-// Deprecated: Use Render and Navigate separately for better control.
-
 // Render calculates the presentation for the current state.
 // It loads the node and generates actions (e.g. print text) but does NOT change state.
 // It returns actions, isTerminal (true if no transitions), and error.
@@ -106,9 +103,19 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		// Interpolate Args? (For Phase 1, we assume static or basic string args)
 		// TODO: Deep interpolation of ToolCall.Args
 
+		// Propagate Node Metadata to Tool Call
+		// This enables Middleware to see "confirm_msg" etc.
+		call := *node.ToolCall
+		if node.Metadata != nil {
+			call.Metadata = make(map[string]string)
+			for k, v := range node.Metadata {
+				call.Metadata[k] = v
+			}
+		}
+
 		actions = append(actions, domain.ActionRequest{
 			Type:    domain.ActionCallTool,
-			Payload: *node.ToolCall,
+			Payload: call,
 		})
 	}
 

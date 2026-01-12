@@ -3,9 +3,10 @@ package domain
 // ToolCall represents a request from the Engine to the Host to perform a side-effect.
 // Ideally compatible with OpenAI/MCP tool call schemas.
 type ToolCall struct {
-	ID   string         `json:"id"`             // Unique ID for this specific call (e.g. from LLM or generated)
-	Name string         `json:"name"`           // Function name to call
-	Args map[string]any `json:"args,omitempty"` // Arguments for the function
+	ID       string            `json:"id" yaml:"id" mapstructure:"id"`                                       // Unique ID for this specific call (e.g. from LLM or generated)
+	Name     string            `json:"name" yaml:"name" mapstructure:"name"`                                 // Function name to call
+	Args     map[string]any    `json:"args,omitempty" yaml:"args,omitempty" mapstructure:"args"`             // Arguments for the function
+	Metadata map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty" mapstructure:"metadata"` // Context/Safety metadata from the Node
 }
 
 // ToolResult represents the output of a side-effect returned by the Host.
