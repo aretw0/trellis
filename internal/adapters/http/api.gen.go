@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 )
 
 // ActionRequest defines model for ActionRequest.
@@ -28,9 +30,17 @@ type ActionRequest struct {
 
 // NavigateRequest defines model for NavigateRequest.
 type NavigateRequest struct {
-	// Input The user input to drive the transition.
-	Input *string `json:"input,omitempty"`
-	State State   `json:"state"`
+	// Input The user input or tool result.
+	Input *NavigateRequest_Input `json:"input,omitempty"`
+	State State                  `json:"state"`
+}
+
+// NavigateRequestInput0 defines model for .
+type NavigateRequestInput0 = string
+
+// NavigateRequest_Input The user input or tool result.
+type NavigateRequest_Input struct {
+	union json.RawMessage
 }
 
 // RenderResponse defines model for RenderResponse.
@@ -56,11 +66,85 @@ type State struct {
 	Terminated *bool `json:"terminated,omitempty"`
 }
 
+// ToolResult defines model for ToolResult.
+type ToolResult struct {
+	Error *string `json:"error,omitempty"`
+
+	// Id Corresponds to the ToolCall ID.
+	Id      string `json:"id"`
+	IsError *bool  `json:"is_error,omitempty"`
+
+	// Result The output of the tool execution.
+	Result interface{} `json:"result"`
+}
+
 // NavigateJSONRequestBody defines body for Navigate for application/json ContentType.
 type NavigateJSONRequestBody = NavigateRequest
 
 // RenderJSONRequestBody defines body for Render for application/json ContentType.
 type RenderJSONRequestBody = State
+
+// AsNavigateRequestInput0 returns the union data inside the NavigateRequest_Input as a NavigateRequestInput0
+func (t NavigateRequest_Input) AsNavigateRequestInput0() (NavigateRequestInput0, error) {
+	var body NavigateRequestInput0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNavigateRequestInput0 overwrites any union data inside the NavigateRequest_Input as the provided NavigateRequestInput0
+func (t *NavigateRequest_Input) FromNavigateRequestInput0(v NavigateRequestInput0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNavigateRequestInput0 performs a merge with any union data inside the NavigateRequest_Input, using the provided NavigateRequestInput0
+func (t *NavigateRequest_Input) MergeNavigateRequestInput0(v NavigateRequestInput0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsToolResult returns the union data inside the NavigateRequest_Input as a ToolResult
+func (t NavigateRequest_Input) AsToolResult() (ToolResult, error) {
+	var body ToolResult
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromToolResult overwrites any union data inside the NavigateRequest_Input as the provided ToolResult
+func (t *NavigateRequest_Input) FromToolResult(v ToolResult) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeToolResult performs a merge with any union data inside the NavigateRequest_Input, using the provided ToolResult
+func (t *NavigateRequest_Input) MergeToolResult(v ToolResult) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NavigateRequest_Input) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NavigateRequest_Input) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -355,26 +439,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xX32/bRgz+Vw63PbSAY2frBhR669qgDdZ5neM+tUVAS7R17elOvaPUGIX/94E8+Zcs",
-	"p9uy7SmyjuTx+z6SYr7q3Fe1d+go6uyrjnmJFcjjs5yMdzP83GAkflEHX2Mgg3Jcw9p6KPixwJgHU7O5",
-	"zvSLtYPK5KozUAXW6ArjVso7RSUqkMCK1jWO9Ui7xlpYWNQZhQY3I80Hp2HnJYqL8stthEc4Xo1HanY1",
-	"fXE1u33++3R+NZ3z7z/eXt3Mb6+nb97OH/MVKaKOFIxb6c1mpAN+bkzAQmfv0umHnZVffMSc9Gakp9Ca",
-	"FRCe5cC4uqHhVJuIQcm5Iq+KYFoU8BTARcOGA4mNdCQgAf99wKXO9HeTvT6TTpzJjRj1YSTXIRwzdAWG",
-	"Gcbau4inMBKdCRFhFb91/3Fl7BTTEAKs5TeGyjiwA9SEBpVZChV5EwI6Us4XqEqIynnlG1p5rpU9T/GA",
-	"qIX3FsEJ9hOYN1vujtF119zyNbemGJbLFOjILA0Grq9tlbYoyQ0qVZpIPqyHIEIuVdqaaAgLCSEgduSe",
-	"BOsTWGHVxYaiEBbAvjlAxZ0y6t37K64vWrANKk4M1dIHFTFG7pQWguEeO+RyT1wnF+EAOdeuMDkQxq1q",
-	"eId5I+3HkgWEvMRCgYrGfVJSg2f0OqzVvianVcsexi39aUbP3lwLNuMIA6vkVuqLoVKymwe01kQltaB+",
-	"g7w0DtWVW/Ef4zhPPrEYo6rAOQzj947zNcQTSB/5i9UNhhaDHukWQ0wZXI5/GF8ycb5GB7XRmX4yvhw/",
-	"0SNdA5Ui8QTb7UxdocwIVg8Yw3WhM33TLBjUAq+SHfOT+lN8fry8lNr1jtCJO+EdpaAXkQJCtR/X/IR3",
-	"UNUCoQCCTAXk4fveJXS9+bfp144koVJchZFgYU0ssRDhYlNVwNW4T5pnWhRiLiJ7JrAiyypAXaq8BLfC",
-	"KP4TeXWWiZdIL8XgmxRAXVsuRuPd5GPkxA8Z2HXXfS1zWvtHnXfKDA+HZWNth6vApXESvUfNtaPgY405",
-	"SR2Ki5SaqroiTCwIISWCpXsZeZUsHkjJ8SDkdJp4XCz+0+DncaAZj2lJXaFMVGBNiz0yXpsWHTdPHfwi",
-	"HU62zXwO8TWf/6t4oTa3u6Y9BJ36d2CmQ10fW1IaBxclUT3kcCb8E5kF/5zWCgm4jfvtd3yqwBWqy0Ax",
-	"vaGCXWVOXLe8CC8+DpC+XW90ms0Y6RdfrP8W4fdtCf3taXP8EeiWvQfp/VeWpBOOp/gldSYL+FO6sf/N",
-	"a8GaIq1vbPXzsBVhcGC7QagwBB96is13WwxPTB4MDu+oGwwLiFgo0U7uYdWCrGrnNUur3H+k2AFl/59O",
-	"veV0qCmaPMcYl41ViZ6u+e7VLlH8cAVfIh0tq63BL+pRtzE/li8eqBXPu21Rib8EjDp717/ztc/BqhfY",
-	"7heLJlidaR4x2WRi+bz0kbKvtQ+04cVju7ylsgjdfxxLaCzpTD+9fMrDbHCQiDVn1E/jeQfnlY+kHs3Q",
-	"Am+7j3fZTPTmw+bPAAAA//9MP5/6HQ4AAA==",
+	"H4sIAAAAAAAC/7xX32/bRgz+Vw63PbSAY3vtBhR+65qgNdalneM+tUVAS7R17elOvaPUGIH/94E82bFk",
+	"Jd3WbU/5cSSP/L6PPOpWZ76svENHUc9udcwKLEF+fZ6R8W6BX2qMxP+ogq8wkEE5rmBrPeT8a44xC6Zi",
+	"cz3T51sHpclUa6ByrNDlxm2Ud4oKVCCBFW0rHOuRdrW1sLKoZxRq3I00H5yGXRYoLsqv9xEe4XgzHqnF",
+	"xeX5xeL6xZvL5cXlkv/+493F1fJ6fvn23fIxX5Ei6kjBuI3e7UY64JfaBMz17H06/Xiw8qtPmJHejfQl",
+	"NGYDhPdiYFxV03CqdcSg5Fz5oMh7qwLG2hLn4x2+WevZ+9t+ZqNb/WPAtZ7pHyZ3xExaViZL7+1Coujd",
+	"x91IRwISqB5yuhKjftHJdajqBbocwwJj5V3E06IT+Kl+wjJ+6/6ujg78aggBtvI3htI4sANAhhqVWYtq",
+	"sjoEdKScz1EVEJXzyte08awsCuCikbyO+F55bxGc1H5S5tUeu2517TXXfM21yYfJNTk6MmuDgdW413SD",
+	"ktyA4Ea6MJF82A6VCJloujHREOYSQoo4gHsSrA9giWUbG/JcUAD79qgq7qtR797fcHvWgK1RcWKo1j6o",
+	"iDFyXzUQDHfkMZZ3wLV0EQ6AM3e5yYAw7lnDG8xqaVamLCBkBeYKVDTusxIN3sPXsVb7nAyp9qg1TjjF",
+	"EHwYRHKI4Bc+BBF/HhV5qYKDvwBr1fx8kF0Tr/t3HGrhUvZpnSrJ1yQjIqElY+IA2cBw7AEziAUbGbf2",
+	"pxc+fzsXno0jDKxYt1FfDRWpxoDWmqikL9TvkBXGobpwG/5hHHPGJxZjVCU4h2H8wTEYhjg93fEXqysM",
+	"DQY90g2GmDKYjp+Mp4yJr9BBZfRMPx1Px0/1SFdAhbA1wWb/Gm1QYGMugWuY53qmr+oVF7XCi2QnAMus",
+	"Ep8n06n0sXeETtwJbygFPYsUEMq7h07UcQNlJSXkQDBTAfnZ+uBSdb2XY9fvI0lCpbgKI8HKmlhgLiKO",
+	"dVkCd+Zd0iypKMCcRfZMxQotmwBVobIC3Aaj+E/kX/ci8RLppRh8EwKoKsuNabybfIqc+DECh0nz0Pg4",
+	"nQOdKXSKDMt7XVvb1pXj2jiJ3oNm7ij4WGFGokNxEampshVhQkEAKRAsPYjIq2TxnZB0BwinU8euWPzn",
+	"wcVioBm7sKSuUCYqsKbBHhivTYOOm6cKfpUOJ/tmvq/iOZ//q/VCZa4PTXtc9HT803g6NAGhqrqWlMbB",
+	"WUFUDTncE/6pzIJ/DmuJBNzG/fbrnipwuWozUAxvKOGgzIlr1z7BxccB0PeLoU7jGCP96vPt3wL8oY2p",
+	"v3fuunO/XZO/i++/sjCeYHyJX1NnMoE/pxv7738D1uRp8WWrX4atCIMD2w5Cld7OLmPLw0a3f4Qd3lA7",
+	"GFYQMVfCndzDrAVZW+/nLK21/xFjR5D9fzz1FvWhpqizDGNc1/zxwcZt8z3IXYL4+xl8idRZ3BuDX9Wj",
+	"9uvhsbx4oDY87/aiEn8JGOXjqHvna5+BVefY3C0WdbB6pnnEzCYTy+eFjzS7rXygHS8e+0U2ySK0S9ga",
+	"ZB/Tz6bPeJgNDhKx5oxO1sO2nFc+knq0QAu8+T8+ZDPhT7M/AwAA///m78CqVw8AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

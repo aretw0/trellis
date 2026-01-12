@@ -121,7 +121,13 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 	domainState := mapStateToDomain(body.State)
 	input := ""
 	if body.Input != nil {
-		input = *body.Input
+		var err error
+		input, err = body.Input.AsNavigateRequestInput0()
+		if err != nil {
+			http.Error(w, "Invalid input format: expected string", http.StatusBadRequest)
+			slog.Warn("Navigate: Invalid input format", "error", err)
+			return
+		}
 	}
 
 	newState, err := s.Engine.Navigate(r.Context(), &domainState, input)
