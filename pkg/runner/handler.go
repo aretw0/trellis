@@ -20,4 +20,8 @@ type IOHandler interface {
 	// HandleTool executes a side-effect requested by the engine.
 	// In a text/CLI context, this might just log the request or ask for confirmation.
 	HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error)
+
+	// SystemOutput presents a meta-message to the user (e.g. system logs, status updates).
+	// This is distinct from content rendering.
+	SystemOutput(ctx context.Context, msg string) error
 }

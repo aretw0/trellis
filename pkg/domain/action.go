@@ -19,6 +19,10 @@ const (
 	// ActionCallTool requests the host to execute a side-effect (tool).
 	// Payload: ToolCall
 	ActionCallTool = "CALL_TOOL"
+
+	// ActionSystemMessage represents a meta-message from the system (log, status, etc).
+	// Payload: string (the message)
+	ActionSystemMessage = "SYSTEM_MESSAGE"
 )
 
 // InputType defines the kind of input requested.

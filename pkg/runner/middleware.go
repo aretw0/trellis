@@ -32,21 +32,17 @@ func MultiInterceptor(interceptors ...ToolInterceptor) ToolInterceptor {
 // ConfirmationMiddleware prompts the user via the provided Handler before allowing execution.
 // It is "aware" of the IOHandler to use its Input/Output methods, but keeps the policy logic separate.
 //
-// Note: This requires the IOHandler to be capable of "system messages".
-// Since IOHandler interface is simple, we might just write to stdout/stderr directly via the handler if exposed,
-// or use a dedicated output channel.
-// For Phase 1.5, we will assume we can use the same `handler` for the prompt.
+// Note: This leverages the IOHandler.SystemOutput capability to send meta-messages.
+// This allows the prompt ("Allow execution?") to be distinct from the flow content.
 func ConfirmationMiddleware(handler IOHandler) ToolInterceptor {
 	return func(ctx context.Context, call domain.ToolCall) (bool, domain.ToolResult, error) {
-		// 1. Construct Actions to show the user
-		msg := fmt.Sprintf("\n[System] Tool Request: '%s' (ID: %s)\nArgs: %v\nAllow execution? [y/N]",
-			call.Name, call.ID, call.Args)
+		// 1. Construct Actions to show the user (System Message)
+		if err := handler.SystemOutput(ctx, fmt.Sprintf("Tool Request: '%s' (ID: %s)\nArgs: %v\nAllow execution?", call.Name, call.ID, call.Args)); err != nil {
+			return false, domain.ToolResult{}, err
+		}
 
+		// 2. Request Input (separately)
 		actions := []domain.ActionRequest{
-			{
-				Type:    domain.ActionRenderContent,
-				Payload: msg,
-			},
 			{
 				Type: domain.ActionRequestInput,
 				Payload: domain.InputRequest{
@@ -55,7 +51,7 @@ func ConfirmationMiddleware(handler IOHandler) ToolInterceptor {
 			},
 		}
 
-		// 2. Output Prompt
+		// 3. Output Request Input
 		if _, err := handler.Output(ctx, actions); err != nil {
 			return false, domain.ToolResult{}, err
 		}

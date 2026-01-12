@@ -95,3 +95,11 @@ func (h *TextHandler) HandleTool(ctx context.Context, call domain.ToolCall) (dom
 		IsError: false,
 	}, nil
 }
+
+func (h *TextHandler) SystemOutput(ctx context.Context, msg string) error {
+	// For text output, we can perhaps style it differently (e.g. bold, or different stream).
+	// Ideally we print to stderr for logs, or just stdout with a prefix.
+	// Let's use "[System]" prefix for now.
+	fmt.Fprintf(h.Writer, "\n[System] %s\n", msg)
+	return nil
+}

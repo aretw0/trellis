@@ -72,3 +72,36 @@ func TestJSONHandler_Input(t *testing.T) {
 		t.Errorf("Expected 'just plain text', got '%s'", val2)
 	}
 }
+
+func TestJSONHandler_SystemOutput(t *testing.T) {
+	buf := &bytes.Buffer{}
+	handler := NewJSONHandler(nil, buf)
+
+	err := handler.SystemOutput(context.Background(), "System Status")
+	if err != nil {
+		t.Fatalf("SystemOutput failed: %v", err)
+	}
+
+	output := buf.String()
+	// Should be a single line of JSON
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 1 {
+		t.Errorf("Expected 1 line of output, got %d", len(lines))
+	}
+
+	var decoded []domain.ActionRequest
+	if err := json.Unmarshal([]byte(lines[0]), &decoded); err != nil {
+		t.Fatalf("Failed to decode JSON: %v", err)
+	}
+
+	if len(decoded) != 1 {
+		t.Fatalf("Expected 1 action, got %d", len(decoded))
+	}
+
+	if decoded[0].Type != domain.ActionSystemMessage {
+		t.Errorf("Expected type SYSTEM_MESSAGE, got %s", decoded[0].Type)
+	}
+	if decoded[0].Payload.(string) != "System Status" {
+		t.Errorf("Payload mismatch")
+	}
+}

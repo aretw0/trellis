@@ -137,3 +137,16 @@ func (h *JSONHandler) HandleTool(ctx context.Context, call domain.ToolCall) (dom
 	}
 	return result, nil
 }
+
+func (h *JSONHandler) SystemOutput(ctx context.Context, msg string) error {
+	// Construct an ActionRequest of type SYSTEM_MESSAGE
+	actions := []domain.ActionRequest{
+		{
+			Type:    domain.ActionSystemMessage,
+			Payload: msg,
+		},
+	}
+
+	// Emit as standard protocol message
+	return h.Encoder.Encode(actions)
+}

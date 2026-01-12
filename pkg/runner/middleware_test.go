@@ -30,6 +30,20 @@ func (m *MockIOHandler) HandleTool(ctx context.Context, call domain.ToolCall) (d
 	return domain.ToolResult{ID: call.ID, Result: "mock_exec"}, nil
 }
 
+func (m *MockIOHandler) SystemOutput(ctx context.Context, msg string) error {
+	// For testing, we capture this as a system action
+	// Since Output() captures ActionRenderContent, let's capture this too
+	// but maybe wrap it in an ActionRequest manually so test looks the same
+	// Or we just modify the Capture logic.
+	// Let's create an ActionSystemMessage for it.
+	action := domain.ActionRequest{
+		Type:    domain.ActionSystemMessage,
+		Payload: msg,
+	}
+	m.CapturedOutput = append(m.CapturedOutput, action)
+	return nil
+}
+
 func TestConfirmationMiddleware_Allow(t *testing.T) {
 	mock := &MockIOHandler{
 		InputBehavior: func() (string, error) { return "y\n", nil },
@@ -54,7 +68,7 @@ func TestConfirmationMiddleware_Allow(t *testing.T) {
 	// Basic check for content
 	foundPrompt := false
 	for _, act := range mock.CapturedOutput {
-		if act.Type == domain.ActionRenderContent {
+		if act.Type == domain.ActionSystemMessage {
 			if strings.Contains(act.Payload.(string), "Allow execution?") {
 				foundPrompt = true
 			}
