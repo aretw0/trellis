@@ -63,7 +63,7 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 
 	done := make(chan error)
 	go func() {
-		done <- r.Run(engine)
+		done <- r.Run(engine, nil)
 	}()
 
 	select {
@@ -111,7 +111,7 @@ func TestRunner_Run_Headless(t *testing.T) {
 	// 3. Run
 	done := make(chan error)
 	go func() {
-		done <- r.Run(engine)
+		done <- r.Run(engine, nil)
 	}()
 
 	select {

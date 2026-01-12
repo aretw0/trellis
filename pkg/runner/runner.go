@@ -43,7 +43,8 @@ func NewRunner() *Runner {
 }
 
 // Run executes the engine loop until termination.
-func (r *Runner) Run(engine *trellis.Engine) error {
+// If initialState is nil, engine.Start() is called to create a new state.
+func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 	// Resolve Strategy
 	handler := r.Handler
 	if handler == nil {
@@ -59,7 +60,12 @@ func (r *Runner) Run(engine *trellis.Engine) error {
 		handler = th
 	}
 
-	state := engine.Start()
+	var state *domain.State
+	if initialState != nil {
+		state = initialState
+	} else {
+		state = engine.Start()
+	}
 	lastRenderedID := ""
 
 	// Resolve Interceptor

@@ -49,7 +49,7 @@ func RunSession(repoPath string, headless bool, jsonMode bool) error {
 	}
 
 	// Execute
-	if err := r.Run(engine); err != nil {
+	if err := r.Run(engine, nil); err != nil {
 		return fmt.Errorf("error running trellis: %w", err)
 	}
 	return nil
@@ -125,7 +125,7 @@ func RunWatch(repoPath string) {
 		// Run logic
 		doneCh := make(chan error, 1)
 		go func() {
-			doneCh <- r.Run(engine)
+			doneCh <- r.Run(engine, nil)
 		}()
 
 		// Wait for Run completion OR Global Signal
