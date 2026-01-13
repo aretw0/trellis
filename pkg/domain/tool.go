@@ -20,7 +20,7 @@ type ToolResult struct {
 // Tool defines metadata about a tool available to the engine.
 // This is used for generating schemas/prompts.
 type Tool struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	// Additional schema definition can be added here (JSON Schema)
+	Name        string         `json:"name" yaml:"name" mapstructure:"name"`
+	Description string         `json:"description" yaml:"description" mapstructure:"description"`
+	Parameters  map[string]any `json:"parameters,omitempty" yaml:"parameters,omitempty" mapstructure:"parameters"`
 }

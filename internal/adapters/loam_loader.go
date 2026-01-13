@@ -85,6 +85,9 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	if doc.Data.ToolCall != nil {
 		data["tool_call"] = doc.Data.ToolCall
 	}
+	if len(doc.Data.Tools) > 0 {
+		data["tools"] = doc.Data.Tools
+	}
 
 	// Map Metadata
 	if doc.Data.Metadata != nil {

@@ -341,6 +341,23 @@ Para permitir que o sistema se comunique com o usuário fora do fluxo principal 
 
 - **Diferença para RenderContent**: `RenderContent` é *Conteúdo do Nó* (parte da narrativa). `SystemMessage` é *Metadado da Infraestrutura*.
 
+### 9.8. Defining Tools in Loam
+
+You can define available tools directly in the Node's frontmatter. This allows the Engine to be aware of the tool's schema (name, description, parameters) without needing hardcoded Go structs.
+
+```yaml
+type: text
+tools:
+  - name: get_weather
+    description: Get current temperature
+    parameters:
+      type: object
+      properties:
+        city: { type: string }
+---
+The weather is...
+```
+
 ## 10. Variable Interpolation (v0.4.1+)
 
 A partir da v0.4.1, o Trellis adota uma arquitetura plugável para interpolação de variáveis.

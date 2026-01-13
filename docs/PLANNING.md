@@ -97,10 +97,10 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [x] **OpenAPI Sync**: Garantir geração automatizada do código (oapi-codegen).
   - [x] **Refactoring: Terminology**: Renomear `State.Memory` para `State.Context` e `adapters/memory` para `adapters/inmemory`.
   - [x] **Refactoring: Legacy Cleanup**: Remover `memory_loader.go` antigo.
-- [ ] **Side-Effect Protocol Integration (Phase 2)**:
+- [x] **Side-Effect Protocol Integration (Phase 2)**:
   - [x] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
   - [x] **Human-in-the-loop**: Implementado via `ConfirmationMiddleware`.
-  - [ ] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
+  - [x] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
 
 ### 🧠 v0.5: Semantic Cleanup (The "Pure" Phase)
 

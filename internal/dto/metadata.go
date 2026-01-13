@@ -18,6 +18,7 @@ type NodeMetadata struct {
 
 	// Tool Config
 	ToolCall *domain.ToolCall `json:"tool_call" mapstructure:"tool_call"`
+	Tools    []domain.Tool    `json:"tools" mapstructure:"tools"`
 
 	// General Metadata
 	Metadata map[string]string `json:"metadata" mapstructure:"metadata"`

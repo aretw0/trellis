@@ -38,4 +38,7 @@ type Node struct {
 
 	// Tool Configuration (Optional, used if Type == "tool")
 	ToolCall *ToolCall `json:"tool_call,omitempty" yaml:"tool_call,omitempty"`
+
+	// Tools defined within this node (e.g. for LLM context)
+	Tools []Tool `json:"tools,omitempty" yaml:"tools,omitempty"`
 }
