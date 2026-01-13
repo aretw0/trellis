@@ -76,7 +76,7 @@ Foco: Preparar o Trellis para arquiteturas efêmeras (Lambda, Cloud Functions) t
 - [x] **Validator Refactor**: Reimplementar `trellis validate` para operar sobre a abstração `GraphLoader`, permitindo validar grafos em memória ou bancos, não apenas arquivos.
 - [x] **Strict Serialization**: Implementar suporte a `Strict Mode` global (Loam v0.10.4+). Garante consistência de tipos (`json.Number`) tanto para JSON quanto Markdown/YAML. (Regression test: `tests/serialization_test.go`).
 
-### 🚧 v0.4: Scale, Protocol & Integration (The "System" Phase)
+### ✅ v0.4: Scale, Protocol & Integration (The "System" Phase)
 
 Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda com LLMs.
 
@@ -101,6 +101,8 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [x] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
   - [x] **Human-in-the-loop**: Implementado via `ConfirmationMiddleware`.
   - [x] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
+  - [ ] **Tool Libraries**: Suporte a referências de ferramentas (import) via chave polimórfica.
+    - *Requirement*: Validar schema manualmente (`[]any`), detectar ciclos de importação e respeitar shadowing (local > import).
 
 ### 🧠 v0.5: Semantic Cleanup (The "Pure" Phase)
 
@@ -135,6 +137,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - **2025-12-16**: *Refactoring*. Extração de `NodeMetadata` e `LoaderTransition` para `internal/dto` para limpar a API do adapter e centralizar definições.
 - **2025-12-14**: *Test Strategy*. Decidido que a cobertura de testes deve ser explícita em cada fase crítica.
 - **2026-01-11**: *Interpolation Strategy*. Adotada Interface `Interpolator` para permitir plugabilidade de estratégias de template (o usuário pode escolher entre Go Template, Legacy ou outros), mantendo o Core agnóstico.
+- **2026-01-13**: *Tool Definition Strategy*. Adotada abordagem polimórfica para a chave `tools`. Aceita tanto definições inline (Maps) quanto referências (Strings). Decidido aceitar o trade-off de tipagem em `[]any` em troca de DX superior, mitigando riscos com validação manual e detecção de ciclos no Loader.
 
 ---
 

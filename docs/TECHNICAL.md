@@ -358,6 +358,23 @@ tools:
 The weather is...
 ```
 
+### 9.9. Reusable Tool Libraries (Polymorphic Design)
+
+To support modularity, the `tools` key in Frontmatter is polymorphic. It accepts both inline definitions and string references to other files.
+
+```yaml
+tools:
+  - name: local_tool         # Inline Definition
+    description: ...
+  - "modules/tools/math.md"  # Reference (Mixin)
+```
+
+**Technical Constraints & Stewardship:**
+
+1. **Polymorphism (`[]any`)**: The Loader accepts generic types to support this UX. This requires **manual schema validation** at runtime to prevent silent failures (e.g. typos in field names).
+2. **Cycle Detection**: Recursive imports must be guarded against infinite loops (Stack Overflow). The Loader maintains a `visited` set.
+3. **Shadowing Policy**: Local definitions always override imported ones (Last-Write-Wins semantics). This allows specializing generic tools for specific nodes.
+
 ## 10. Variable Interpolation (v0.4.1+)
 
 A partir da v0.4.1, o Trellis adota uma arquitetura plugável para interpolação de variáveis.
