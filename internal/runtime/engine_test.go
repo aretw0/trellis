@@ -281,3 +281,48 @@ func TestEngine_DataBinding(t *testing.T) {
 		t.Errorf("Expected 'Hello Alice', got '%s'", actions[0].Payload)
 	}
 }
+
+func TestEngine_Namespacing(t *testing.T) {
+	node := domain.Node{
+		ID:      "node1",
+		Type:    domain.NodeTypeText,
+		Content: []byte("System says: {{ .sys.message }}"),
+		Transitions: []domain.Transition{
+			{ToNodeID: "node2"},
+		},
+	}
+	// Node trying to write to sys
+	nodeViolation := domain.Node{
+		ID:      "violation",
+		Type:    domain.NodeTypeQuestion,
+		SaveTo:  "sys.hacked",
+		Content: []byte("Try to hack"),
+	}
+
+	loader, _ := inmemory.NewFromNodes(node, nodeViolation)
+	engine := runtime.NewEngine(loader, nil, nil)
+
+	t.Run("Read System Context", func(t *testing.T) {
+		state := domain.NewState("node1")
+		state.SystemContext["message"] = "Secure"
+
+		actions, _, err := engine.Render(context.Background(), state)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		if actions[0].Payload != "System says: Secure" {
+			t.Errorf("Expected 'System says: Secure', got '%s'", actions[0].Payload)
+		}
+	})
+
+	t.Run("Block System Write", func(t *testing.T) {
+		state := domain.NewState("violation")
+		_, err := engine.Navigate(context.Background(), state, "malicious_input")
+		if err == nil {
+			t.Fatal("Expected error when saving to 'sys.*', got nil")
+		}
+		if err.Error() != "security violation: cannot save to reserved namespace 'sys' in node violation" {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+}

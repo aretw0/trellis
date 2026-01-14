@@ -111,7 +111,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [x] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
 - [x] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
 - [x] **Data Binding (Input)**: Suporte a `save_to: "variable_name"` para salvar dados no `State.Context`.
-- [ ] **Context Namespacing**: Isolar variáveis de usuário (`user.*`) de variáveis de sistema (`sys.*`) para evitar Overwrite acidental.
+- [x] **Context Namespacing**: Isolar variáveis de usuário (`user.*`) de variáveis de sistema (`sys.*`) para evitar Overwrite acidental.
 - [ ] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context, Deep Interpolation), **Execute** (Side-Effect), **Update** (Write Context).
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
@@ -156,6 +156,8 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 - **2025-12-14**: *Test Strategy*. Decidido que a cobertura de testes deve ser explícita em cada fase crítica.
 - **2026-01-11**: *Interpolation Strategy*. Adotada Interface `Interpolator` para permitir plugabilidade de estratégias de template (o usuário pode escolher entre Go Template, Legacy ou outros), mantendo o Core agnóstico.
 - **2026-01-13**: *Tool Definition Strategy*. Adotada abordagem polimórfica para a chave `tools`. Aceita tanto definições inline (Maps) quanto referências (Strings). Decidido aceitar o trade-off de tipagem em `[]any` em troca de DX superior, mitigando riscos com validação manual e detecção de ciclos no Loader.
+
+- **2026-01-14**: *Context Security*. Implementado namespace reservado `sys.*` no Engine. Escrita via `save_to` é bloqueada para prevenir injeção de estado. Leitura via templates é permitida para introspecção e error handling.
 
 ---
 

@@ -124,7 +124,14 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 
 		// Apply Interpolation
 		if e.interpolator != nil {
-			interpolated, err := e.interpolator(ctx, text, currentState.Context)
+			// Merge SystemContext for Interpolation
+			data := make(map[string]any)
+			for k, v := range currentState.Context {
+				data[k] = v
+			}
+			data["sys"] = currentState.SystemContext
+
+			interpolated, err := e.interpolator(ctx, text, data)
 			if err != nil {
 				// If interpolation fails, we currently error out.
 				// Alternative: log error and return original text.
@@ -250,9 +257,20 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 			nextState.Context[k] = v
 		}
 	}
+	// Copy SystemContext (Host-controlled, but safe to propagate)
+	nextState.SystemContext = make(map[string]any)
+	if currentState.SystemContext != nil {
+		for k, v := range currentState.SystemContext {
+			nextState.SystemContext[k] = v
+		}
+	}
 
 	// Handle Data Binding (SaveTo)
 	if node.SaveTo != "" {
+		// Validating Namespace
+		if node.SaveTo == "sys" || strings.HasPrefix(node.SaveTo, "sys.") {
+			return nil, fmt.Errorf("security violation: cannot save to reserved namespace 'sys' in node %s", node.ID)
+		}
 		nextState.Context[node.SaveTo] = input
 	}
 

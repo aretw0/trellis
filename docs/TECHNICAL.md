@@ -507,3 +507,13 @@ Embora o Trellis utilize `text/template` (que é seguro contra SSTI - Server Sid
     - *Backlog*: Implementar **Namespaces** (`user.name` vs `sys.flags`) para proteger variáveis críticas.
 3. **Sanitização**: O Trellis Engine (v0.5) armazena o input "raw". A validação (Regex, Length, Type) deve ser delegada a Middlewares ou a uma futura camada de Schema Validation.
     - *Recomendação*: Para web-apps, a camada de **Apresentação** (frontend) é responsável por escapar HTML (Anti-XSS).
+
+### 11.4. System Namespace (`sys.*`)
+
+Para permitir introspecção sem risco de colisão, o namespace `sys` é reservado.
+
+1. **Read-Only (Templates)**: O fluxo PODE ler variáveis de sistema.
+    - *Uso*: `{{ .sys.error }}` (para Error Handling), `{{ .sys.node_id }}` (Debug).
+2. **Write-Protected (Inputs)**: O fluxo NÃO PODE escrever em `sys` via `save_to`.
+    - *Motivo*: Segurança. Previne que outputs de LLM ou inputs de usuário alterem comportamento do Engine.
+3. **Host-Controlled**: Apenas o código Go (Host/Plugins) pode escrever em `sys`. Isso abre portas para injeção de *variáveis de ambiente* seguras (ex: `sys.user_role`).

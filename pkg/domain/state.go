@@ -21,7 +21,12 @@ type State struct {
 	PendingToolCall string
 
 	// Context holds variable state for the session.
+	// Context holds variable state for the session (User space).
 	Context map[string]any
+
+	// SystemContext holds system-level state (Read-only for templates, Host-writable).
+	// Reserved namespace: "sys".
+	SystemContext map[string]any
 
 	// History could track the path taken (optional for now, but good for debugging)
 	History []string
@@ -37,6 +42,7 @@ func NewState(startNodeID string) *State {
 		CurrentNodeID: startNodeID,
 		Status:        StatusActive,
 		Context:       make(map[string]any),
+		SystemContext: make(map[string]any),
 		History:       []string{startNodeID},
 	}
 }
