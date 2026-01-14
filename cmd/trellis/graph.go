@@ -39,10 +39,20 @@ var graphCmd = &cobra.Command{
 			safeID := sanitizeMermaidID(node.ID)
 
 			// Node Label
-			label := fmt.Sprintf("%s[\"%s\"]", safeID, node.ID)
-			if node.Type == "start" || node.ID == "start" {
-				label = fmt.Sprintf("%s((\"%s\"))", safeID, node.ID)
+			// Node Shape based on Type
+			// Default: Rectangle []
+			opener, closer := "[", "]"
+
+			switch {
+			case node.ID == "start" || node.Type == "start":
+				opener, closer = "((", "))" // Circle
+			case node.Type == "tool":
+				opener, closer = "[[", "]]" // Subroutine
+			case node.Type == "question" || node.Type == "prompt":
+				opener, closer = "[/", "/]" // Parallelogram (Input)
 			}
+
+			label := fmt.Sprintf("%s%s\"%s\"%s", safeID, opener, node.ID, closer)
 			fmt.Printf("    %s\n", label)
 
 			// Transitions
