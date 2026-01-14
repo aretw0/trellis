@@ -59,9 +59,11 @@ var graphCmd = &cobra.Command{
 					arrow = "-.->"
 				}
 				if t.Condition != "" {
-					arrow = fmt.Sprintf("-- \"%s\" -->", t.Condition)
+					// Escape double quotes in condition for Mermaid label
+					safeCondition := strings.ReplaceAll(t.Condition, "\"", "'")
+					arrow = fmt.Sprintf("-- \"%s\" -->", safeCondition)
 					if isJump {
-						arrow = fmt.Sprintf("-. \"%s\" .->", t.Condition)
+						arrow = fmt.Sprintf("-. \"%s\" .->", safeCondition)
 					}
 				}
 				fmt.Printf("    %s %s %s\n", safeID, arrow, safeTo)
@@ -75,5 +77,9 @@ func init() {
 }
 
 func sanitizeMermaidID(id string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(id, ".", "_"), "-", "_")
+	s := strings.ReplaceAll(id, ".", "_")
+	s = strings.ReplaceAll(s, "-", "_")
+	s = strings.ReplaceAll(s, "/", "_")
+	s = strings.ReplaceAll(s, "\\", "_")
+	return s
 }
