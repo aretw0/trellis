@@ -111,6 +111,8 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [ ] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
 - [ ] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
 - [ ] **Input Binding**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context` sem uso de Tools.
+- [ ] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
+- [ ] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
 ### 🔮 Backlog / Concepts
@@ -120,6 +122,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
 - **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados em múltiplos passos (Wizard) demonstrando validação e submissão, após v0.5.
+- **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
 - **gRPC**: Interface para alta performance interna.
 - **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
 - **MCP Enrichment**:
