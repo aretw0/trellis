@@ -87,7 +87,7 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [x] **MCP Server (Model Context Protocol)**: Expor Trellis como ferramentas (`render`, `navigate`) e recursos (`graph`) para LLMs.
 - [x] **Side-Effect Protocol (Tool Use)**: Padronização de como o Trellis solicita ações ao Host (Function Calling), alinhado com padrões de LLM (OpenAI Tool Spec).
 
-### 🚧 v0.4.1: Polimento & Extensibilidade
+### ✅ v0.4.1: Polimento & Extensibilidade
 
 - [x] **Technical Debt & Hardening**:
   - [x] **System Messages**: Adicionar suporte a `IOHandler.SystemOutput` para separar mensagens de sistema do conteúdo.
@@ -110,6 +110,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 
 - [ ] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
 - [ ] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
+- [ ] **Input Binding**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context` sem uso de Tools.
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
 ### 🔮 Backlog / Concepts
@@ -118,6 +119,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
 - **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
+- **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados em múltiplos passos (Wizard) demonstrando validação e submissão, após v0.5.
 - **gRPC**: Interface para alta performance interna.
 - **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
 - **MCP Enrichment**:
