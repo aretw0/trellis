@@ -101,7 +101,7 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [x] **Tool Registry**: Implementar registro real de funções/scripts para evitar mocks.
   - [x] **Human-in-the-loop**: Implementado via `ConfirmationMiddleware`.
   - [x] **Loam Support**: Definir ferramentas em Markdown/Frontmatter.
-  - [ ] **Tool Libraries**: Suporte a referências de ferramentas (import) via chave polimórfica.
+  - [x] **Tool Libraries**: Suporte a referências de ferramentas (import) via chave polimórfica.
     - *Requirement*: Validar schema manualmente (`[]any`), detectar ciclos de importação e respeitar shadowing (local > import).
 
 ### 🧠 v0.5: Semantic Cleanup (The "Pure" Phase)

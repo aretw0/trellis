@@ -10,6 +10,7 @@ import (
 	"github.com/aretw0/loam"
 	"github.com/aretw0/trellis/internal/dto"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/mitchellh/mapstructure"
 )
 
 // LoamLoader adapts the Loam library to the Trellis GraphLoader interface.
@@ -86,7 +87,11 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 		data["tool_call"] = doc.Data.ToolCall
 	}
 	if len(doc.Data.Tools) > 0 {
-		data["tools"] = doc.Data.Tools
+		resolvedTools, err := l.resolveTools(ctx, doc.Data.Tools, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error resolving tools for %s: %w", id, err)
+		}
+		data["tools"] = resolvedTools
 	}
 
 	// Map Metadata
@@ -100,6 +105,83 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+// resolveTools recursively resolves polymorphic tool definitions (inline maps or import strings).
+func (l *LoamLoader) resolveTools(ctx context.Context, toolsRaw []any, visited map[string]bool) ([]domain.Tool, error) {
+	if visited == nil {
+		visited = make(map[string]bool)
+	}
+
+	// Use a map to handle overrides/deduplication by name.
+	// "Local > Import" logic is handled by processing order:
+	// We process value by value. Later values override earlier ones in the map.
+	// So if imports come first, local (later) overrides.
+	toolMap := make(map[string]domain.Tool)
+	var toolNames []string // Keep track of order
+
+	for _, item := range toolsRaw {
+		switch v := item.(type) {
+		case string:
+			// Import Reference
+			refID := trimExtension(v)
+			if visited[refID] {
+				return nil, fmt.Errorf("cycle detected in tool imports: %s", refID)
+			}
+
+			// DFS Cycle Detection: Mark
+			visited[refID] = true
+
+			doc, err := l.Repo.Get(ctx, refID)
+			if err != nil {
+				// Don't leak detail if not needed, but here it helps
+				return nil, fmt.Errorf("failed to load imported tool library '%s': %w", refID, err)
+			}
+
+			importedTools, err := l.resolveTools(ctx, doc.Data.Tools, visited)
+
+			// DFS Cycle Detection: Unmark (backtrack)
+			delete(visited, refID)
+
+			if err != nil {
+				return nil, err
+			}
+
+			// Merge imported tools
+			for _, t := range importedTools {
+				if _, exists := toolMap[t.Name]; !exists {
+					toolNames = append(toolNames, t.Name)
+				}
+				toolMap[t.Name] = t
+			}
+
+		case map[string]any, map[any]any:
+			// Inline Definition
+			var tool domain.Tool
+			if err := mapstructure.Decode(v, &tool); err != nil {
+				return nil, fmt.Errorf("failed to decode inline tool: %w", err)
+			}
+			if tool.Name == "" {
+				return nil, fmt.Errorf("inline tool missing name")
+			}
+			if _, exists := toolMap[tool.Name]; !exists {
+				toolNames = append(toolNames, tool.Name)
+			}
+			// Overwrite existing (Shadowing)
+			toolMap[tool.Name] = tool
+
+		default:
+			return nil, fmt.Errorf("invalid tool definition type: %T", v)
+		}
+	}
+
+	// Flatten result in order
+	result := make([]domain.Tool, 0, len(toolNames))
+	for _, name := range toolNames {
+		result = append(result, toolMap[name])
+	}
+
+	return result, nil
 }
 
 // ListNodes lists all nodes in the repository.

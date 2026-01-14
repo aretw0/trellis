@@ -369,6 +369,33 @@ tools:
   - "modules/tools/math.md"  # Reference (Mixin)
 ```
 
+#### Resolution Strategy
+
+The `LoamLoader` implements a recursive resolution strategy with **Shadowing** (Last-Write-Wins).
+
+```mermaid
+flowchart TD
+    Start([Resolve Tools]) --> Init[Init Visited Set]
+    Init --> Iterate{Iterate Items}
+    
+    Iterate -->|String Import| CheckCycle{Cycle?}
+    CheckCycle -- Yes --> Error(Error: Cycle Detected)
+    CheckCycle -- No --> Load[Load Referenced File]
+    Load --> Recurse[Recursive Resolve]
+    Recurse --> MergeImport[Merge Imported Tools]
+    MergeImport --> Iterate
+    
+    Iterate -->|Map Definition| Decode[Decode Inline Map]
+    Decode --> MergeInline[Merge/Shadow Tool]
+    MergeInline --> Iterate
+    
+    Iterate -- Done --> Flatten[Flatten Map to List]
+    Flatten --> End([Return Tool List])
+    
+    style MergeInline stroke:#f66,stroke-width:2px,color:#f66
+    style MergeImport stroke:#66f,stroke-width:2px,color:#66f
+```
+
 **Technical Constraints & Stewardship:**
 
 1. **Polymorphism (`[]any`)**: The Loader accepts generic types to support this UX. This requires **manual schema validation** at runtime to prevent silent failures (e.g. typos in field names).
