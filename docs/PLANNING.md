@@ -104,34 +104,42 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
   - [x] **Tool Libraries**: Suporte a referências de ferramentas (import) via chave polimórfica.
     - *Requirement*: Validar schema manualmente (`[]any`), detectar ciclos de importação e respeitar shadowing (local > import).
 
-### 🧠 v0.5: Semantic Cleanup (The "Pure" Phase)
+### 🧠 v0.5: Semantic Core (The "Pure" Phase)
 
 Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com semântica de State Machine pura.
 
 - [ ] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
 - [ ] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
-- [ ] **Input Binding**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context` sem uso de Tools.
-- [ ] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
-- [ ] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
-- [ ] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context), **Execute** (Side-Effect), **Update** (Write Context) para organizar o ciclo de vida dos nós e garantir pureza de dados.
+- [ ] **Data Binding (Input)**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context`.
+- [ ] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context), **Execute** (Side-Effect), **Update** (Write Context).
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
-### 🔮 Backlog / Concepts
+### 🛡️ v0.5.1: Robustness & Observation (The "Production" Patch)
 
-- **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó e transicionam para outro fluxo.
-- **Go DSL / Builders**: Criar helpers (`pkg/dsl` ou `pkg/builder`) para facilitar a criação de grafos em Go puro, reduzindo a verbosidade de instanciar structs manualmente e preenchendo o gap de DX em relação ao Markdown.
-- **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
-- **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
-- **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis no Markdown.
-- **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados em múltiplos passos (Wizard) demonstrando validação e submissão, após v0.5.
+Foco: Tornar o Trellis seguro e observável para rodar em produção.
+
+- **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
+- **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
 - **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
-- **gRPC**: Interface para alta performance interna.
+
+### 👩‍💻 v0.6: Developer Experience (The "Ergonomics" Phase)
+
+Foco: Facilitar a vida de quem cria fluxos, seja em Markdown ou Go.
+
+- **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó.
+- **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
+- **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
+- **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
 - **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
-- **MCP Enrichment**:
-  - **Prompts Support**: Implementar `prompts/list` para iniciar fluxos comuns (ex: "Start Tour", "Debug Auth").
-  - **Granular Resources**: Permitir subscrição a arquivos específicos (`trellis://file/start.md`).
-  - **Sampling**: Permitir que o servidor solicite completions ao cliente (Human/LLM in the loop).
-  - **Docker**: Imagem oficial para deployment fácil do servidor MCP.
+
+### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
+
+Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
+
+- **Granular SSE Events**: Update parcial de estado para frontends reativos.
+- **MCP Enrichment**: Suporte a Prompts, Sampling e Docker.
+- **gRPC**: Interface binária para alta performance interna.
+- **WASM Playground**: Trellis no navegador.
 
 ---
 
