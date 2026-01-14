@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
-	"strings"
 
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/internal/presentation/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -33,63 +32,12 @@ var graphCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Println("graph TD")
-		for _, node := range nodes {
-			// Sanitize ID for Mermaid
-			safeID := sanitizeMermaidID(node.ID)
-
-			// Node Label
-			// Node Shape based on Type
-			// Default: Rectangle []
-			opener, closer := "[", "]"
-
-			switch {
-			case node.ID == "start" || node.Type == "start":
-				opener, closer = "((", "))" // Circle
-			case node.Type == "tool":
-				opener, closer = "[[", "]]" // Subroutine
-			case node.Type == "question" || node.Type == "prompt":
-				opener, closer = "[/", "/]" // Parallelogram (Input)
-			}
-
-			label := fmt.Sprintf("%s%s\"%s\"%s", safeID, opener, node.ID, closer)
-			fmt.Printf("    %s\n", label)
-
-			// Transitions
-			for _, t := range node.Transitions {
-				safeTo := sanitizeMermaidID(t.ToNodeID)
-
-				// Determine if it's a cross-module transition (Jump)
-				fromDir := path.Dir(node.ID)
-				toDir := path.Dir(t.ToNodeID)
-				isJump := fromDir != toDir
-
-				arrow := "-->"
-				if isJump {
-					arrow = "-.->"
-				}
-				if t.Condition != "" {
-					// Escape double quotes in condition for Mermaid label
-					safeCondition := strings.ReplaceAll(t.Condition, "\"", "'")
-					arrow = fmt.Sprintf("-- \"%s\" -->", safeCondition)
-					if isJump {
-						arrow = fmt.Sprintf("-. \"%s\" .->", safeCondition)
-					}
-				}
-				fmt.Printf("    %s %s %s\n", safeID, arrow, safeTo)
-			}
-		}
+		// Generate and print Mermaid graph
+		output := graph.GenerateMermaid(nodes)
+		fmt.Print(output)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(graphCmd)
-}
-
-func sanitizeMermaidID(id string) string {
-	s := strings.ReplaceAll(id, ".", "_")
-	s = strings.ReplaceAll(s, "-", "_")
-	s = strings.ReplaceAll(s, "/", "_")
-	s = strings.ReplaceAll(s, "\\", "_")
-	return s
 }

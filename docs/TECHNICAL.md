@@ -98,9 +98,32 @@ trellis/
 └── go.mod
 ```
 
-## 3. Integridade e Persistência
+### 3. Camada de Apresentação (Presentation Layer)
 
-### 3.1. O Papel do Loam
+`internal/presentation`
+
+Responsável por converter visualmente o grafo e estados do Engine para o usuário final.
+
+#### 3.1. Visualização de Grafo (`trellis graph`)
+
+O Trellis gera diagramas Mermaid seguindo convenções semânticas para diferenciar os tipos de nós:
+
+| Tipo de Nó | Forma Mermaid | Sintaxe | Significado |
+| :--- | :--- | :--- | :--- |
+| **Start** | Círculo | `((ID))` | Ponto de entrada ("start"). |
+| **Tool** | Sub-rotina | `[[ID]]` | Execução de side-effect externo. |
+| **Question/Prompt** | Paralelogramo | `[/ID/]` | Ponto de espera por input do usuário. |
+| **Text/Outros** | Retângulo | `[ID]` | Exibição de conteúdo estático. |
+
+A geração do grafo lida automaticamente com:
+
+- **Sanitização de IDs**: Caracteres como `/`, `.`, `-` são normalizados para `_`.
+- **Escape de Condições**: Aspas em condições são convertidas para evitar quebra de sintaxe.
+- **Sub-grafos**: Transições entre diretórios diferentes são representadas por linhas pontilhadas (`-.->`).
+
+## 4. Integridade e Persistência
+
+### 4.1. O Papel do Loam
 
 O **Loam** atua como bibliotecário e camada de persistência.
 
@@ -205,6 +228,16 @@ O compilador deve ser implacável.
 
 - Variáveis não declaradas resultam em erro de compilação.
 - O objetivo é **Confiança Total**: Se compilou, não existem "Dead Ends" lógicos causados por typos.
+
+### 6.3. Convenção de Ponto de Entrada (Entry Point)
+
+O Trellis segue a filosofia **Convention over Configuration** para o início do fluxo.
+
+- **ID Obrigatório**: O fluxo SEMPRE começa no nó com ID `start`.
+- **Resolução de Arquivo**: Por padrão, o `LoamLoader` busca por um arquivo chamado `start.md` (ou `start.json`) na raiz do diretório.
+- **Sub-Grafos**: Ao pular para um sub-módulo (`jump_to: modules/auth`), o engine busca por `modules/auth/start.md`.
+
+> **Nota**: Embora seja possível injetar um `State` inicial diferente via código (`engine.Navigate(ctx, customState, input)`), a CLI e os Runners padrão assumem `start` como entrypoint.
 
 ## 7. Stateless Server Mode (v0.3.3+)
 
@@ -555,3 +588,26 @@ Para permitir introspecção sem risco de colisão, o namespace `sys` é reserva
 2. **Write-Protected (Inputs)**: O fluxo NÃO PODE escrever em `sys` via `save_to`.
     - *Motivo*: Segurança. Previne que outputs de LLM ou inputs de usuário alterem comportamento do Engine.
 3. **Host-Controlled**: Apenas o código Go (Host/Plugins) pode escrever em `sys`. Isso abre portas para injeção de *variáveis de ambiente* seguras (ex: `sys.user_role`).
+
+## 12. Camada de Apresentação (Presentation Layer)
+
+`internal/presentation`
+
+Responsável por converter visualmente o grafo e estados do Engine para o usuário final.
+
+### 12.1. Visualização de Grafo (`trellis graph`)
+
+O Trellis gera diagramas Mermaid seguindo convenções semânticas para diferenciar os tipos de nós:
+
+| Tipo de Nó | Forma Mermaid | Sintaxe | Significado |
+| :--- | :--- | :--- | :--- |
+| **Start** | Círculo | `((ID))` | Ponto de entrada ("start"). |
+| **Tool** | Sub-rotina | `[[ID]]` | Execução de side-effect externo. |
+| **Question/Prompt** | Paralelogramo | `[/ID/]` | Ponto de espera por input do usuário. |
+| **Text/Outros** | Retângulo | `[ID]` | Exibição de conteúdo estático. |
+
+A geração do grafo lida automaticamente com:
+
+- **Sanitização de IDs**: Caracteres como `/`, `.`, `-` são normalizados para `_` para compatibilidade com Mermaid.
+- **Escape de Condições**: Aspas em condições são convertidas para evitar quebra de sintaxe nos labels.
+- **Sub-grafos**: Transições entre diretórios diferentes são representadas por linhas pontilhadas (`-.->`).

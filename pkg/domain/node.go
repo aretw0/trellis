@@ -7,11 +7,14 @@ const (
 	// NodeTypeQuestion displays content and halts waiting for input (hard step).
 	// NOTE: Future architecture may merge this with InputType logic.
 	NodeTypeQuestion = "question"
-	// NodeTypeLogic executes internal script/logic (silent step).
-	NodeTypeLogic = "logic"
 
 	// NodeTypeTool executes an external side-effect (tool).
 	NodeTypeTool = "tool"
+
+	// NodeTypeStart indicates the entry point (typically convention-based, but can be explicit).
+	NodeTypeStart = "start"
+	// NodeTypePrompt is an alias for "question", waiting for user input.
+	NodeTypePrompt = "prompt"
 )
 
 // Node represents a logical unit in the graph.
