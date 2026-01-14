@@ -113,6 +113,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [ ] **Input Binding**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context` sem uso de Tools.
 - [ ] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
 - [ ] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
+- [ ] **Lifecycle Cleanup**: Adotar padrão `Prep` (Read Context), `Exec` (Side-Effect), `Post` (Write Context) para organizar o ciclo de vida dos nós e garantir pureza de dados.
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
 ### 🔮 Backlog / Concepts
