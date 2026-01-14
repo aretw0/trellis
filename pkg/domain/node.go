@@ -19,6 +19,8 @@ const (
 type Node struct {
 	ID   string `json:"id" yaml:"id"`
 	Type string `json:"type" yaml:"type"` // e.g., "text", "question", "logic", "tool"
+	// Wait indicates if the engine should pause for input after rendering.
+	Wait bool `json:"wait" yaml:"wait"`
 
 	// Content holds the raw data for this node.
 	// For a text node, it might be the markdown content.

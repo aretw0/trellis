@@ -72,4 +72,5 @@ func ExampleNew_memory() {
 	// Output:
 	// Current Node: yes
 	// Action: RENDER_CONTENT
+	// Action: REQUEST_INPUT
 }

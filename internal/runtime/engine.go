@@ -140,11 +140,20 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 	}
 
 	// Calculate Input Request
-	if node.InputType != "" {
+	// We only request input if explicitly configured (wait: true, type: question, or input_type set)
+	needsInput := node.Wait || node.Type == domain.NodeTypeQuestion || node.InputType != ""
+
+	if needsInput {
+		inputType := domain.InputType(node.InputType)
+		// Default to Text input if not specified but input is required
+		if inputType == "" {
+			inputType = domain.InputText
+		}
+
 		actions = append(actions, domain.ActionRequest{
 			Type: domain.ActionRequestInput,
 			Payload: domain.InputRequest{
-				Type:    domain.InputType(node.InputType),
+				Type:    inputType,
 				Options: node.InputOptions,
 				Default: node.InputDefault,
 			},

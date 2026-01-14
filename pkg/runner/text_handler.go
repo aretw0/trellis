@@ -35,11 +35,10 @@ func NewTextHandler(r io.Reader, w io.Writer) *TextHandler {
 }
 
 func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest) (bool, error) {
-	hasContent := false
+	needsInput := false
 	for _, act := range actions {
 		if act.Type == domain.ActionRenderContent {
 			if msg, ok := act.Payload.(string); ok {
-				hasContent = true
 				output := msg
 				if h.Renderer != nil {
 					rendered, err := h.Renderer(msg)
@@ -50,8 +49,11 @@ func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest
 				fmt.Fprintln(h.Writer, strings.TrimSpace(output))
 			}
 		}
+		if act.Type == domain.ActionRequestInput {
+			needsInput = true
+		}
 	}
-	return hasContent, nil
+	return needsInput, nil
 }
 
 func (h *TextHandler) Input(ctx context.Context) (string, error) {

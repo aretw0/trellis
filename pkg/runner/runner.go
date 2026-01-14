@@ -103,7 +103,11 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		}
 
 		if isTerminal {
-			// Deprecated check: state.Terminated is also set by Engine
+			// If the node is terminal but requested input (e.g. wait: true),
+			// we must honor that request (Pause before Exit).
+			if needsInput {
+				_, _ = handler.Input(context.Background())
+			}
 			break
 		}
 

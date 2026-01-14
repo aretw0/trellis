@@ -72,6 +72,9 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	data["id"] = trimExtension(rawID)
 
 	data["type"] = doc.Data.Type
+	if doc.Data.Wait {
+		data["wait"] = doc.Data.Wait
+	}
 	data["transitions"] = domainTransitions
 	data["content"] = []byte(doc.Content) // As Base64
 

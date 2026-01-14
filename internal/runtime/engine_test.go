@@ -46,8 +46,8 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 			t.Fatalf("Render failed (start): %v", err)
 		}
 
-		if len(actions) != 1 {
-			t.Errorf("Expected 1 action, got %d", len(actions))
+		if len(actions) != 2 {
+			t.Errorf("Expected 2 actions, got %d", len(actions))
 		}
 		if actions[0].Payload != "Start Node" {
 			t.Errorf("Unexpected payload: %v", actions[0].Payload)

@@ -10,6 +10,7 @@ type NodeMetadata struct {
 	ID          string             `json:"id" mapstructure:"id"`
 	Type        string             `json:"type" mapstructure:"type"`
 	Transitions []LoaderTransition `json:"transitions" mapstructure:"transitions"`
+	Wait        bool               `json:"wait" mapstructure:"wait"`
 
 	// Interactive Input Config
 	InputType    string   `json:"input_type" mapstructure:"input_type"`
