@@ -290,12 +290,53 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
 
-### 9.4. Limitações Conhecidas
+### 9.4. Semântica de Texto e Bloqueio (v0.5 Semantic Cleanup)
 
-1. **Semântica de Texto e Bloqueio (UX)**:
-   - Atualmente, o `TextHandler` (CLI) assume que qualquer nó `type: text` com renderização exige pausa para leitura (espera `Enter`).
-   - Isso impede "Pass-through Nodes" (ex: Templates) que apenas mostram dados e avançam.
-   - **Plano (v0.5)**: Tornar `text` não-bloqueante por padrão e introduzir `type: prompt` para pausas explícitas.
+Na v0.5, o comportamento de nós de texto foi alinhado com a semântica de State Machine pura:
+
+1. **Nodes de Texto (`type: text`)**: São, por padrão, **Non-Blocking (Pass-through)**.
+    - O Engine renderiza o conteúdo e, se houver uma transição válida incondicional, transita *imediatamente*.
+    - Isso permite usar nós de texto como "Templates" ou passos intermediários de computação/display que não exigem input.
+
+2. **Pausas Explícitas**:
+    - Para forçar o Engine a aguardar input (ex: "Pressione Enter"), use:
+
+      ```yaml
+      type: text
+      wait: true
+      ```
+
+    - Ou utilize o tipo semântico explícito (alias para `type: question`):
+
+      ```yaml
+      type: prompt # Alias para question
+      ```
+
+> **Migration Note**: Fluxos antigos que dependiam de `type: text` pausar implicitamente devem adicionar `wait: true`.
+
+#### Diagrama de Decisão (Input Logic)
+
+```mermaid
+flowchart TD
+    Start([Engine.Render]) --> Content{Has Content?}
+    Content -- Yes --> EmitRender[ActionRenderContent]
+    Content -- No --> CheckInput
+    EmitRender --> CheckInput
+
+    CheckInput{Needs Input?}
+    CheckInput -->|wait: true| YesInput
+    CheckInput -->|type: question| YesInput
+    CheckInput -->|input_type != nil| YesInput
+    CheckInput -->|Default| NoInput
+
+    YesInput --> EmitRequest[ActionRequestInput]
+    EmitRequest --> Stop([Runner Pauses])
+
+    NoInput --> IsTerminal{Is Terminal?}
+    IsTerminal -- Yes --> Stop
+    IsTerminal -- No --> AutoNav[Navigate - State, Empty]
+    AutoNav --> Next([Next State])
+```
 
 ### 9.5. Segurança e Policies (Interceptor)
 

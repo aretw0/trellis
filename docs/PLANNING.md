@@ -108,8 +108,8 @@ Foco: Arquitetura para sistemas complexos, distribuídos e integração profunda
 
 Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com semântica de State Machine pura.
 
-- [ ] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
-- [ ] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
+- [x] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
+- [x] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
 - [ ] **Data Binding (Input)**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context`.
 - [ ] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context), **Execute** (Side-Effect), **Update** (Write Context).
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
