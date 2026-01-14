@@ -10,6 +10,7 @@ type NodeMetadata struct {
 	ID          string             `json:"id" mapstructure:"id"`
 	Type        string             `json:"type" mapstructure:"type"`
 	Transitions []LoaderTransition `json:"transitions" mapstructure:"transitions"`
+	Options     []LoaderTransition `json:"options" mapstructure:"options"`
 	Wait        bool               `json:"wait" mapstructure:"wait"`
 	// SaveTo captures the input into a variable in the context
 	SaveTo string `json:"save_to" mapstructure:"save_to"`
@@ -34,4 +35,5 @@ type LoaderTransition struct {
 	ToFull    string `json:"to_node_id" mapstructure:"to_node_id"`
 	JumpTo    string `json:"jump_to" mapstructure:"jump_to"`
 	Condition string `json:"condition" mapstructure:"condition"`
+	Text      string `json:"text" mapstructure:"text"`
 }

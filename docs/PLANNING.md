@@ -114,6 +114,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [x] **Context Namespacing**: Isolar variáveis de usuário (`user.*`) de variáveis de sistema (`sys.*`) para evitar Overwrite acidental.
 - [x] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context, Deep Interpolation), **Execute** (Side-Effect), **Update** (Write Context).
 - [x] **Type Erasure Fix**: Permitir que `save_to` armazene objetos complexos (`any`) de resultados de Tools, não apenas strings.
+- [x] **Syntactic Sugar: Options**: Suporte a `options` como alias para `transitions` com `condition` implícita (Precedência: Options > Transitions).
 - [x] **Manual Migration**: Atualizar grafos de exemplo (`examples/`) para usar `wait: true` ou `type: prompt` onde necessário. (Análise: ~14 arquivos, inviável automação).
 
 ### 🛡️ v0.5.1: Robustness & Observation (The "Production" Patch)

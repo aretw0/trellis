@@ -41,8 +41,12 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	// Synthesize valid JSON for the compiler.
 	// We must map our loader struct (which matches YAML "to") to domain JSON ("to_node_id").
 
-	domainTransitions := make([]domain.Transition, len(doc.Data.Transitions))
-	for i, lt := range doc.Data.Transitions {
+	// Merge Transitions and Options
+	totalTransitions := len(doc.Data.Transitions) + len(doc.Data.Options)
+	domainTransitions := make([]domain.Transition, 0, totalTransitions)
+
+	// Helper to convert LoaderTransition (DTO) to domain.Transition
+	convert := func(lt dto.LoaderTransition) domain.Transition {
 		// Support both "to" and "to_node_id"
 		to := lt.To
 		if to == "" {
@@ -56,11 +60,26 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 			from = lt.FromFull
 		}
 
-		domainTransitions[i] = domain.Transition{
+		condition := lt.Condition
+		// Sugar: Map "text" to condition if condition is empty
+		// This supports the "options" syntax
+		if condition == "" && lt.Text != "" {
+			// Simple exact match logic aligned with DefaultEvaluator
+			condition = fmt.Sprintf("input == '%s'", strings.ReplaceAll(lt.Text, "'", "\\'"))
+		}
+
+		return domain.Transition{
 			FromNodeID: from,
 			ToNodeID:   to,
-			Condition:  lt.Condition,
+			Condition:  condition,
 		}
+	}
+
+	for _, opt := range doc.Data.Options {
+		domainTransitions = append(domainTransitions, convert(opt))
+	}
+	for _, lt := range doc.Data.Transitions {
+		domainTransitions = append(domainTransitions, convert(lt))
 	}
 
 	data := make(map[string]any)

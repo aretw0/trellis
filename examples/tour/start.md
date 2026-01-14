@@ -1,9 +1,10 @@
 ---
 id: start
 type: question
+options:
+  - text: "Inputs"
+    to: "inputs"
 transitions:
-  - to_node_id: inputs
-    condition: input == "Inputs"
   - to_node_id: choice
 ---
 # Welcome to Trellis Tour

@@ -193,6 +193,30 @@ transitions:
 1. **Implicit IDs**: Arquivos em subdiretórios herdam o caminho como ID (ex: `modules/checkout/start`).
 2. **Normalization**: O Adapter normaliza todos os IDs para usar `/` (forward slash), garantindo que fluxos criados no Windows rodem no Linux sem alterações.
 
+### 4.3. Syntactic Sugar: Options vs Transitions
+
+Para reduzir a verbosidade em menus de escolha simples, introduzimos a chave `options`.
+
+- **Transitions**: Controle total (`condition: input == "A" || input == "B"`).
+- **Options**: Atalho para correspondência exata de texto.
+
+#### Regra de Precedência (Evaluation Order)
+
+O `LoamLoader` compila `options` e `transitions` em uma única lista plana de transições do domínio. A ordem é estrita:
+
+1. **Options (Matches Específicos)**: Avaliadas primeiro.
+2. **Transitions (Lógica Genérica/Fallback)**: Avaliadas em seguida.
+
+Isso habilita o padrão **"Menu with Fallback"**:
+
+```yaml
+options:
+  - text: "Sim"
+    to: "step_yes"
+transitions:
+  - to: "step_default" # Catch-All (sem condição), executado apenas se não for "Sim"
+```
+
 ## 5. Runner & IO Architecture
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware (like confirmation), and delegates IO to an `IOHandler`.
