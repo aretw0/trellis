@@ -1,6 +1,7 @@
 ---
 id: start
 type: text
+wait: true
 transitions:
   - to: tool_call
 ---

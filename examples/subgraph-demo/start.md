@@ -1,6 +1,7 @@
 ---
 id: start
 type: text
+wait: true
 transitions:
   - text: "Go to Checkout"
     jump_to: modules/checkout/start

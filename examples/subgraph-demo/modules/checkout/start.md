@@ -1,5 +1,6 @@
 ---
 type: text
+wait: true
 transitions:
   - text: "Back to Root"
     jump_to: start
