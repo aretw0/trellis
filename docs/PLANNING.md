@@ -118,6 +118,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 
 ### 🔮 Backlog / Concepts
 
+- **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó e transicionam para outro fluxo.
 - **Go DSL / Builders**: Criar helpers (`pkg/dsl` ou `pkg/builder`) para facilitar a criação de grafos em Go puro, reduzindo a verbosidade de instanciar structs manualmente e preenchendo o gap de DX em relação ao Markdown.
 - **Granular SSE Events**: Evoluir de `reload` genérico para `state_changed` ou `update:<file_id>` para permitir updates parciais no frontend.
 - **WASM Playground**: Compilar Trellis para WebAssembly para editor visual online.
