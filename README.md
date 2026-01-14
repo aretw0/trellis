@@ -7,26 +7,49 @@
 
 > "Faça uma coisa e faça bem feita. Trabalhe com fluxos de texto." - Filosofia Unix
 
-**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) para a construção de CLIs, fluxos de automação e Guardrails para Agentes de IA.
+**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) projetado para a construção de CLIs, fluxos de automação e Guardrails para Agentes de IA.
 
-Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio e as transições permitidas.
+Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio, o contexto e as transições permitidas.
 
-## Principais Features
+## Como funciona?
 
-- **Strict Typing & Serialization**: Garante que seus fluxos sejam robustos e livres de erros de digitação.
+O Trellis define fluxos através de arquivos Markdown (Loam). Texto, Lógica e Dados vivem juntos:
+
+```yaml
+# start.md
+type: question
+text: "Olá! Qual é o seu nome?"
+save_to: "user_name" # Data Binding automático
+---
+# greeting.md
+type: text
+text: "Prazer, {{ .user_name }}! O que deseja fazer?"
+options: # Transições explícitas
+  - text: "Ver Menu"
+    to: "menu"
+  - text: "Sair"
+    to: "exit"
+```
+
+## Funcionalidades Principais
+
+- **Data Binding & Contexto**: Capture inputs (`save_to`) e use variáveis (`{{ .name }}`) nativamente.
 - **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`), escalando sua arquitetura.
-- **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, etc.).
+- **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, Cursor, etc.).
+- **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação (Zero "undefined" errors).
 - **Hexagonal Architecture**: Core agnóstico (Go Library) desacoplado de FileSystem (Loam Adapter).
-- **Hot Reload**: Desenvolva com feedback instantâneo.
+- **Hot Reload**: Desenvolva com feedback instantâneo (SSE) ao salvar seus arquivos.
 
 ## Quick Start
 
 ### Instalação
 
+Como o Trellis é tanto uma Library quanto um CLI, recomendamos clonar para ter acesso aos exemplos e ferramentas:
+
 ```bash
 git clone https://github.com/aretw0/trellis
 cd trellis
-go mod tidy
+go mod tidy # Sincroniza dependências
 ```
 
 ### Rodando o Golden Path (Demo)
@@ -38,49 +61,47 @@ go run ./cmd/trellis ./examples/tour
 
 ## Usage
 
-### Running a Flow
+### Rodando um Fluxo (CLI)
 
 ```bash
-# Interactive mode
-trellis run ./my-flow
+# Modo Interativo (Terminal)
+go run ./cmd/trellis run ./examples/tour
 
-# HTTP Server Mode (Stateless)
-trellis serve --dir ./my-flow --port 8080
-# Swagger UI available at: http://localhost:8080/swagger
+# Modo HTTP Server (Stateless API)
+go run ./cmd/trellis serve --dir ./examples/tour --port 8080
+# Swagger UI disponível em: http://localhost:8080/swagger
 
-# MCP Server Mode (Claude Desktop / Agent)
-trellis mcp --dir ./my-flow
-# Or with SSE:
-trellis mcp --dir ./my-flow --transport sse --port 8080
+# Modo MCP Server (Para Agentes de IA)
+go run ./cmd/trellis mcp --dir ./examples/tour
 ```
 
-### Introspection
+### Introspecção
 
-Visualize your flow as a Mermaid graph:
+Visualize seu fluxo como um grafo Mermaid:
 
 ```bash
 trellis graph ./my-flow
-# Outputs: graph TD ...
+# Saída: graph TD ...
 ```
 
-### Development Mode
+### Modo de Desenvolvimento
 
-**Using Makefile (Recommended):**
+**Usando Makefile (Recomendado):**
 
 ```bash
-make gen    # Generate Go code from OpenAPI spec
-make serve  # Run server with 'tour' example
-make test   # Run tests
+make gen    # Gera código Go a partir da spec OpenAPI
+make serve  # Roda servidor com exemplo 'tour'
+make test   # Roda testes
 ```
 
-**Manual Hot Reload:**
-Iterate faster on your flows by watching for file changes:
+**Hot Reload Manual:**
+Itere mais rápido observando mudanças de arquivo:
 
 ```bash
 trellis run --watch --dir ./my-flow
 ```
 
-The engine will monitor your `.md`, `.json`, `.yaml`, and `.yml` files. When you save a change, the session will automatically reload (preserving the workflow loop).
+O engine monitorará seus arquivos `.md`, `.json`, `.yaml`. Ao salvar, a sessão recarrega automaticamente (preservando o loop de execução).
 
 ## Documentação
 
