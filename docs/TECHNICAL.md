@@ -514,19 +514,39 @@ text: "Olá, {{ .user_name }}!" # Usa o valor salvo
 
 1. **Precedência**: O valor é salvo no contexto *antes* de avaliar as transições. Isso permite usar o valor capturado nas condições de saída (`condition: input == 'yes'`).
 2. **Imutabilidade de Estado**: O Engine do Trellis é funcional. Ao salvar um dado, um *novo* Estado é criado com uma cópia do Contexto atualizado + o novo valor. O estado anterior permanece inalterado.
-3. **Tipagem**: Atualmente, `save_to` armazena o input como recebido (geralmente `string`).
+3. **Tipagem Preservada (Fix v0.5)**: `save_to` armazena o input como recebido (`any`).
+    - *Nested Access*: Se uma Tool retornar um Map/Struct, ele é salvo integralmente, permitindo acesso profundo (`{{ .data.id }}`).
+    - *Caveat*: O Trellis trata valores de contexto como **Imutáveis**. Operações `save_to` substituem a chave inteira. Não há suporte (ainda) para atualizações parciais (`data.field = x`). O Host é responsável por garantir que objetos complexos passados sejam seguros para serialização (JSON-compatible).
+
+#### Fluxo de Data Binding
+
+```mermaid
+flowchart LR
+    Input[Input / ToolResult] --> IsSaveTo{Has save_to?}
+    IsSaveTo -- Yes --> Copy[Deep Copy Context]
+    Copy --> Assign["Context[key] = Input"]
+    Assign --> NewState[New State]
+    IsSaveTo -- No --> Pass[Pass Input to Resolve]
+    NewState --> Pass
+    Pass --> Resolve{Evaluate Condition}
+    Resolve -->|True| Transition
+```
 
 ### 11.3. Considerações de Segurança e Sanitização
 
-Embora o Trellis utilize `text/template` (que é seguro contra SSTI - Server Side Template Injection - por padrão, pois não executa o input como código), a introdução de inputs de usuário exige cuidados:
+O uso de `any` para inputs introduz flexibilidade, mas exige novos cuidados:
 
-1. **Injection Risk**: O `DefaultInterpolator` trata os dados do Contexto como *literais*. Se um usuário digitar `{{ .secret }}`, o renderizador imprimirá `{{ .secret }}` textualmente, não o valor da variável. Isso é o comportamento desejado e seguro.
-2. **Context Overwrite**: Cuidado ao definir chaves `save_to`. Atualmente global, um input pode sobrescrever variáveis de sistema se houver colisão de nomes.
+1. **Serialization Constraint**: Todo objeto salvo no Contexto (`save_to`) **DEVE ser JSON-serializável**.
+    - *Risco*: Salvar funções, canais ou objetos com ciclos quebrará a persistência e o debugger (MCP).
+    - *Mitigação*: O Host é responsável por sanitizar dados vindos de ferramentas antes de retorná-los.
+2. **Memory & Performance**: O Engine realiza **Deep Copy** do Contexto a cada transição para garantir imutabilidade.
+    - *Risco*: Armazenar objetos gigantes (ex: BLOBs, arrays de 10k itens) degradará severamente a performance.
+    - *Recomendação*: armazene apenas referências (IDs/Paths) no Contexto, não o dado bruto, se for muito grande.
+3. **System Namespace**: A proteção `sys.*` é aplicada no nível do Engine. Nem strings nem objetos complexos podem escrever neste namespace via `save_to`.
+4. **Injection Risk**: O `DefaultInterpolator` trata os dados do Contexto como *literais*. Se um usuário digitar `{{ .secret }}`, o renderizador imprimirá `{{ .secret }}` textualmente. Seguro por padrão.
     - *Backlog*: Implementar **Namespaces** (`user.name` vs `sys.flags`) para proteger variáveis críticas.
-3. **Sanitização**: O Trellis Engine (v0.5) armazena o input "raw". A validação (Regex, Length, Type) deve ser delegada a Middlewares ou a uma futura camada de Schema Validation.
+5. **Sanitização**: O Trellis Engine (v0.5) armazena o input "raw". A validação (Regex, Length, Type) deve ser delegada a Middlewares ou a uma futura camada de Schema Validation.
     - *Recomendação*: Para web-apps, a camada de **Apresentação** (frontend) é responsável por escapar HTML (Anti-XSS).
-
-### 11.4. System Namespace (`sys.*`)
 
 Para permitir introspecção sem risco de colisão, o namespace `sys` é reservado.
 

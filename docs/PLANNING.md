@@ -113,6 +113,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [x] **Data Binding (Input)**: Suporte a `save_to: "variable_name"` para salvar dados no `State.Context`.
 - [x] **Context Namespacing**: Isolar variáveis de usuário (`user.*`) de variáveis de sistema (`sys.*`) para evitar Overwrite acidental.
 - [x] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context, Deep Interpolation), **Execute** (Side-Effect), **Update** (Write Context).
+- [x] **Type Erasure Fix**: Permitir que `save_to` armazene objetos complexos (`any`) de resultados de Tools, não apenas strings.
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
 ### 🛡️ v0.5.1: Robustness & Observation (The "Production" Patch)
@@ -143,6 +144,8 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 - [ ] **gRPC**: Interface binária para alta performance interna.
 - [ ] **WASM Playground**: Trellis no navegador.
 - [ ] **Secure Storage**: Criptografar campos sensíveis no Contexto (para logs).
+- [ ] **Context Serialization Safety**: Middleware ou check no Engine para garantir que dados em `save_to` sejam JSON-safe.
+- [ ] **Immutable Collections**: Investigar estruturas de dados persistentes para otimizar Deep Copy do Contexto.
 
 ---
 

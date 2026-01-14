@@ -12,7 +12,7 @@ import (
 )
 
 // ConditionEvaluator is a function that determines if a transition condition is met.
-type ConditionEvaluator func(ctx context.Context, condition string, input string) (bool, error)
+type ConditionEvaluator func(ctx context.Context, condition string, input any) (bool, error)
 
 // Engine is the core state machine runner.
 type Engine struct {
@@ -23,7 +23,11 @@ type Engine struct {
 }
 
 // DefaultEvaluator implements the basic "condition: input == 'value'" logic.
-func DefaultEvaluator(ctx context.Context, condition string, input string) (bool, error) {
+func DefaultEvaluator(ctx context.Context, condition string, input any) (bool, error) {
+	// For backward compatibility and simplicity in string matching,
+	// we coerce the input to string for the default evaluator.
+	// Users needing complex object evaluation should provide a custom evaluator.
+	strInput := fmt.Sprintf("%v", input)
 	if condition == "" {
 		return true, nil
 	}
@@ -33,7 +37,7 @@ func DefaultEvaluator(ctx context.Context, condition string, input string) (bool
 		if len(parts) == 2 {
 			expected := strings.Trim(strings.TrimSpace(parts[1]), "'\"")
 			// Case-insensitive matching
-			if strings.EqualFold(strings.TrimSpace(input), expected) {
+			if strings.EqualFold(strings.TrimSpace(strInput), expected) {
 				return true, nil
 			}
 		}
@@ -232,35 +236,26 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 		}
 
 		// Resume execution:
-		// We need to find the node and evaluate transitions based on the RESULT.
-		// For now, let's treat the result.Result (any) as the "Input" for condition matching.
-		// Use a string representation for the default string evaluator?
-		// Or update Evaluator to accept `any`?
-		// Let's coerce to string for compatibility with existing string-based conditions.
-		inputStr := fmt.Sprintf("%v", result.Result)
+		// We pass the raw result to navigateInternal.
+		// 1. applyInput: Captures the result (any) into Context if SaveTo is set.
+		// 2. resolveTransition: Evaluates conditions against the result.
+		//    Note: DefaultEvaluator coerces to string for checking, ensuring compatibility with existing flows.
 
 		// Create a clean "Active" state to proceed with regular logic
-		// We are effectively "resuming" from the same node, checking transitions again.
-		// Note: The node logic must have "on_tool_result" transitions or similar.
-		// For Phase 1 compatibility, we assume standard transitions match against the result string.
 		resumedState := *currentState
 		resumedState.Status = domain.StatusActive
 		resumedState.PendingToolCall = ""
 
-		return e.navigateInternal(ctx, &resumedState, inputStr)
+		return e.navigateInternal(ctx, &resumedState, result.Result)
 	}
 
 	// 2. Handle State: Active (Standard Input)
-	inputStr, ok := input.(string)
-	if !ok {
-		// Try to stringify?
-		inputStr = fmt.Sprintf("%v", input)
-	}
-	return e.navigateInternal(ctx, currentState, inputStr)
+	// Input is already any, so we just pass it through.
+	return e.navigateInternal(ctx, currentState, input)
 }
 
 // navigateInternal contains the core transition logic (Node loading + Condition eval)
-func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.State, input string) (*domain.State, error) {
+func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.State, input any) (*domain.State, error) {
 	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
@@ -321,7 +316,7 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 }
 
 // applyInput handles the Update Phase: Creates new state and applies SaveTo logic.
-func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input string) (*domain.State, error) {
+func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input any) (*domain.State, error) {
 	// Initialize next state with a copy of context to support SaveTo
 	nextState := *currentState
 	nextState.Context = make(map[string]any)
@@ -350,7 +345,7 @@ func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input
 }
 
 // resolveTransition handles the Resolve Phase: Evaluates conditions to find the next node.
-func (e *Engine) resolveTransition(ctx context.Context, node *domain.Node, input string) (string, error) {
+func (e *Engine) resolveTransition(ctx context.Context, node *domain.Node, input any) (string, error) {
 	for _, t := range node.Transitions {
 		if t.Condition == "" {
 			return t.ToNodeID, nil

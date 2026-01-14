@@ -248,6 +248,77 @@ func TestEngine_Interpolation(t *testing.T) {
 	})
 }
 
+func TestEngine_ToolResultBinding(t *testing.T) {
+	// Scenario: Call tool, save result (map) to context, read context in next node
+	toolNode := domain.Node{
+		ID:       "step1",
+		Type:     domain.NodeTypeTool,
+		ToolCall: &domain.ToolCall{ID: "t1", Name: "get_data"},
+		SaveTo:   "api_data",
+		Transitions: []domain.Transition{
+			{ToNodeID: "step2"},
+		},
+	}
+	// Next node uses fields from the saved object
+	textNode := domain.Node{
+		ID:      "step2",
+		Type:    domain.NodeTypeText,
+		Content: []byte("Name: {{ .api_data.name }}, ID: {{ .api_data.id }}"),
+	}
+
+	loader, _ := inmemory.NewFromNodes(toolNode, textNode)
+	engine := runtime.NewEngine(loader, nil, nil)
+
+	// A. Start at step1
+	state := domain.NewState("step1")
+	// simulate ActionCallTool was emitted
+	state.Status = domain.StatusWaitingForTool
+	state.PendingToolCall = "t1"
+
+	// B. Simulate Host returning a structured Result (Map)
+	toolResult := domain.ToolResult{
+		ID: "t1",
+		// Success defaults to implicitly true if Error is empty
+		Result: map[string]any{
+			"id":   123,
+			"name": "Alice",
+		},
+	}
+
+	// C. Navigate with ToolResult (Engine should accept it as 'any')
+	newState, err := engine.Navigate(context.Background(), state, toolResult)
+	if err != nil {
+		t.Fatalf("Navigate failed: %v", err)
+	}
+
+	// D. Verify State Transition
+	if newState.CurrentNodeID != "step2" {
+		t.Fatalf("Expected transition to step2, got %s", newState.CurrentNodeID)
+	}
+	// Verify Data Binding (Rich Object)
+	savedData, ok := newState.Context["api_data"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected api_data to be map[string]any, got %T", newState.Context["api_data"])
+	}
+	if savedData["name"] != "Alice" {
+		t.Errorf("Expected name 'Alice', got %v", savedData["name"])
+	}
+
+	// E. Verify Render (Template Access)
+	actions, _, err := engine.Render(context.Background(), newState)
+	if err != nil {
+		t.Fatalf("Render step2 failed: %v", err)
+	}
+	if len(actions) != 1 || actions[0].Type != domain.ActionRenderContent {
+		t.Fatalf("Expected 1 RenderContent action")
+	}
+	output := actions[0].Payload.(string)
+	expected := "Name: Alice, ID: 123"
+	if output != expected {
+		t.Errorf("Expected output '%s', got '%s'", expected, output)
+	}
+}
+
 func TestEngine_LegacyInterpolation(t *testing.T) {
 	node := domain.Node{
 		ID:      "legacy",

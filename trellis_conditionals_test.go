@@ -34,7 +34,7 @@ Welcome.
 	}
 
 	// 3. Define Evaluator that returns true for "is_vip" ONLY if input is "password"
-	evaluator := func(ctx context.Context, condition string, input string) (bool, error) {
+	evaluator := func(ctx context.Context, condition string, input any) (bool, error) {
 		if condition == "is_vip" {
 			return input == "password", nil
 		}
