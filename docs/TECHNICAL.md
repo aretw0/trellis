@@ -35,30 +35,48 @@ graph TD
     Loader -.->|Adapter| Mem[InMemory - Testing]
 ```
 
-### 1.4. Fluxo de Execução
+### 1.4. Ciclo de Vida do Engine (Lifecycle)
+
+O Engine segue um ciclo de vida estrito de **Resolve-Execute-Update** para garantir previsibilidade.
 
 ```mermaid
 sequenceDiagram
     participant Host
     participant Engine
     participant Loader
-    
-    Host->>Engine: Start()
-    Engine->>Loader: GetNode("start")
+
+    Host->>Engine: Render(State)
+    Engine->>Loader: GetNode(ID)
     Loader-->>Engine: Node
-    Engine-->>Host: State(Start)
+    Engine->>Engine: Interpolate Content & Tool Args (Deep)
+    Engine-->>Host: Actions (View/ToolCall)
     
-    loop Game Loop
-        Host->>Engine: Render(State)
-        Engine-->>Host: Actions (View)
-        Host->>Host: User Input / Logic
-        Host->>Engine: Navigate(State, Input)
-        Engine->>Engine: Evaluate Transitions
-        Engine->>Loader: GetNode(NextID)
-        Loader-->>Engine: Node
-        Engine-->>Host: NewState
+    Host->>Host: User Input / Tool Result
+    
+    Host->>Engine: Navigate(State, Input)
+    Engine->>Loader: GetNode(ID)
+    Loader-->>Engine: Node
+    
+    rect rgba(77, 107, 138, 1)
+        note right of Engine: Update Phase
+        Engine->>Engine: Apply Input (save_to) -> NewState
     end
+    
+    rect rgba(82, 107, 56, 1)
+        note right of Engine: Resolve Phase
+        Engine->>Engine: Evaluate Conditions (Transitions)
+    end
+    
+    Engine-->>Host: NextState (with new ID)
 ```
+
+**Fases do Ciclo:**
+
+1. **Render (View)**: Carrega o nó, aplica interpolação profunda (incluindo argumentos de ferramentas) e retorna as ações. O estado *não* muda.
+2. **Navigate (Update)**:
+    - **Update**: Aplica o input ao contexto da sessão (se `save_to` estiver definido).
+    - **Resolve**: Avalia as condições de transição baseadas no novo contexto.
+    - **Transition**: Retorna o novo estado apontando para o próximo nó.
 
 ## 2. Estrutura de Diretórios
 

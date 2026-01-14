@@ -173,9 +173,6 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			// Fallback if ToolCall is missing in struct but Type is Tool
 			return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
 		}
-		// TODO: Implement deep interpolation for ToolCall.Args logic.
-		// Currently we propagate arguments as-is (static).
-
 		// Propagate Node Metadata to Tool Call
 		// This enables Middleware to see "confirm_msg" etc.
 		call := *node.ToolCall
@@ -184,6 +181,31 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			for k, v := range node.Metadata {
 				call.Metadata[k] = v
 			}
+		}
+
+		// Deep Interpolation for Tool Args
+		if e.interpolator != nil && len(call.Args) > 0 {
+			// Merge SystemContext for Interpolation (Reusing logic? We should extract this if it grows)
+			data := make(map[string]any)
+			for k, v := range currentState.Context {
+				data[k] = v
+			}
+			data["sys"] = currentState.SystemContext
+
+			interpolatedArgs := make(map[string]any)
+			for k, v := range call.Args {
+				// We only interpolate strings
+				if strVal, ok := v.(string); ok && strings.Contains(strVal, "{{") {
+					interpolated, err := e.interpolator(ctx, strVal, data)
+					if err != nil {
+						return nil, false, fmt.Errorf("failed to interpolate tool arg '%s': %w", k, err)
+					}
+					interpolatedArgs[k] = interpolated
+				} else {
+					interpolatedArgs[k] = v
+				}
+			}
+			call.Args = interpolatedArgs
 		}
 
 		actions = append(actions, domain.ActionRequest{
@@ -249,50 +271,18 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
-	// Initialize next state with a copy of context to support SaveTo
-	nextState := *currentState
-	nextState.Context = make(map[string]any)
-	if currentState.Context != nil {
-		for k, v := range currentState.Context {
-			nextState.Context[k] = v
-		}
-	}
-	// Copy SystemContext (Host-controlled, but safe to propagate)
-	nextState.SystemContext = make(map[string]any)
-	if currentState.SystemContext != nil {
-		for k, v := range currentState.SystemContext {
-			nextState.SystemContext[k] = v
-		}
-	}
-
-	// Handle Data Binding (SaveTo)
-	if node.SaveTo != "" {
-		// Validating Namespace
-		if node.SaveTo == "sys" || strings.HasPrefix(node.SaveTo, "sys.") {
-			return nil, fmt.Errorf("security violation: cannot save to reserved namespace 'sys' in node %s", node.ID)
-		}
-		nextState.Context[node.SaveTo] = input
+	// 1. Update Phase: Apply Input to Context
+	nextState, err := e.applyInput(currentState, node, input)
+	if err != nil {
+		return nil, err
 	}
 
 	var nextNodeID string
 
-	// Evaluate transitions
-	for _, t := range node.Transitions {
-		if t.Condition == "" {
-			nextNodeID = t.ToNodeID
-			break
-		}
-
-		if e.evaluator != nil {
-			ok, err := e.evaluator(ctx, t.Condition, input)
-			if err != nil {
-				return nil, fmt.Errorf("condition evaluation failed for '%s': %w", t.Condition, err)
-			}
-			if ok {
-				nextNodeID = t.ToNodeID
-				break
-			}
-		}
+	// 2. Resolve Phase: Evaluate Transitions
+	nextNodeID, err = e.resolveTransition(ctx, node, input)
+	if err != nil {
+		return nil, err
 	}
 
 	// Default to whatever the current status was (usually Active if calling internal)
@@ -327,7 +317,56 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		}
 	}
 
+	return nextState, nil
+}
+
+// applyInput handles the Update Phase: Creates new state and applies SaveTo logic.
+func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input string) (*domain.State, error) {
+	// Initialize next state with a copy of context to support SaveTo
+	nextState := *currentState
+	nextState.Context = make(map[string]any)
+	if currentState.Context != nil {
+		for k, v := range currentState.Context {
+			nextState.Context[k] = v
+		}
+	}
+	// Copy SystemContext (Host-controlled, but safe to propagate)
+	nextState.SystemContext = make(map[string]any)
+	if currentState.SystemContext != nil {
+		for k, v := range currentState.SystemContext {
+			nextState.SystemContext[k] = v
+		}
+	}
+
+	// Handle Data Binding (SaveTo)
+	if node.SaveTo != "" {
+		// Validating Namespace
+		if node.SaveTo == "sys" || strings.HasPrefix(node.SaveTo, "sys.") {
+			return nil, fmt.Errorf("security violation: cannot save to reserved namespace 'sys' in node %s", node.ID)
+		}
+		nextState.Context[node.SaveTo] = input
+	}
 	return &nextState, nil
+}
+
+// resolveTransition handles the Resolve Phase: Evaluates conditions to find the next node.
+func (e *Engine) resolveTransition(ctx context.Context, node *domain.Node, input string) (string, error) {
+	for _, t := range node.Transitions {
+		if t.Condition == "" {
+			return t.ToNodeID, nil
+		}
+
+		if e.evaluator != nil {
+			ok, err := e.evaluator(ctx, t.Condition, input)
+			if err != nil {
+				return "", fmt.Errorf("condition evaluation failed for '%s': %w", t.Condition, err)
+			}
+			if ok {
+				return t.ToNodeID, nil
+			}
+		}
+	}
+	return "", nil
 }
 
 // Inspect returns a structured view of the entire graph by walking all nodes.

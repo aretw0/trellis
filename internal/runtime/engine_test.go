@@ -205,6 +205,47 @@ func TestEngine_Interpolation(t *testing.T) {
 			t.Errorf("Expected '%s', got '%s'", expected, actions[0].Payload)
 		}
 	})
+
+	t.Run("Tool Argument Interpolation", func(t *testing.T) {
+		toolNode := domain.Node{
+			ID:   "call_tool",
+			Type: domain.NodeTypeTool,
+			ToolCall: &domain.ToolCall{
+				ID:   "t1",
+				Name: "update_user",
+				Args: map[string]any{
+					"user_id": "{{ .user_id }}",
+					"static":  "value",
+				},
+			},
+		}
+
+		loader, _ := inmemory.NewFromNodes(toolNode)
+		engine := runtime.NewEngine(loader, nil, nil)
+
+		state := domain.NewState("call_tool")
+		state.Context["user_id"] = "12345"
+
+		actions, _, err := engine.Render(context.Background(), state)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+
+		if len(actions) != 1 {
+			t.Fatalf("Expected 1 action, got %d", len(actions))
+		}
+		if actions[0].Type != domain.ActionCallTool {
+			t.Errorf("Expected ActionCallTool, got %s", actions[0].Type)
+		}
+
+		call := actions[0].Payload.(domain.ToolCall)
+		if call.Args["user_id"] != "12345" {
+			t.Errorf("Expected user_id '12345', got '%v'", call.Args["user_id"])
+		}
+		if call.Args["static"] != "value" {
+			t.Errorf("Expected static 'value', got '%v'", call.Args["static"])
+		}
+	})
 }
 
 func TestEngine_LegacyInterpolation(t *testing.T) {
