@@ -242,6 +242,20 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
+	// Initialize next state with a copy of context to support SaveTo
+	nextState := *currentState
+	nextState.Context = make(map[string]any)
+	if currentState.Context != nil {
+		for k, v := range currentState.Context {
+			nextState.Context[k] = v
+		}
+	}
+
+	// Handle Data Binding (SaveTo)
+	if node.SaveTo != "" {
+		nextState.Context[node.SaveTo] = input
+	}
+
 	var nextNodeID string
 
 	// Evaluate transitions
@@ -262,8 +276,6 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 			}
 		}
 	}
-
-	nextState := *currentState
 
 	// Default to whatever the current status was (usually Active if calling internal)
 	// But if we fail to transition, we stay in the same state?

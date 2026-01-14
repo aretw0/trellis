@@ -230,3 +230,54 @@ func TestEngine_LegacyInterpolation(t *testing.T) {
 		t.Errorf("Expected 'Hello Bob', got '%s'", actions[0].Payload)
 	}
 }
+
+func TestEngine_DataBinding(t *testing.T) {
+	node := domain.Node{
+		ID:      "ask_name",
+		Type:    domain.NodeTypeQuestion,
+		Content: []byte("What is your name?"),
+		SaveTo:  "user_name",
+		Transitions: []domain.Transition{
+			{ToNodeID: "greet", Condition: ""},
+		},
+	}
+	greetNode := domain.Node{
+		ID:      "greet",
+		Type:    domain.NodeTypeText,
+		Content: []byte("Hello {{ .user_name }}"),
+	}
+
+	loader, _ := inmemory.NewFromNodes(node, greetNode)
+	engine := runtime.NewEngine(loader, nil, nil) // Default Interpolator
+
+	state := domain.NewState("ask_name")
+
+	// Navigate with Input "Alice"
+	nextState, err := engine.Navigate(context.Background(), state, "Alice")
+	if err != nil {
+		t.Fatalf("Navigate failed: %v", err)
+	}
+
+	// Verify Context update
+	if val, ok := nextState.Context["user_name"]; !ok {
+		t.Error("Expected 'user_name' to be in Context, but it was missing")
+	} else if val != "Alice" {
+		t.Errorf("Expected 'user_name' to be 'Alice', got '%v'", val)
+	}
+
+	// Verify Transition
+	if nextState.CurrentNodeID != "greet" {
+		t.Errorf("Expected transition to 'greet', got '%s'", nextState.CurrentNodeID)
+	}
+
+	// Render next node to verify interpolation works with the bound data
+	actions, _, err := engine.Render(context.Background(), nextState)
+	if err != nil {
+		t.Fatalf("Render failed (greet): %v", err)
+	}
+	if len(actions) != 1 {
+		t.Errorf("Expected 1 action, got %d", len(actions))
+	} else if actions[0].Payload != "Hello Alice" {
+		t.Errorf("Expected 'Hello Alice', got '%s'", actions[0].Payload)
+	}
+}

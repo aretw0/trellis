@@ -110,7 +110,8 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 
 - [x] **Non-Blocking Text**: Alterar semântica padrão de `type: text` para "Pass-through" (não bloqueia).
 - [x] **Explicit Inputs**: Introduzir `type: prompt` ou `wait: true` para nós que exigem pausa/input.
-- [ ] **Data Binding (Input)**: Suporte a `input_bind: "variable_name"` para salvar dados no `State.Context`.
+- [x] **Data Binding (Input)**: Suporte a `save_to: "variable_name"` para salvar dados no `State.Context`.
+- [ ] **Context Namespacing**: Isolar variáveis de usuário (`user.*`) de variáveis de sistema (`sys.*`) para evitar Overwrite acidental.
 - [ ] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context, Deep Interpolation), **Execute** (Side-Effect), **Update** (Write Context).
 - [ ] **Migration Tool**: Utilitário para atualizar grafos antigos (`text` -> `prompt` ou adicionar `wait: true`).
 
@@ -118,28 +119,30 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 
 Foco: Tornar o Trellis seguro e observável para rodar em produção.
 
-- **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
-- **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
-- **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
+- [ ] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
+- [ ] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
+- [ ] **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
+- [ ] **Input Sanitization**: Validar inputs (Regex, Length) antes de salvar no contexto. Prevenção de DoS/Corrupção.
 
 ### 👩‍💻 v0.6: Developer Experience (The "Ergonomics" Phase)
 
 Foco: Facilitar a vida de quem cria fluxos, seja em Markdown ou Go.
 
-- **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó.
-- **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
-- **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
-- **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
-- **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
+- [ ] **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó.
+- [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
+- [ ] **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
+- [ ] **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
+- [ ] **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
 Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 
-- **Granular SSE Events**: Update parcial de estado para frontends reativos.
-- **MCP Enrichment**: Suporte a Prompts, Sampling e Docker.
-- **gRPC**: Interface binária para alta performance interna.
-- **WASM Playground**: Trellis no navegador.
+- [ ] **Granular SSE Events**: Update parcial de estado para frontends reativos.
+- [ ] **MCP Enrichment**: Suporte a Prompts, Sampling e Docker.
+- [ ] **gRPC**: Interface binária para alta performance interna.
+- [ ] **WASM Playground**: Trellis no navegador.
+- [ ] **Secure Storage**: Criptografar campos sensíveis no Contexto (para logs).
 
 ---
 

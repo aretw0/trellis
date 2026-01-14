@@ -11,6 +11,8 @@ type NodeMetadata struct {
 	Type        string             `json:"type" mapstructure:"type"`
 	Transitions []LoaderTransition `json:"transitions" mapstructure:"transitions"`
 	Wait        bool               `json:"wait" mapstructure:"wait"`
+	// SaveTo captures the input into a variable in the context
+	SaveTo string `json:"save_to" mapstructure:"save_to"`
 
 	// Interactive Input Config
 	InputType    string   `json:"input_type" mapstructure:"input_type"`

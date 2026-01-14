@@ -21,6 +21,8 @@ type Node struct {
 	Type string `json:"type" yaml:"type"` // e.g., "text", "question", "logic", "tool"
 	// Wait indicates if the engine should pause for input after rendering.
 	Wait bool `json:"wait" yaml:"wait"`
+	// SaveTo indicates the variable name in Context where input should be stored.
+	SaveTo string `json:"save_to,omitempty" yaml:"save_to,omitempty"`
 
 	// Content holds the raw data for this node.
 	// For a text node, it might be the markdown content.

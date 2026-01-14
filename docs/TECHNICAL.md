@@ -474,3 +474,36 @@ Para usar, basta configurar o Engine:
 ```go
 engine, err := trellis.New(dir, trellis.WithInterpolator(runtime.LegacyInterpolator))
 ```
+
+## 11. Data Binding (SaveTo)
+
+Introduzido na v0.5, o conceito de Data Binding permite simplificar a coleta de informações em fluxos interativos.
+
+### 11.1. Intenção vs Mecanismo
+
+O Trellis adota a propriedade `save_to` (Salvar Em) para indicar a *intenção* de persistir a resposta de um nó no contexto da sessão.
+
+```yaml
+type: question
+text: "Qual é o seu nome?"
+save_to: "user_name" # Salva input em context["user_name"]
+---
+type: text
+text: "Olá, {{ .user_name }}!" # Usa o valor salvo
+```
+
+### 11.2. Regras de Execução
+
+1. **Precedência**: O valor é salvo no contexto *antes* de avaliar as transições. Isso permite usar o valor capturado nas condições de saída (`condition: input == 'yes'`).
+2. **Imutabilidade de Estado**: O Engine do Trellis é funcional. Ao salvar um dado, um *novo* Estado é criado com uma cópia do Contexto atualizado + o novo valor. O estado anterior permanece inalterado.
+3. **Tipagem**: Atualmente, `save_to` armazena o input como recebido (geralmente `string`).
+
+### 11.3. Considerações de Segurança e Sanitização
+
+Embora o Trellis utilize `text/template` (que é seguro contra SSTI - Server Side Template Injection - por padrão, pois não executa o input como código), a introdução de inputs de usuário exige cuidados:
+
+1. **Injection Risk**: O `DefaultInterpolator` trata os dados do Contexto como *literais*. Se um usuário digitar `{{ .secret }}`, o renderizador imprimirá `{{ .secret }}` textualmente, não o valor da variável. Isso é o comportamento desejado e seguro.
+2. **Context Overwrite**: Cuidado ao definir chaves `save_to`. Atualmente global, um input pode sobrescrever variáveis de sistema se houver colisão de nomes.
+    - *Backlog*: Implementar **Namespaces** (`user.name` vs `sys.flags`) para proteger variáveis críticas.
+3. **Sanitização**: O Trellis Engine (v0.5) armazena o input "raw". A validação (Regex, Length, Type) deve ser delegada a Middlewares ou a uma futura camada de Schema Validation.
+    - *Recomendação*: Para web-apps, a camada de **Apresentação** (frontend) é responsável por escapar HTML (Anti-XSS).
