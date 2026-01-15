@@ -121,8 +121,8 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 
 Foco: Tornar o Trellis seguro e observável para rodar em produção.
 
-- [ ] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools.
-- [ ] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
+- [x] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools. Implementada estratégia "Fail Fast" para erros não tratados.
+- [x] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
 - [ ] **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
 - [ ] **Input Sanitization**: Validar inputs (Regex, Length) antes de salvar no contexto. Prevenção de DoS/Corrupção.
 
