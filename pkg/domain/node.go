@@ -5,7 +5,7 @@ const (
 	// NodeTypeText displays content and continues immediately (soft step).
 	NodeTypeText = "text"
 	// NodeTypeQuestion displays content and halts waiting for input (hard step).
-	// NOTE: Future architecture may merge this with InputType logic.
+	// It is the standard primitive for capturing user data.
 	NodeTypeQuestion = "question"
 
 	// NodeTypeTool executes an external side-effect (tool).
