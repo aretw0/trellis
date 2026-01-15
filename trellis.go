@@ -20,10 +20,18 @@ type Engine struct {
 	loader       ports.GraphLoader
 	evaluator    runtime.ConditionEvaluator
 	interpolator runtime.Interpolator
+	hooks        domain.LifecycleHooks
 }
 
 // Option defines a functional option for configuring the Engine.
 type Option func(*Engine)
+
+// WithLifecycleHooks registers observability hooks.
+func WithLifecycleHooks(hooks domain.LifecycleHooks) Option {
+	return func(e *Engine) {
+		e.hooks = hooks
+	}
+}
 
 // WithLoader injects a custom GraphLoader, bypassing the default Loam initialization.
 func WithLoader(l ports.GraphLoader) Option {
@@ -87,7 +95,12 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 	}
 
 	// Initialize Core Runtime with the selected loader
-	eng.runtime = runtime.NewEngine(eng.loader, eng.evaluator, eng.interpolator)
+	eng.runtime = runtime.NewEngine(
+		eng.loader,
+		eng.evaluator,
+		eng.interpolator,
+		runtime.WithLifecycleHooks(eng.hooks),
+	)
 
 	return eng, nil
 }

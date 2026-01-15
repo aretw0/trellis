@@ -12,13 +12,37 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/presentation/tui"
+	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 )
 
 // RunSession executes a single session of Trellis.
-func RunSession(repoPath string, headless bool, jsonMode bool) error {
+func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error {
+	// Options
+	var opts []trellis.Option
+	if debug {
+		opts = append(opts, trellis.WithLifecycleHooks(domain.LifecycleHooks{
+			OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Enter Node: %s (Type: %s)\n", e.NodeID, e.NodeType)
+			},
+			OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Leave Node: %s\n", e.NodeID)
+			},
+			OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Tool Call: %s\n", e.ToolName)
+			},
+			OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
+				if e.IsError {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Tool Return: %s (Error: %v)\n", e.ToolName, e.Output)
+				} else {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Tool Return: %s (Success)\n", e.ToolName)
+				}
+			},
+		}))
+	}
+
 	// Initialize Engine
-	engine, err := trellis.New(repoPath)
+	engine, err := trellis.New(repoPath, opts...)
 	if err != nil {
 		return fmt.Errorf("error initializing trellis: %w", err)
 	}
@@ -30,16 +54,9 @@ func RunSession(repoPath string, headless bool, jsonMode bool) error {
 	if jsonMode {
 		r.Handler = runner.NewJSONHandler(os.Stdin, os.Stdout)
 	} else {
-		// Default Text Handler
-		// We can explicitly set it or let runner default fallback.
-		// Explicit is better if we want to attach the renderer.
-		// Wait, NewRunner defaults don't set Handler.
-		// The Runner.Run logic handles fallback.
-		// But we want to attach TUI renderer if not headless.
-
-		// If we rely on fallback, we lose the Ability to set Renderer on the Handler?
-		// TextHandler needs the Renderer.
-		// So we should instantiate TextHandler here.
+		// Use TextHandler with TUI renderer for interactive mode.
+		// We explicitly instantiate it here to attach the TUI renderer,
+		// as the default runner fallback would not include it.
 
 		th := runner.NewTextHandler(os.Stdin, os.Stdout)
 		if !headless {

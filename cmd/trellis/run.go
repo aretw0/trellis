@@ -21,6 +21,7 @@ var runCmd = &cobra.Command{
 		headless, _ := cmd.Flags().GetBool("headless")
 		watchMode, _ := cmd.Flags().GetBool("watch")
 		jsonMode, _ := cmd.Flags().GetBool("json")
+		debug, _ := cmd.Flags().GetBool("debug")
 
 		if watchMode && headless {
 			fmt.Println("Error: --watch and --headless cannot be used together.")
@@ -35,7 +36,7 @@ var runCmd = &cobra.Command{
 			// Let's check RunInteractive in session.go.
 			// Actually, let's just inline the runner setup here or update session.go?
 			// Updating session.go is cleaner.
-			if err := cli.RunSession(repoPath, headless, jsonMode); err != nil {
+			if err := cli.RunSession(repoPath, headless, jsonMode, debug); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -48,6 +49,7 @@ func init() {
 
 	runCmd.Flags().Bool("headless", false, "Run in headless mode (no prompts, strict IO)")
 	runCmd.Flags().Bool("json", false, "Run in JSON mode (NDJSON input/output)")
+	runCmd.Flags().Bool("debug", false, "Enable verbose debug logging (observability hooks)")
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 
 	// Make 'run' the default if no command is provided?

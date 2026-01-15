@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"strings"
+	"time"
 
 	"github.com/aretw0/trellis/internal/compiler"
 	"github.com/aretw0/trellis/pkg/domain"
@@ -20,6 +21,17 @@ type Engine struct {
 	parser       *compiler.Parser
 	evaluator    ConditionEvaluator
 	interpolator Interpolator
+	hooks        domain.LifecycleHooks
+}
+
+// EngineOption allows configuring the engine via functional options.
+type EngineOption func(*Engine)
+
+// WithLifecycleHooks registers observability hooks.
+func WithLifecycleHooks(hooks domain.LifecycleHooks) EngineOption {
+	return func(e *Engine) {
+		e.hooks = hooks
+	}
 }
 
 // DefaultEvaluator implements the basic "condition: input == 'value'" logic.
@@ -88,19 +100,23 @@ func LegacyInterpolator(ctx context.Context, templateStr string, data any) (stri
 // NewEngine creates a new engine with dependencies.
 // The engine is immutable after creation.
 // interpolator is optional; if nil, DefaultInterpolator (Standard Go Templates) is used.
-func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpolator Interpolator) *Engine {
+func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpolator Interpolator, opts ...EngineOption) *Engine {
 	if evaluator == nil {
 		evaluator = DefaultEvaluator
 	}
 	if interpolator == nil {
 		interpolator = DefaultInterpolator
 	}
-	return &Engine{
+	e := &Engine{
 		loader:       loader,
 		parser:       compiler.NewParser(),
 		evaluator:    evaluator,
 		interpolator: interpolator,
 	}
+	for _, opt := range opts {
+		opt(e)
+	}
+	return e
 }
 
 // Render calculates the presentation for the current state.
@@ -237,6 +253,20 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 
 		// Handle Tool Error (Phase 0: Safety Check)
 		if result.IsError {
+			// Emit Tool Return (Error)
+			if e.hooks.OnToolReturn != nil {
+				e.hooks.OnToolReturn(ctx, &domain.ToolEvent{
+					EventBase: domain.EventBase{
+						Timestamp: time.Now(),
+						Type:      domain.EventToolReturn,
+					},
+					NodeID:   currentState.CurrentNodeID,
+					ToolName: result.ID,
+					Output:   result.Result,
+					IsError:  true,
+				})
+			}
+
 			// Load current node to check for OnError handler
 			raw, err := e.loader.GetNode(currentState.CurrentNodeID)
 			if err != nil {
@@ -279,6 +309,20 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 		}
 
 		// Resume execution:
+		// Emit Tool Return (Success)
+		if e.hooks.OnToolReturn != nil {
+			e.hooks.OnToolReturn(ctx, &domain.ToolEvent{
+				EventBase: domain.EventBase{
+					Timestamp: time.Now(),
+					Type:      domain.EventToolReturn,
+				},
+				NodeID:   currentState.CurrentNodeID,
+				ToolName: result.ID,
+				Output:   result.Result,
+				IsError:  false,
+			})
+		}
+
 		// We pass the raw result to navigateInternal.
 		// 1. applyInput: Captures the result (any) into Context if SaveTo is set.
 		// 2. resolveTransition: Evaluates conditions against the result.
@@ -332,6 +376,17 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	}
 
 	if nextNodeID != "" {
+		// Emit Leave Event for previous node
+		if e.hooks.OnNodeLeave != nil {
+			e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
+				EventBase: domain.EventBase{
+					Timestamp: time.Now(),
+					Type:      domain.EventNodeLeave,
+				},
+				NodeID:   node.ID,
+				NodeType: node.Type,
+			})
+		}
 		return e.transitionTo(nextState, nextNodeID)
 	}
 
@@ -409,6 +464,18 @@ func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*doma
 		if nextNode.ToolCall != nil {
 			nextState.PendingToolCall = nextNode.ToolCall.ID
 		}
+	}
+
+	// Emit Enter Event
+	if e.hooks.OnNodeEnter != nil {
+		e.hooks.OnNodeEnter(context.Background(), &domain.NodeEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventNodeEnter,
+			},
+			NodeID:   nextNodeID,
+			NodeType: nextNode.Type,
+		})
 	}
 
 	return nextState, nil

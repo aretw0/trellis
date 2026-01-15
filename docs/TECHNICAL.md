@@ -667,3 +667,33 @@ A geração do grafo lida automaticamente com:
 - **Sanitização de IDs**: Caracteres como `/`, `.`, `-` são normalizados para `_` para compatibilidade com Mermaid.
 - **Escape de Condições**: Aspas em condições são convertidas para evitar quebra de sintaxe nos labels.
 - **Sub-grafos**: Transições entre diretórios diferentes são representadas por linhas pontilhadas (`-.->`).
+
+## 13. Observability
+
+Trellis provides a set of **Lifecycle Hooks** that allow external systems to observe and instrument the engine's execution. These hooks are useful for logging, debugging, tracing (e.g., OpenTelemetry), and auditing.
+
+### 13.1 Lifecycle Hooks
+
+The `WithLifecycleHooks` option allows you to register callbacks for key events:
+
+1. **OnNodeEnter**: Triggered when the engine transitions *into* a node (before rendering).
+2. **OnNodeLeave**: Triggered when the engine transitions *out* of a node.
+3. **OnToolCall**: (Planned) Triggered before a tool is executed.
+4. **OnToolReturn**: Triggered after a tool execution completes (success or error).
+
+### 13.2 Usage
+
+Consumers can inject hooks when initializing the engine:
+
+```go
+hooks := domain.LifecycleHooks{
+    OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
+        log.Printf("Entering node: %s", e.NodeID)
+    },
+}
+engine, err := trellis.New(repoPath, trellis.WithLifecycleHooks(hooks))
+```
+
+### 13.3 CLI Debug Mode
+
+The standard CLI supports a `--debug` flag which injects a default localized logger to print these events to `stderr` during execution.
