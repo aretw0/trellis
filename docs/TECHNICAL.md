@@ -445,6 +445,23 @@ on_signal:
 
 Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine transitará para `confirm_exit` em vez de encerrar o processo.
 
+```mermaid
+flowchart TD
+    Start([User Input]) --> Wait{Waiting Input?}
+    Wait -- Ctrl+C --> Sig[SignalManager: Capture Signal]
+    Sig --> Engine[Engine.Signal]
+    
+    Engine --> Handled{Has on_signal?}
+    Handled -- Yes --> Transition[Transition to Target Node]
+    Transition --> Reset[SignalManager: Reset Context]
+    Reset --> Resume([Resume Execution])
+    
+    Handled -- No --> Exit{{Exit Process}}
+    
+    style Sig fill:#f9f,stroke:#333
+    style Reset fill:#ccf,stroke:#333
+```
+
 ### 11. Adapters & Interfaces
 
 #### 11.1. Camada de Apresentação
