@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -96,7 +97,14 @@ func (h *JSONHandler) Input(ctx context.Context) (string, error) {
 			return val, nil
 		}
 		// Fallback: return raw text
-		return text, nil
+
+		// Sanitize Input
+		clean, err := SanitizeInput(text)
+		if err != nil {
+			slog.Warn("Input Rejected", "tool_name", "JSONHandler", "error", err, "size", len(text))
+			return "", err
+		}
+		return clean, nil
 
 	case err := <-h.errCh:
 		if err == io.EOF {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -57,31 +58,41 @@ func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest
 }
 
 func (h *TextHandler) Input(ctx context.Context) (string, error) {
-	// Prompt
-	fmt.Fprint(h.Writer, "> ")
+	for {
+		// Prompt
+		fmt.Fprint(h.Writer, "> ")
 
-	type result struct {
-		text string
-		err  error
-	}
-	ch := make(chan result, 1)
-
-	go func() {
-		text, err := h.Reader.ReadString('\n')
-		ch <- result{text: text, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		// Context cancelled (e.g. signal received).
-		// Note: The goroutine will leak until some input is provided/EOF.
-		// Standard Go stdio is hard to interrupt cleanly without closing stdin.
-		return "", ctx.Err()
-	case res := <-ch:
-		if res.err != nil {
-			return "", res.err
+		type result struct {
+			text string
+			err  error
 		}
-		return strings.TrimSpace(res.text), nil
+		ch := make(chan result, 1)
+
+		go func() {
+			text, err := h.Reader.ReadString('\n')
+			ch <- result{text: text, err: err}
+		}()
+
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case res := <-ch:
+			if res.err != nil {
+				return "", res.err
+			}
+			text := strings.TrimSpace(res.text)
+
+			// Sanitize Input (Limit + Control Chars)
+			clean, err := SanitizeInput(text)
+			if err != nil {
+				// Observability: Log warning
+				slog.Warn("Input Rejected", "tool_name", "TextHandler", "error", err, "size", len(text))
+				// User Feedback: Prompt retry
+				fmt.Fprintf(h.Writer, "Error: %v. Please try again.\n", err)
+				continue
+			}
+			return clean, nil
+		}
 	}
 }
 
