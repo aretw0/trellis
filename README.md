@@ -38,6 +38,7 @@ options: # Transições explícitas
 - **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, Cursor, etc.).
 - **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação (Zero "undefined" errors).
 - **Hexagonal Architecture**: Core agnóstico (Go Library) desacoplado de FileSystem (Loam Adapter).
+- **Error Handling**: Mecanismo nativo de recuperação (`on_error`) para ferramentas que falham.
 - **Hot Reload**: Desenvolva com feedback instantâneo (SSE) ao salvar seus arquivos.
 
 ## Quick Start

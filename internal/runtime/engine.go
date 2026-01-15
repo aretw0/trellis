@@ -235,6 +235,49 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 			return nil, fmt.Errorf("tool result ID %s does not match pending call %s", result.ID, currentState.PendingToolCall)
 		}
 
+		// Handle Tool Error (Phase 0: Safety Check)
+		if result.IsError {
+			// Load current node to check for OnError handler
+			raw, err := e.loader.GetNode(currentState.CurrentNodeID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load node %s during error handling: %w", currentState.CurrentNodeID, err)
+			}
+			node, err := e.parser.Parse(raw)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse node %s during error handling: %w", currentState.CurrentNodeID, err)
+			}
+
+			if node.OnError != "" {
+				// Transition to Error Handler
+				// We skip applyInput (Context Update) to avoid polluting state with error.
+
+				// Initialize next state with clean context copy
+				nextState := *currentState
+				nextState.Context = make(map[string]any)
+				for k, v := range currentState.Context {
+					nextState.Context[k] = v
+				}
+				nextState.SystemContext = make(map[string]any)
+				for k, v := range currentState.SystemContext {
+					nextState.SystemContext[k] = v
+				}
+
+				// Reset status setup
+				nextState.Status = domain.StatusActive
+				nextState.PendingToolCall = ""
+
+				return e.transitionTo(&nextState, node.OnError)
+			}
+
+			// Fail Fast: If no handler is defined, we stop execution to prevent context poisoning.
+			// This enforces explicit error handling or tool reliability.
+			return nil, &UnhandledToolError{
+				NodeID:   node.ID,
+				ToolName: result.ID,
+				Cause:    result.Result,
+			}
+		}
+
 		// Resume execution:
 		// We pass the raw result to navigateInternal.
 		// 1. applyInput: Captures the result (any) into Context if SaveTo is set.
@@ -289,27 +332,7 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	}
 
 	if nextNodeID != "" {
-		// Update State to new Node
-		nextState.CurrentNodeID = nextNodeID
-		nextState.History = append(nextState.History, nextNodeID)
-		nextState.Status = domain.StatusActive // Default active
-
-		// Check Next Node Type to set Status eagerly
-		nextRaw, err := e.loader.GetNode(nextNodeID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load next node %s: %w", nextNodeID, err)
-		}
-		nextNode, err := e.parser.Parse(nextRaw)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse next node %s: %w", nextNodeID, err)
-		}
-
-		if nextNode.Type == domain.NodeTypeTool {
-			nextState.Status = domain.StatusWaitingForTool
-			if nextNode.ToolCall != nil {
-				nextState.PendingToolCall = nextNode.ToolCall.ID
-			}
-		}
+		return e.transitionTo(nextState, nextNodeID)
 	}
 
 	return nextState, nil
@@ -364,6 +387,33 @@ func (e *Engine) resolveTransition(ctx context.Context, node *domain.Node, input
 	return "", nil
 }
 
+// transitionTo handles the mechanics of moving the state to a new node ID.
+func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*domain.State, error) {
+	// Update State to new Node
+	nextState.CurrentNodeID = nextNodeID
+	nextState.History = append(nextState.History, nextNodeID)
+	nextState.Status = domain.StatusActive // Default active
+
+	// Check Next Node Type to set Status eagerly
+	nextRaw, err := e.loader.GetNode(nextNodeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load next node %s: %w", nextNodeID, err)
+	}
+	nextNode, err := e.parser.Parse(nextRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse next node %s: %w", nextNodeID, err)
+	}
+
+	if nextNode.Type == domain.NodeTypeTool {
+		nextState.Status = domain.StatusWaitingForTool
+		if nextNode.ToolCall != nil {
+			nextState.PendingToolCall = nextNode.ToolCall.ID
+		}
+	}
+
+	return nextState, nil
+}
+
 // Inspect returns a structured view of the entire graph by walking all nodes.
 func (e *Engine) Inspect() ([]domain.Node, error) {
 	nodeIDs, err := e.loader.ListNodes()
@@ -385,4 +435,19 @@ func (e *Engine) Inspect() ([]domain.Node, error) {
 		nodes = append(nodes, *node)
 	}
 	return nodes, nil
+}
+
+// UnhandledToolError represents a failure to handle a tool error.
+// It provides structured context for debugging.
+type UnhandledToolError struct {
+	NodeID   string
+	ToolName string
+	Cause    any
+}
+
+func (e *UnhandledToolError) Error() string {
+	return fmt.Sprintf(
+		"Tool '%s' (Node '%s') failed with: '%v'. Execution halted because no 'on_error' handler is defined. Fix: Add 'on_error: <node_id>' to node '%s'.",
+		e.ToolName, e.NodeID, e.Cause, e.NodeID,
+	)
 }

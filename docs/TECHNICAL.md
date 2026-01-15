@@ -518,6 +518,38 @@ flowchart TD
 2. **Cycle Detection**: Recursive imports must be guarded against infinite loops (Stack Overflow). The Loader maintains a `visited` set.
 3. **Shadowing Policy**: Local definitions always override imported ones (Last-Write-Wins semantics). This allows specializing generic tools for specific nodes.
 
+### 9.10. Error Handling (on_error)
+
+Introduzido na v0.5.1, o campo `on_error` fornece um mecanismo robusto para recuperação de falhas em ferramentas.
+
+```yaml
+type: tool
+tool_call: { name: "risky_tool" }
+on_error: "recovery_node" # Se IsError=true, transita para cá
+transitions:
+  - to: "success_node" # Se Success, segue fluxo normal
+```
+
+**Comportamento do Engine:**
+
+1. **Prioridade**: O Engine verifica `ToolResult.IsError` *antes* de qualquer outra lógica.
+2. **Context Safety**: Ao acionar `on_error`, o Engine **PULA** a etapa de `Update Context` (save_to). Isso evita que mensagens de erro poluam variáveis esperadas para conter dados válidos.
+3. **Fluxo Limpo**: O erro é tratado como uma exceção de fluxo, desviando para um nó de recuperação que pode exibir uma mensagem amigável ou tentar uma estratégia alternativa.
+4. **Fail Fast Strategy**: Se uma ferramenta retornar erro (`IsError: true`) e o nó **NÃO possuir** um handler `on_error`, o Engine **abortará a execução** retornando um erro detalhado. Isso previne "Context Poisoning" (salvar erro técnico como dado de negócio) e força o desenvolvedor a tratar explicitamente falhas de infraestrutura.
+
+```mermaid
+flowchart TD
+    Start([Execute Tool]) --> Result{Result.IsError?}
+    Result -- No --> Success[Apply save_to & Transitions]
+    Result -- Yes --> HasHandler{Has on_error?}
+    
+    HasHandler -- Yes --> Recovery([Transition to on_error Node])
+    HasHandler -- No --> FailFast{{STOP: UnhandledToolError}}
+    
+    style FailFast fill:#f00,stroke:#333,color:#fff
+    style Recovery fill:#6f6,stroke:#333,color:#000
+```
+
 ## 10. Variable Interpolation (v0.4.1+)
 
 A partir da v0.4.1, o Trellis adota uma arquitetura plugável para interpolação de variáveis.

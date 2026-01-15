@@ -38,6 +38,9 @@ type Node struct {
 	// Transitions defines the possible paths from this node.
 	Transitions []Transition `json:"transitions" yaml:"transitions"`
 
+	// OnError defines the node ID to transition to if a Tool returns an error.
+	OnError string `json:"on_error,omitempty" yaml:"on_error,omitempty"`
+
 	// Input Configuration (Optional)
 	InputType    string   `json:"input_type,omitempty" yaml:"input_type,omitempty"`
 	InputOptions []string `json:"input_options,omitempty" yaml:"input_options,omitempty"`
