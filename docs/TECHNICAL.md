@@ -528,3 +528,33 @@ Trellis fornece **Lifecycle Hooks** para instrumentação externa.
   - `tool_name`: Name of the tool (never empty).
   - `type`: Event type (enter, leave, tool_call).
 - **Integração**: Pode ser usado com `log/slog` e `Prometheus` sem acoplar essas dependências ao Core (ex: `examples/structured-logging`).
+
+#### 12.1 Diagrama de Eventos (Lifecycle Hooks)
+
+O diagrama abaixo ilustra onde cada evento é emitido durante o ciclo `Navigate`:
+
+```mermaid
+sequenceDiagram
+    participant Host
+    participant Engine
+    participant Hooks
+
+    Note over Engine: Start Navigation (Node A)
+    
+    Engine->>Hooks: Emit OnNodeEnter(A)
+    Engine->>Engine: Render Content
+    
+    alt is Tool Call
+        Engine->>Hooks: Emit OnToolCall(ToolSpec)
+        Engine-->>Host: ActionCallTool
+        Host->>Host: Execute Tool
+        Host->>Engine: Return Result
+        Engine->>Hooks: Emit OnToolReturn(Result)
+    end
+
+    Engine->>Engine: Update Context (save_to)
+    
+    Engine->>Hooks: Emit OnNodeLeave(A)
+    
+    Engine->>Engine: Resolve Transition -> Node B
+```
