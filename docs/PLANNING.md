@@ -126,6 +126,14 @@ Foco: Tornar o Trellis seguro e observável para rodar em produção.
 - [ ] **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
 - [ ] **Input Sanitization**: Validar inputs (Regex, Length) antes de salvar no contexto. Prevenção de DoS/Corrupção.
 
+### 🏭 v0.5.2: Production & Hardening (The "Ops" Phase)
+
+Foco: Levar a robustez dos exemplos para os adaptadores oficiais (CLI, HTTP, MCP).
+
+- [ ] **Instrumented Adapters**: Aplicar o padrão de *Structured Logging* e *Metrics* (Prometheus) no `internal/adapters/http` e `internal/adapters/mcp`.
+- [ ] **Graceful Shutdown**: Garantir que todos os servidores (HTTP/MCP) respeitem sinais de terminação (SIGINT/SIGTERM) para evitar goroutines zumbis.
+- [ ] **Configuration Flags**: Padronizar flags de CLI para `--metrics-port`, `--log-format=json|text`.
+
 ### 👩‍💻 v0.6: Developer Experience (The "Ergonomics" Phase)
 
 Foco: Facilitar a vida de quem cria fluxos, seja em Markdown ou Go.
