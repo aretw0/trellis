@@ -403,6 +403,18 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	if len(node.Transitions) == 0 {
 		nextState.Status = domain.StatusTerminated
 		nextState.Terminated = true // Deprecated
+
+		// Emit Leave Event for terminal node
+		if e.hooks.OnNodeLeave != nil {
+			e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
+				EventBase: domain.EventBase{
+					Timestamp: time.Now(),
+					Type:      domain.EventNodeLeave,
+				},
+				NodeID:   node.ID,
+				NodeType: node.Type,
+			})
+		}
 	}
 
 	if nextNodeID != "" {

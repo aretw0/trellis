@@ -65,11 +65,25 @@ func TestEngine_LifecycleHooks(t *testing.T) {
 	}
 	_ = nextState
 
-	// Verify Events
-	// We should have Left "start" and Entered "start" and "step_2"
+	// Move from step_2 to Termination
+	var termState *domain.State
+	termState, err = engine.Navigate(ctx, nextState, "")
+	if err != nil {
+		t.Fatalf("Navigate from step_2 failed: %v", err)
+	}
+	if termState.Status != domain.StatusTerminated {
+		t.Errorf("Expected terminated status, got %s", termState.Status)
+	}
 
-	if len(left) != 1 || left[0] != "start" {
-		t.Errorf("Expected leave 'start', got: %v", left)
+	// Verify Events
+	// We should have:
+	// - Returned from "start" (OnNodeLeave)
+	// - Returned from "step_2" (OnNodeLeave on termination)
+	// - Entered "start" (OnNodeEnter on Start)
+	// - Entered "step_2" (OnNodeEnter on Navigate)
+
+	if len(left) != 2 || left[0] != "start" || left[1] != "step_2" {
+		t.Errorf("Expected leave [start, step_2], got: %v", left)
 	}
 
 	if len(entered) != 2 || entered[0] != "start" || entered[1] != "step_2" {
