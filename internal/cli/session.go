@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,24 +19,34 @@ import (
 
 // RunSession executes a single session of Trellis.
 func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error {
+	// Configure Logger
+	var logger *slog.Logger
+	if debug {
+		// Debug level to Stderr
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	} else {
+		// No-op logger
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+
 	// Options
 	var opts []trellis.Option
 	if debug {
 		opts = append(opts, trellis.WithLifecycleHooks(domain.LifecycleHooks{
 			OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Enter Node: %s (Type: %s)\n", e.NodeID, e.NodeType)
+				logger.Debug("Enter Node", "node_id", e.NodeID, "type", e.NodeType)
 			},
 			OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Leave Node: %s\n", e.NodeID)
+				logger.Debug("Leave Node", "node_id", e.NodeID)
 			},
 			OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Tool Call: %s\n", e.ToolName)
+				logger.Debug("Tool Call", "tool", e.ToolName)
 			},
 			OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
 				if e.IsError {
-					fmt.Fprintf(os.Stderr, "[DEBUG] Tool Return: %s (Error: %v)\n", e.ToolName, e.Output)
+					logger.Debug("Tool Return (Error)", "tool", e.ToolName, "error", e.Output)
 				} else {
-					fmt.Fprintf(os.Stderr, "[DEBUG] Tool Return: %s (Success)\n", e.ToolName)
+					logger.Debug("Tool Return (Success)", "tool", e.ToolName)
 				}
 			},
 		}))
@@ -56,6 +67,7 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error
 	// Configure Runner
 	r := runner.NewRunner()
 	r.Headless = headless
+	r.Logger = logger
 
 	if jsonMode {
 		r.Handler = runner.NewJSONHandler(os.Stdin, os.Stdout)
