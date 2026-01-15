@@ -165,6 +165,11 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		return nil, false, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
+	// Validate Context Requirements
+	if err := e.validateContext(node, currentState); err != nil {
+		return nil, false, err
+	}
+
 	actions := []domain.ActionRequest{}
 
 	// Render content based on node type.
@@ -382,6 +387,11 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	node, err := e.parser.Parse(raw)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
+	}
+
+	// Validate Context Requirements
+	if err := e.validateContext(node, currentState); err != nil {
+		return nil, err
 	}
 
 	// 1. Update Phase: Apply Input to Context

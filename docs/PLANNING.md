@@ -123,7 +123,7 @@ Foco: Tornar o Trellis seguro e observável para rodar em produção.
 
 - [x] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools. Implementada estratégia "Fail Fast" para erros não tratados.
 - [x] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
-- [ ] **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
+- [x] **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
 - [ ] **Input Sanitization**: Validar inputs (Regex, Length) antes de salvar no contexto. Prevenção de DoS/Corrupção.
 
 ### 🏭 v0.5.2: Production & Hardening (The "Ops" Phase)

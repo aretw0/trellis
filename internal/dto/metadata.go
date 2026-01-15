@@ -16,6 +16,9 @@ type NodeMetadata struct {
 	// SaveTo captures the input into a variable in the context
 	SaveTo string `json:"save_to" mapstructure:"save_to"`
 
+	// RequiredContext lists keys that MUST exist in the context
+	RequiredContext []string `json:"required_context" mapstructure:"required_context"`
+
 	// Interactive Input Config
 	InputType    string   `json:"input_type" mapstructure:"input_type"`
 	InputOptions []string `json:"input_options" mapstructure:"input_options"`

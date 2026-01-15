@@ -100,6 +100,9 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	if doc.Data.SaveTo != "" {
 		data["save_to"] = doc.Data.SaveTo
 	}
+	if len(doc.Data.RequiredContext) > 0 {
+		data["required_context"] = doc.Data.RequiredContext
+	}
 	data["transitions"] = domainTransitions
 	data["content"] = []byte(doc.Content) // As Base64
 

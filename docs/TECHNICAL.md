@@ -728,3 +728,33 @@ eng, _ := trellis.New(dir, trellis.WithLifecycleHooks(hooks))
 ```
 
 See `examples/structured-logging` for a full implementation.
+
+## 14. Data Contracts & Validation (v0.5.1)
+
+To enable robust composition of flows (especially when treating Sub-Graphs as reusable components), Trellis introduces **Data Contracts**.
+
+### 14.1. Required Context (Fail Fast)
+
+Nodes can explicit declare their dependencies via `required_context`. This acts like a function signature.
+
+```yaml
+id: start
+type: start
+required_context:
+  - user_id
+  - api_key
+```
+
+**Behavior**:
+
+- The Engine validates the existence of these keys in `State.Context` (or `State.SystemContext`) *before* processing the node.
+- If a key is missing, the Engine returns a `ContextValidationError` and halts execution.
+- This enforces a **Fail Fast** philosophy: it is better to crash early with a clear message ("Missing 'user_id'") than to fail obscurely later (e.g., empty string in a template or API call).
+
+### 14.2. "Emergent Garden" Philosophy
+
+This feature supports the gradual evolution of flows:
+
+1. **Prototype**: Developers start with loose flows (no requirements).
+2. **Harden**: As a flow becomes a shared module, the developer adds `required_context` to the Start node to enforce the contract.
+3. **Future (Auto-Prompting)**: In future versions, the Engine could detect missing context and automatically prompt the user to fill the slot, turning the "Crash" into an "Interaction".
