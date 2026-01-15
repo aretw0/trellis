@@ -310,15 +310,14 @@ flowchart TD
     CheckInput -->|wait: true| YesInput
     CheckInput -->|type: question| YesInput
     CheckInput -->|input_type != nil| YesInput
-    CheckInput -->|Default| NoInput
+    CheckInput -->|"Default (Pass-through)"| AutoNav[Navigate - State, Empty]
 
     YesInput --> EmitRequest[ActionRequestInput]
     EmitRequest --> Stop([Runner Pauses])
 
-    NoInput --> IsTerminal{Is Terminal?}
-    IsTerminal -- Yes --> Stop
-    IsTerminal -- No --> AutoNav[Navigate - State, Empty]
-    AutoNav --> Next([Next State])
+    AutoNav --> Result{Status?}
+    Result -- Terminated --> Stop
+    Result -- Active --> Next([Next State - Loop])
 ```
 
 ### 8. Fluxo de Dados e Serialização
@@ -463,14 +462,16 @@ flowchart TD
     Sig --> Engine[Engine.Signal]
     
     Engine --> Handled{Has on_signal?}
-    Handled -- Yes --> Transition[Transition to Target Node]
+    Handled -- Yes --> Leave[Emit OnNodeLeave]
+    Leave --> Transition[Transition to Target Node]
+    
     Transition --> Reset[SignalManager: Reset Context]
     Reset --> Resume([Resume Execution])
     
     Handled -- No --> Exit{{Exit Process}}
     
-    style Sig fill:#f9f,stroke:#333
-    style Reset fill:#ccf,stroke:#333
+    style Sig fill:#783578,stroke:#333
+    style Reset fill:#4a4a7d,stroke:#333
 ```
 
 ### 11. Adapters & Interfaces
