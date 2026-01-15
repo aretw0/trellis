@@ -40,13 +40,13 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error
 				logger.Debug("Leave Node", "node_id", e.NodeID)
 			},
 			OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
-				logger.Debug("Tool Call", "tool", e.ToolName)
+				logger.Debug("Tool Call", "tool_name", e.ToolName)
 			},
 			OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
 				if e.IsError {
-					logger.Debug("Tool Return (Error)", "tool", e.ToolName, "error", e.Output)
+					logger.Debug("Tool Return (Error)", "tool_name", e.ToolName, "error", e.Output)
 				} else {
-					logger.Debug("Tool Return (Success)", "tool", e.ToolName)
+					logger.Debug("Tool Return (Success)", "tool_name", e.ToolName)
 				}
 			},
 		}))

@@ -100,7 +100,7 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		// 1. Render Phase (View)
 		// We use the signals.Context() because it might be reset
 		currentCtx := signals.Context()
-		actions, isTerminal, err := engine.Render(currentCtx, state)
+		actions, _, err := engine.Render(currentCtx, state)
 		if err != nil {
 			return fmt.Errorf("render error: %w", err)
 		}
@@ -114,37 +114,6 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		// Optimization: Update lastRendered
 		if state.CurrentNodeID != lastRenderedID {
 			lastRenderedID = state.CurrentNodeID
-		}
-
-		if isTerminal {
-			// If the node is terminal but requested input (e.g. wait: true),
-			// we must honor that request (Pause before Exit).
-			if needsInput {
-				_, err := handler.Input(currentCtx)
-				// Race Mitigation
-				if err != nil {
-					signals.CheckRace()
-				}
-
-				if currentCtx.Err() != nil {
-					r.Logger.Debug("Runner terminal wait: Context cancelled", "err", currentCtx.Err())
-					// Attempt Global Signal Transition even at terminal node
-					nextState, sigErr := engine.Signal(context.Background(), state, "interrupt")
-					if sigErr == nil {
-						r.Logger.Debug("Runner terminal wait: Signal transition success")
-						// Re-arm signals
-						signals.Reset()
-						state = nextState
-						continue
-					}
-					r.Logger.Debug("Runner terminal wait: Signal failed", "error", sigErr)
-				}
-				// If normal input (Enter) or unhandled signal, we proceed to exit
-				if err != nil && err != io.EOF && currentCtx.Err() == nil {
-					r.Logger.Error("Error during wait", "error", err)
-				}
-			}
-			break
 		}
 
 		// 3. Input/Action Phase
