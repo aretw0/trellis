@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"os"
 	"strings"
 	"time"
 
@@ -375,6 +376,46 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 	// 2. Handle State: Active (Standard Input)
 	// Input is already any, so we just pass it through.
 	return e.navigateInternal(ctx, currentState, input)
+}
+
+// Signal triggers a transition based on a global signal (e.g., "interrupt").
+// If the current node has a handler for the signal, it transitions to the target node.
+// If no handler is found, it returns ErrUnhandledSignal.
+func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalName string) (*domain.State, error) {
+	// Load current node to check for signal handlers
+	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load node %s during signal handling: %w", currentState.CurrentNodeID, err)
+	}
+	node, err := e.parser.Parse(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
+	}
+
+	targetNodeID, ok := node.OnSignal[signalName]
+	if !ok {
+		fmt.Fprintf(os.Stderr, "[DEBUG] Signal %s NOT found in node %s (OnSignal has %d entries)\n", signalName, node.ID, len(node.OnSignal))
+		return nil, domain.ErrUnhandledSignal
+	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] Signal %s handled by node %s -> %s\n", signalName, node.ID, targetNodeID)
+
+	// Initialize next state with clean context copy (similar to OnError)
+	// We do NOT apply input here, as this is an interruption.
+	nextState := *currentState
+	nextState.Context = make(map[string]any)
+	for k, v := range currentState.Context {
+		nextState.Context[k] = v
+	}
+	nextState.SystemContext = make(map[string]any)
+	for k, v := range currentState.SystemContext {
+		nextState.SystemContext[k] = v
+	}
+
+	// Reset status setup
+	nextState.Status = domain.StatusActive
+	nextState.PendingToolCall = ""
+
+	return e.transitionTo(&nextState, targetNodeID)
 }
 
 // navigateInternal contains the core transition logic (Node loading + Condition eval)

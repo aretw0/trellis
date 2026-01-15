@@ -121,6 +121,11 @@ func (e *Engine) Navigate(ctx context.Context, state *domain.State, input any) (
 	return e.runtime.Navigate(ctx, state, input)
 }
 
+// Signal triggers a state transition based on a global signal (e.g. interrupt).
+func (e *Engine) Signal(ctx context.Context, state *domain.State, signalName string) (*domain.State, error) {
+	return e.runtime.Signal(ctx, state, signalName)
+}
+
 // Inspect returns the full graph definition for visualization or introspection tools.
 func (e *Engine) Inspect() ([]domain.Node, error) {
 	return e.runtime.Inspect()

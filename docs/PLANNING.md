@@ -129,7 +129,7 @@ Foco: Tornar o Trellis seguro e observável para rodar em produção.
 
 Foco: Mecanismos de controle de execução e segurança. O Trellis deve ser interrompível e seguro por padrão, essencial para orquestração de Agentes IA imprevisíveis.
 
-- [ ] **Global Signals (Interrupts)**: Mecanismo nativo para lidar com sinais de interrupção (Ctrl+C, Timeout) e comandos globais ("cancel") convertendo-os em eventos de transição (`on_signal`).
+- [x] **Global Signals (Interrupts)**: Mecanismo nativo para lidar com sinais de interrupção (Ctrl+C, Timeout) e comandos globais ("cancel") convertendo-os em eventos de transição (`on_signal`).
 - [ ] **Graceful Shutdown**: Garantir que o Runner e Listeners (`http`, `mcp`) parem de forma limpa, drenando conexões e salvando estado se necessário.
 - [ ] **Input Sanitization**: Validar limitações físicas de input (tamanho, caracteres invisíveis) antes de injetar no State. Proteção contra DoS e contaminação de logs.
 

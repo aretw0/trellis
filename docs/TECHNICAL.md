@@ -429,6 +429,22 @@ O namespace `sys.*` é reservado no Engine.
 - **Read-Only**: Templates podem ler (`{{ .sys.error }}`).
 - **Write-Protected**: `save_to` não pode escrever em `sys` (proteção contra injeção).
 
+#### 10.4. Global Signals (Interrupts)
+
+O Trellis suporta a conversão de sinais do sistema operacional (ex: `Ctrl+C` / `SIGINT`) em transições de estado.
+
+- **`on_signal`**: Define um mapa de sinais para nós de destino.
+- **Engine.Signal**: Método que dispara a transição.
+
+```yaml
+type: text
+wait: true
+on_signal:
+  interrupt: confirm_exit
+```
+
+Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine transitará para `confirm_exit` em vez de encerrar o processo.
+
 ### 11. Adapters & Interfaces
 
 #### 11.1. Camada de Apresentação

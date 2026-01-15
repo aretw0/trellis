@@ -12,6 +12,7 @@ type NodeMetadata struct {
 	Transitions []LoaderTransition `json:"transitions" mapstructure:"transitions"`
 	Options     []LoaderTransition `json:"options" mapstructure:"options"`
 	OnError     string             `json:"on_error" mapstructure:"on_error"`
+	OnSignal    map[string]string  `json:"on_signal" mapstructure:"on_signal"`
 	Wait        bool               `json:"wait" mapstructure:"wait"`
 	// SaveTo captures the input into a variable in the context
 	SaveTo string `json:"save_to" mapstructure:"save_to"`

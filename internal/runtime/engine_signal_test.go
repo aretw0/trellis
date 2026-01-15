@@ -1,0 +1,101 @@
+package runtime_test
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"github.com/aretw0/trellis/internal/runtime"
+	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/stretchr/testify/assert"
+)
+
+// MockLoader implements ports.GraphLoader for testing
+type MockLoader struct {
+	Nodes map[string][]byte
+}
+
+func (m *MockLoader) GetNode(id string) ([]byte, error) {
+	if content, ok := m.Nodes[id]; ok {
+		return content, nil
+	}
+	return nil, fmt.Errorf("node not found: %s", id)
+}
+
+func (m *MockLoader) ListNodes() ([]string, error) {
+	keys := make([]string, 0, len(m.Nodes))
+	for k := range m.Nodes {
+		keys = append(keys, k)
+	}
+	return keys, nil
+}
+
+func TestEngine_Signal(t *testing.T) {
+	// Setup with local mock
+	loader := &MockLoader{
+		Nodes: make(map[string][]byte),
+	}
+
+	startNodeRaw := `
+{
+	"id": "start",
+	"type": "text",
+	"wait": true,
+	"on_signal": {
+		"interrupt": "cancel_node"
+	},
+	"content": "SGVsbG8=" 
+}`
+	// content is []byte, so JSON unmarshal expects base64 string if mapped to []byte?
+	// domain.Node.Content is []byte. json.Unmarshal decodes base64 string to []byte.
+	// "SGVsbG8=" is "Hello".
+	loader.Nodes["start"] = []byte(startNodeRaw)
+
+	cancelNodeRaw := `
+{
+	"id": "cancel_node",
+	"type": "text",
+	"content": "Q2FuY2VsZWQ="
+}`
+	loader.Nodes["cancel_node"] = []byte(cancelNodeRaw)
+
+	// Engine handles parser creation internally
+	engine := runtime.NewEngine(loader, nil, nil)
+
+	// Start state
+	state := domain.NewState("start")
+	state.Context["foo"] = "bar" // Test context preservation
+
+	// Execute Signal
+	nextState, err := engine.Signal(context.Background(), state, "interrupt")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, nextState)
+	assert.Equal(t, "cancel_node", nextState.CurrentNodeID)
+	assert.Equal(t, "bar", nextState.Context["foo"], "Context should be preserved")
+}
+
+func TestEngine_Signal_Unhandled(t *testing.T) {
+	loader := &MockLoader{
+		Nodes: make(map[string][]byte),
+	}
+
+	startNodeRaw := `
+{
+	"id": "start",
+	"type": "text",
+	"content": "Q29udGVudA=="
+}`
+	loader.Nodes["start"] = []byte(startNodeRaw)
+
+	engine := runtime.NewEngine(loader, nil, nil)
+	state := domain.NewState("start")
+
+	// Execute Signal
+	_, err := engine.Signal(context.Background(), state, "interrupt")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrUnhandledSignal, err)
+}

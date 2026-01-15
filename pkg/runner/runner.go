@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
@@ -73,6 +76,27 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 	}
 	lastRenderedID := ""
 
+	// Setup Signal Handling Context
+	// We capture SIGINT (Ctrl+C) and SIGTERM to handle graceful shutdown or transitions.
+	// We use a mutable context so we can "reset" it after a successful recovery.
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	// resetSignals re-arms the signal handler.
+	resetSignals := func() {
+		if cancel != nil {
+			cancel()
+		}
+		ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	}
+
+	resetSignals()
+	defer func() {
+		if cancel != nil {
+			cancel()
+		}
+	}()
+
 	// Resolve Interceptor
 	interceptor := r.Interceptor
 	if interceptor == nil {
@@ -88,13 +112,13 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 
 	for {
 		// 1. Render Phase (View)
-		actions, isTerminal, err := engine.Render(context.Background(), state)
+		actions, isTerminal, err := engine.Render(ctx, state)
 		if err != nil {
 			return fmt.Errorf("render error: %w", err)
 		}
 
 		// 2. Output Phase
-		needsInput, err := handler.Output(context.Background(), actions)
+		needsInput, err := handler.Output(ctx, actions)
 		if err != nil {
 			return fmt.Errorf("output error: %w", err)
 		}
@@ -108,7 +132,44 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 			// If the node is terminal but requested input (e.g. wait: true),
 			// we must honor that request (Pause before Exit).
 			if needsInput {
-				_, _ = handler.Input(context.Background())
+				// We still use the signal context here
+				_, err := handler.Input(ctx)
+				fmt.Fprintf(os.Stderr, "[DEBUG] Input returned: err=%v, ctx.Err=%v\n", err, ctx.Err())
+
+				if ctx.Err() != nil {
+					// Fallthrough to signal handling below
+				} else if err != nil {
+					// Race Mitigation: specific for Windows/Terminals where Ctrl+C might close Stdin (EOF)
+					// before the signal handler fires. Wait briefly to see if context cancels.
+					select {
+					case <-ctx.Done():
+						// It was a signal!
+					case <-time.After(100 * time.Millisecond):
+						// Genuine error/EOF
+					}
+				}
+
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Runner: Context cancelled. Calling Engine.Signal...\n")
+					// Attempt Global Signal Transition even at terminal node
+					// (User might want to cancel the "End" screen or it might not be truly end if interrupted)
+					nextState, sigErr := engine.Signal(context.Background(), state, "interrupt")
+					if sigErr == nil {
+						fmt.Fprintf(os.Stderr, "[DEBUG] Runner: Signal transition success! Re-arming signals...\n")
+						// CRITICAL: We must reset the signal context, otherwise it remains "Cancelled"
+						// and the next Input call will immediately fail again.
+						resetSignals()
+
+						state = nextState
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "[DEBUG] Runner: Signal failed: %v\n", sigErr)
+				}
+				// If normal input (Enter) or unhandled signal, we proceed to exit
+				if err != nil && err != io.EOF && ctx.Err() == nil {
+					// Log error but exit loops
+					fmt.Fprintf(os.Stderr, "Error during wait: %v\n", err)
+				}
 			}
 			break
 		}
@@ -138,7 +199,7 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 			}
 
 			// Interceptor / Policy Check
-			allowed, policyResult, err := interceptor(context.Background(), *pendingCall)
+			allowed, policyResult, err := interceptor(ctx, *pendingCall)
 			if err != nil {
 				return fmt.Errorf("tool interceptor error: %w", err)
 			}
@@ -148,7 +209,7 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 				nextInput = policyResult
 			} else {
 				// Approved: Execute Tool (Mechanic: Pause -> host executes -> Result)
-				result, err := handler.HandleTool(context.Background(), *pendingCall)
+				result, err := handler.HandleTool(ctx, *pendingCall)
 				if err != nil {
 					return fmt.Errorf("tool execution failed: %w", err)
 				}
@@ -158,8 +219,37 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		} else {
 			// Active State: Standard User Input
 			if needsInput || !r.Headless {
-				val, err := handler.Input(context.Background())
+				// We pass ctx to Input. If signal received, Input implies cancellation.
+				// Note: TextHandler's Input (standard fmt.Scan) might not respect context immediately.
+				val, err := handler.Input(ctx)
 				if err != nil {
+					// Check if error is due to signal cancellation
+					// Race Mitigation:
+					if ctx.Err() == nil {
+						select {
+						case <-ctx.Done():
+						case <-time.After(100 * time.Millisecond):
+						}
+					}
+
+					if ctx.Err() != nil {
+						fmt.Fprintf(os.Stderr, "[DEBUG] Runner: Context cancelled (Active). Calling Engine.Signal...\n")
+						// Attempt Global Signal Transition
+						nextState, sigErr := engine.Signal(context.Background(), state, "interrupt")
+						if sigErr == nil {
+							fmt.Fprintf(os.Stderr, "[DEBUG] Runner: Signal transition success! Re-arming signals...\n")
+							// Re-arm signals for the new state
+							resetSignals()
+
+							// Successfully handled signal! Update state and loop.
+							state = nextState
+							continue
+						}
+						fmt.Fprintf(os.Stderr, "[DEBUG] Runner: Signal failed: %v\n", sigErr)
+						// If signal unhandled, fallthrough to exit
+						return fmt.Errorf("interrupted")
+					}
+
 					if err == io.EOF {
 						break
 					}

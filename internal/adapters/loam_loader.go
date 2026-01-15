@@ -97,6 +97,9 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	if doc.Data.OnError != "" {
 		data["on_error"] = doc.Data.OnError
 	}
+	if len(doc.Data.OnSignal) > 0 {
+		data["on_signal"] = doc.Data.OnSignal
+	}
 	if doc.Data.SaveTo != "" {
 		data["save_to"] = doc.Data.SaveTo
 	}

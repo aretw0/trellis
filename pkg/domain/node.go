@@ -44,6 +44,9 @@ type Node struct {
 	// OnError defines the node ID to transition to if a Tool returns an error.
 	OnError string `json:"on_error,omitempty" yaml:"on_error,omitempty"`
 
+	// OnSignal defines transitions triggered by global signals (e.g., "interrupt").
+	OnSignal map[string]string `json:"on_signal,omitempty" yaml:"on_signal,omitempty"`
+
 	// Input Configuration (Optional)
 	InputType    string   `json:"input_type,omitempty" yaml:"input_type,omitempty"`
 	InputOptions []string `json:"input_options,omitempty" yaml:"input_options,omitempty"`

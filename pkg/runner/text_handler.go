@@ -60,11 +60,29 @@ func (h *TextHandler) Input(ctx context.Context) (string, error) {
 	// Prompt
 	fmt.Fprint(h.Writer, "> ")
 
-	text, err := h.Reader.ReadString('\n')
-	if err != nil {
-		return "", err
+	type result struct {
+		text string
+		err  error
 	}
-	return strings.TrimSpace(text), nil
+	ch := make(chan result, 1)
+
+	go func() {
+		text, err := h.Reader.ReadString('\n')
+		ch <- result{text: text, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// Context cancelled (e.g. signal received).
+		// Note: The goroutine will leak until some input is provided/EOF.
+		// Standard Go stdio is hard to interrupt cleanly without closing stdin.
+		return "", ctx.Err()
+	case res := <-ch:
+		if res.err != nil {
+			return "", res.err
+		}
+		return strings.TrimSpace(res.text), nil
+	}
 }
 
 // HandleTool for TextHandler mocks the execution by printing to stdout.
