@@ -138,6 +138,7 @@ Foco: Levar a robustez dos exemplos para os adaptadores oficiais (CLI, HTTP, MCP
 
 Foco: Facilitar a vida de quem cria fluxos, seja em Markdown ou Go.
 
+- [ ] **Context Injection**: Adicionar flag `--context '{"key": "val"}'` à CLI para facilitar testes e integração.
 - [ ] **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó.
 - [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
 - [ ] **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
@@ -155,6 +156,13 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 - [ ] **Secure Storage**: Criptografar campos sensíveis no Contexto (para logs).
 - [ ] **Context Serialization Safety**: Middleware ou check no Engine para garantir que dados em `save_to` sejam JSON-safe.
 - [ ] **Immutable Collections**: Investigar estruturas de dados persistentes para otimizar Deep Copy do Contexto.
+
+### 🔮 Backlog & Future (v0.7+)
+
+- **Emergent Data Attributes**: Investigar forma idiomática de declarar valores padrão (`default_context`) nos nós, permitindo módulos autocontidos.
+- **Typed Flows**: Expandir `required_context` para suportar tipos (`api_key: string`, `retries: int`).
+- **Global Signals**: Mecanismo de interrupção (Ctrl+C, Timeout) tratado como evento no grafo.
+- **TUI Elements**: Melhorar `trellis run` com inputs ricos (select, multiselect, password) usando `charmbracelet/buble tea`.
 
 ---
 

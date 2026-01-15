@@ -31,3 +31,9 @@ Demonstrates how to use the `--debug` flag to visualize state transitions and ev
 **Path:** [`structured-logging/`](./structured-logging)
 **Concepts:** `slog` (JSON Logs), `Prometheus` (Metrics)
 Demonstrates industry-standard observability by integrating Trellis with Go's `log/slog` and `prometheus/client_golang`. Shows how to output machine-readable logs and metrics.
+
+## 6. Fail Fast (Data Validation)
+
+**Path:** [`fail_fast/`](./fail_fast)
+**Concepts:** `required_context`, `Fail Fast`
+Demonstrates how to use `required_context` to enforce data dependencies at the start of a flow. This shows how Trellis protects against missing execution context by failing immediately with a clear error.
