@@ -138,3 +138,34 @@ func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
 	assert.Contains(t, string(data), `"id":"node"`, "JSON output should have normalized ID")
 	assert.NotContains(t, string(data), `"id":"node.json"`)
 }
+
+func TestLoamLoader_ToolCall_DefaultsID(t *testing.T) {
+	// Setup Temp Repository
+	tmpDir, repo := testutils.SetupTestRepo(t)
+
+	// Create a node with tool_call missing an explicit ID
+	content := `---
+id: implicit_tool
+type: tool
+tool_call:
+  name: my_awesome_tool
+  args:
+    foo: bar
+---`
+	err := os.WriteFile(filepath.Join(tmpDir, "implicit_tool.md"), []byte(content), 0644)
+	require.NoError(t, err)
+
+	// Initialize Adapter
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	loader := NewLoamLoader(typedRepo)
+
+	// Execute GetNode
+	data, err := loader.GetNode("implicit_tool")
+	require.NoError(t, err)
+
+	// Verify JSON output
+	// The loader should have copied "name" to "id"
+	jsonStr := string(data)
+	assert.Contains(t, jsonStr, `"name":"my_awesome_tool"`)
+	assert.Contains(t, jsonStr, `"id":"my_awesome_tool"`)
+}
