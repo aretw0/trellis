@@ -32,6 +32,10 @@ inspect-tour-sse:
 test:
 	go test ./...
 
+# Run vet tool in all files
+vet:
+	go vet ./...
+
 # Verify server endpoints (requires server running in another terminal)
 verify:
 	curl.exe -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
