@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
@@ -75,10 +77,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 5. Run Flow
-	ctx := context.Background()
+	// 5. Run Flow with Cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle SIGINT/SIGTERM
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		logger.Info("received interrupt signal, shutting down...")
+		cancel()
+	}()
+
 	state, err := eng.Start(ctx)
 	if err != nil {
+		if err == context.Canceled {
+			logger.Info("start canceled")
+			return
+		}
 		logger.Error("failed to start", "error", err)
 		os.Exit(1)
 	}
@@ -89,11 +106,17 @@ func main() {
 	}
 
 	if err := r.Run(eng, state); err != nil {
+		if err == context.Canceled || err == context.DeadlineExceeded {
+			logger.Info("execution canceled")
+			return
+		}
 		logger.Error("execution failed", "error", err)
 		os.Exit(1)
 	}
 
-	// Keep alive for scraping
+	// Wait for final interrupt if not already received, or exit if flow finished naturally
+	// For this demo, we want to keep the metrics server alive until manual cancellation
 	logger.Info("Flow finished. Metrics available at http://localhost:2112/metrics. Press Ctrl+C to exit.")
-	select {}
+	<-sigChan
+	logger.Info("goodbye")
 }

@@ -19,3 +19,15 @@ Demonstrates how to manually drive the engine without using the `trellis.Runner`
 **Path:** [`tour/`](./tour)
 **Concepts:** `Loam Adapter`, `Markdown Files`, `CLI`
 A content-heavy example that demonstrates the features of the Trellis file format (`.md` files). This is what you run with `trellis run ./examples/tour`.
+
+## 4. Observability (Hooks & Debug)
+
+**Path:** [`observability/`](./observability)
+**Concepts:** `LifecycleHooks`, `--debug`, `Events`
+Demonstrates how to use the `--debug` flag to visualize state transitions and events in the console.
+
+## 5. Structured Logging (Production)
+
+**Path:** [`structured-logging/`](./structured-logging)
+**Concepts:** `slog` (JSON Logs), `Prometheus` (Metrics)
+Demonstrates industry-standard observability by integrating Trellis with Go's `log/slog` and `prometheus/client_golang`. Shows how to output machine-readable logs and metrics.

@@ -74,6 +74,12 @@ go run ./cmd/trellis serve --dir ./examples/tour --port 8080
 
 # Modo MCP Server (Para Agentes de IA)
 go run ./cmd/trellis mcp --dir ./examples/tour
+
+# Modo Debug (Observability)
+go run ./cmd/trellis run --debug ./examples/observability
+
+# Exemplo Log Estruturado (Production Recipe)
+go run ./examples/structured-logging
 ```
 
 ### Introspecção
