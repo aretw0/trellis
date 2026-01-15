@@ -105,10 +105,9 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 	return eng, nil
 }
 
-// Start creates the initial state for the flow.
-// It acts as a factory for the first generic State.
-func (e *Engine) Start() *domain.State {
-	return domain.NewState("start")
+// Start creates the initial state for the flow and triggers lifecycle hooks.
+func (e *Engine) Start(ctx context.Context) (*domain.State, error) {
+	return e.runtime.Start(ctx)
 }
 
 // Render generates the actions (view) for the current state without transitioning.

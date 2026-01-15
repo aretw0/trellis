@@ -54,19 +54,12 @@ func TestNonBlockingText(t *testing.T) {
 	// If 'start' was blocking, it would consume "yes" prematurely or fail if no input provided for it.
 	// Since we provide only 1 input for the 'end' node, if 'start' requests input, we will get an error/hang (simulated).
 
-	initialState := engine.Start()
-	if initialState.CurrentNodeID != "start" {
-		t.Fatalf("Expected start node, got %s", initialState.CurrentNodeID)
-	}
-
-	// Manually driving the engine to check steps would be better, but Runner.Run abstracts the loop.
-	// Let's use the standard Runner.Run to verify end-to-end flow.
-
 	// Use a timeout context to prevent hangs should logic fail
-	// context is not directly passed to Run in the current signature, but we can verify execution finishes.
-	// Wait: Runner.Run DOES handle context? No, it takes engine and state.
-	// But handlers take context. MockHandler can respect it?
-	// The Runner code passes context.Background().
+	ctx := context.Background()
+	initialState, err := engine.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
 
 	err = r.Run(engine, initialState)
 	if err != nil && err.Error() != "mock EOF" {

@@ -29,8 +29,11 @@ Hello World`)
 		t.Fatalf("Failed to initialize engine with path %s: %v", repoPath, err)
 	}
 
-	// 2. Test Start State
-	state := engine.Start()
+	ctx := context.Background()
+	state, err := engine.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
 	if state.CurrentNodeID != "start" {
 		t.Errorf("Expected initial state 'start', got '%s'", state.CurrentNodeID)
 	}

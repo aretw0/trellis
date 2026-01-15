@@ -64,7 +64,12 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 	if initialState != nil {
 		state = initialState
 	} else {
-		state = engine.Start()
+		// If no initial state provided, creating default "start" state
+		var err error
+		state, err = engine.Start(context.Background())
+		if err != nil {
+			return fmt.Errorf("failed to create initial state: %w", err)
+		}
 	}
 	lastRenderedID := ""
 

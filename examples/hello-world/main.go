@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -51,12 +52,16 @@ func main() {
 	r.Headless = false
 	r.Renderer = tui.NewRenderer() // Inject TUI Renderer
 
-	// 4. Seed Data (Verification of Interpolation)
-	startState := eng.Start()
-	startState.Context["User"] = "World"
+	// 4. Create initial state and seed data
+	ctx := context.Background()
+	state, err := eng.Start(ctx)
+	if err != nil {
+		panic(err)
+	}
+	state.Context["User"] = "World" // Seed Data (Verification of Interpolation)
 
 	// 5. Run!
-	if err := r.Run(eng, startState); err != nil {
+	if err := r.Run(eng, state); err != nil {
 		log.Fatalf("Error running: %v", err)
 	}
 }

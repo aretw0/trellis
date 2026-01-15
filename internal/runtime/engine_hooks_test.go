@@ -46,19 +46,24 @@ func TestEngine_LifecycleHooks(t *testing.T) {
 
 	// Execution
 	ctx := context.Background()
-	state := domain.NewState("start")
 
-	// Verify OnNodeEnter for initial state
-	// Note: Currently, creating a state with NewState() does not trigger OnNodeEnter
-	// because the hook is fired during transitions. The initial state is created, but
-	// no transition occurs to enter it.
-	// For this test, we verify that subsequent transitions trigger the hooks correctly.
+	// Verify OnNodeEnter for initial state (Now triggered by Start)
+	state, err := engine.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+
+	if len(entered) != 1 || entered[0] != "start" {
+		t.Errorf("Expected enter 'start' on Start(), got: %v", entered)
+	}
 
 	// Move to step_2
-	_, err := engine.Navigate(ctx, state, "")
+	var nextState *domain.State
+	nextState, err = engine.Navigate(ctx, state, "")
 	if err != nil {
 		t.Fatalf("Navigate failed: %v", err)
 	}
+	_ = nextState
 
 	// Verify Events
 	// We should have Left "start" and Entered "step_2"

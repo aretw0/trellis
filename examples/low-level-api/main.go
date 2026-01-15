@@ -43,8 +43,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// 2. Create initial state
 	ctx := context.Background()
-	state := eng.Start()
+	state, err := eng.Start(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// 1. Render First State
 	actions, _, err := eng.Render(ctx, state)

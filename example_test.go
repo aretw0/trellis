@@ -47,8 +47,11 @@ func ExampleNew_memory() {
 	}
 
 	// 4. Start the flow
-	state := engine.Start()
 	ctx := context.Background()
+	state, err := engine.Start(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	// 5. Navigate (Input: "yes")
 	// "start" -> (input: yes) -> "yes"

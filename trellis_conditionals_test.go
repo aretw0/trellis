@@ -48,9 +48,13 @@ Welcome.
 	}
 
 	// 5. Test Case 1: Wrong Password -> Should STAY at start
-	state := eng.Start()
+	ctx = context.Background()
+	state, err := eng.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
 	// Step 1: Start node (Render)
-	_, _, err = eng.Render(context.Background(), state)
+	_, _, err = eng.Render(ctx, state)
 	if err != nil {
 		t.Fatalf("Failed to render start: %v", err)
 	}

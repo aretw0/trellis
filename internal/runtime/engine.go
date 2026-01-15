@@ -119,6 +119,39 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpola
 	return e
 }
 
+// Start creates the initial state and triggers the OnNodeEnter hook.
+func (e *Engine) Start(ctx context.Context) (*domain.State, error) {
+	state := domain.NewState("start")
+
+	// Trigger OnNodeEnter for the start node
+	if e.hooks.OnNodeEnter != nil {
+		// Load node to get metadata (Type)
+		// We ignore error here for the hook if node fails to load?
+		// No, if start node is missing, we should probably fail or just emit what we know.
+		// Let's try to load.
+		raw, err := e.loader.GetNode("start")
+		if err == nil {
+			if node, err := e.parser.Parse(raw); err == nil {
+				e.hooks.OnNodeEnter(ctx, &domain.NodeEvent{
+					EventBase: domain.EventBase{
+						Timestamp: time.Now(),
+						Type:      domain.EventNodeEnter,
+						// StateID:   "", // State has no ID
+					},
+					NodeID:   "start",
+					NodeType: node.Type,
+				})
+				// Early return to avoid double lookup?
+				// No, we just return state.
+			}
+		}
+		// If load fails, we can either skip the hook or emit with "unknown".
+		// For now, let's skip/swallow error for the hook, as Render will catch the error later.
+	}
+
+	return state, nil
+}
+
 // Render calculates the presentation for the current state.
 // It loads the node and generates actions (e.g. print text) but does NOT change state.
 // It returns actions, isTerminal (true if no transitions), and error.
