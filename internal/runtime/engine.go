@@ -120,8 +120,11 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpola
 }
 
 // Start creates the initial state and triggers the OnNodeEnter hook.
-func (e *Engine) Start(ctx context.Context) (*domain.State, error) {
+func (e *Engine) Start(ctx context.Context, initialContext map[string]any) (*domain.State, error) {
 	state := domain.NewState("start")
+	for k, v := range initialContext {
+		state.Context[k] = v
+	}
 
 	// Trigger OnNodeEnter for the start node
 	if e.hooks.OnNodeEnter != nil {

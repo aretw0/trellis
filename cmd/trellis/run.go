@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -22,6 +23,15 @@ var runCmd = &cobra.Command{
 		watchMode, _ := cmd.Flags().GetBool("watch")
 		jsonMode, _ := cmd.Flags().GetBool("json")
 		debug, _ := cmd.Flags().GetBool("debug")
+		contextStr, _ := cmd.Flags().GetString("context")
+
+		var initialContext map[string]any
+		if contextStr != "" {
+			if err := json.Unmarshal([]byte(contextStr), &initialContext); err != nil {
+				fmt.Printf("Error parsing --context JSON: %v\n", err)
+				os.Exit(1)
+			}
+		}
 
 		if watchMode && headless {
 			fmt.Println("Error: --watch and --headless cannot be used together.")
@@ -31,12 +41,7 @@ var runCmd = &cobra.Command{
 		if watchMode {
 			cli.RunWatch(repoPath)
 		} else {
-			// cli.RunInteractive doesn't support passing handler yet.
-			// We need to instantiate the runner manually or update RunInteractive.
-			// Let's check RunInteractive in session.go.
-			// Actually, let's just inline the runner setup here or update session.go?
-			// Updating session.go is cleaner.
-			if err := cli.RunSession(repoPath, headless, jsonMode, debug); err != nil {
+			if err := cli.RunSession(repoPath, headless, jsonMode, debug, initialContext); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -50,8 +55,10 @@ func init() {
 	runCmd.Flags().Bool("headless", false, "Run in headless mode (no prompts, strict IO)")
 	runCmd.Flags().Bool("json", false, "Run in JSON mode (NDJSON input/output)")
 	runCmd.Flags().Bool("debug", false, "Enable verbose debug logging (observability hooks)")
+	runCmd.Flags().StringP("context", "c", "", "Initial context JSON string (e.g. '{\"user\": \"Alice\"}')")
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 
-	// Make 'run' the default if no command is provided?
+	// Make 'run' the default subcommand if no other command is provided.
+	// This allows users to type 'trellis .' instead of 'trellis run .'
 	rootCmd.Run = runCmd.Run
 }

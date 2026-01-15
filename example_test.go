@@ -48,7 +48,7 @@ func ExampleNew_memory() {
 
 	// 4. Start the flow
 	ctx := context.Background()
-	state, err := engine.Start(ctx)
+	state, err := engine.Start(ctx, nil)
 	if err != nil {
 		panic(err)
 	}

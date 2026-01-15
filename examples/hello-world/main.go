@@ -54,7 +54,7 @@ func main() {
 
 	// 4. Create initial state and seed data
 	ctx := context.Background()
-	state, err := eng.Start(ctx)
+	state, err := eng.Start(ctx, nil)
 	if err != nil {
 		panic(err)
 	}

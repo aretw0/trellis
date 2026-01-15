@@ -56,7 +56,7 @@ func TestNonBlockingText(t *testing.T) {
 
 	// Use a timeout context to prevent hangs should logic fail
 	ctx := context.Background()
-	initialState, err := engine.Start(ctx)
+	initialState, err := engine.Start(ctx, nil)
 	if err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}

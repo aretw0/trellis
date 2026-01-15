@@ -18,7 +18,7 @@ import (
 )
 
 // RunSession executes a single session of Trellis.
-func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error {
+func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initialContext map[string]any) error {
 	// Configure Logger
 	var logger *slog.Logger
 	if debug {
@@ -59,7 +59,7 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error
 	}
 
 	ctx := context.Background()
-	initialState, err := engine.Start(ctx)
+	initialState, err := engine.Start(ctx, initialContext)
 	if err != nil {
 		return fmt.Errorf("failed to start engine: %w", err)
 	}

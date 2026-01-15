@@ -361,6 +361,14 @@ required_context:
 
 Se uma chave estiver faltando no Contexto, o Engine aborta a execução com `ContextValidationError` antes de processar o nó.
 
+#### 8.5. Initial Context Injection (Seed State)
+
+Para facilitar testes automatizados e integração com sistemas legados, o Trellis permite "semear" (seed) o estado inicial.
+
+- **API**: `Engine.Start(ctx, initialData map[string]any)`
+- **CLI**: Flag `--context '{"user": "Alice"}'`
+- **Uso**: Os dados injetados estão disponíveis imediatamente para interpolação (`{{.user}}`) e lógica condicional no nó `start`.
+
 ---
 
 ## III. Funcionalidades Estendidas (System Features)

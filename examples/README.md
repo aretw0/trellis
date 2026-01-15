@@ -52,3 +52,9 @@ Demonstrates robust tool usage, including:
 - **Safety Middleware**: Using `confirm_msg` to prompt users before dangerous actions.
 - **Error Handling**: Using `on_error` to recover from tool failures.
 - **Implicit IDs**: How the loader handles tool calls defined without explicit IDs.
+
+## 9. Context Injection (Testing & Automation)
+
+**Path:** [`context-demo/`](./context-demo)
+**Concepts:** `--context`, `Seed State`, `Templates`
+Demonstrates how to inject initial data into the flow via the CLI flag `--context`. This is critical for automated testing or when integrating Trellis with systems that provide pre-existing user data.

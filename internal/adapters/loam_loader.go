@@ -91,6 +91,10 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	data["id"] = trimExtension(rawID)
 
 	data["type"] = doc.Data.Type
+	if doc.Data.Type == "" {
+		data["type"] = domain.NodeTypeText
+	}
+
 	if doc.Data.Wait {
 		data["wait"] = doc.Data.Wait
 	}

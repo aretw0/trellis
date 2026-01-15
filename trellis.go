@@ -106,8 +106,8 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 }
 
 // Start creates the initial state for the flow and triggers lifecycle hooks.
-func (e *Engine) Start(ctx context.Context) (*domain.State, error) {
-	return e.runtime.Start(ctx)
+func (e *Engine) Start(ctx context.Context, initialContext map[string]any) (*domain.State, error) {
+	return e.runtime.Start(ctx, initialContext)
 }
 
 // Render generates the actions (view) for the current state without transitioning.
