@@ -125,10 +125,9 @@ func (e *Engine) Start(ctx context.Context) (*domain.State, error) {
 
 	// Trigger OnNodeEnter for the start node
 	if e.hooks.OnNodeEnter != nil {
-		// Load node to get metadata (Type)
-		// We ignore error here for the hook if node fails to load?
-		// No, if start node is missing, we should probably fail or just emit what we know.
-		// Let's try to load.
+		// Attempt to load the start node to populate event metadata (Type).
+		// If loading fails, we skip the hook or could emit with default values.
+		// Current behavior: Skip hook on load failure implicitly.
 		raw, err := e.loader.GetNode("start")
 		if err == nil {
 			if node, err := e.parser.Parse(raw); err == nil {
@@ -168,10 +167,9 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 
 	actions := []domain.ActionRequest{}
 
-	// Only render content if we are NOT submitting data (which usually implies moving away)
-	// But in the new architecture, Render is called explicitly before Navigate, so we always render.
-	// It's up to the Runner to decide if it shows it or not based on previous history?
-	// Actually, Render just returns what the node *says*.
+	// Render content based on node type.
+	// Render is stateless and returns the view representation of the node.
+	// Run-time evaluation of templates happens here.
 	if node.Type == domain.NodeTypeText || node.Type == domain.NodeTypeQuestion {
 		text := string(node.Content)
 
@@ -400,9 +398,8 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, err
 	}
 
-	// Default to whatever the current status was (usually Active if calling internal)
-	// But if we fail to transition, we stay in the same state?
-	// If no transition found, term?
+	// If no transitions are found, the state becomes Terminal.
+	// The runner should detect this and stop the loop.
 	if len(node.Transitions) == 0 {
 		nextState.Status = domain.StatusTerminated
 		nextState.Terminated = true // Deprecated

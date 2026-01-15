@@ -66,13 +66,13 @@ func TestEngine_LifecycleHooks(t *testing.T) {
 	_ = nextState
 
 	// Verify Events
-	// We should have Left "start" and Entered "step_2"
+	// We should have Left "start" and Entered "start" and "step_2"
 
 	if len(left) != 1 || left[0] != "start" {
 		t.Errorf("Expected leave 'start', got: %v", left)
 	}
 
-	if len(entered) != 1 || entered[0] != "step_2" {
-		t.Errorf("Expected enter 'step_2', got: %v", entered)
+	if len(entered) != 2 || entered[0] != "start" || entered[1] != "step_2" {
+		t.Errorf("Expected enter [start, step_2], got: %v", entered)
 	}
 }

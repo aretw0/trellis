@@ -50,11 +50,6 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool) error
 	ctx := context.Background()
 	initialState, err := engine.Start(ctx)
 	if err != nil {
-		// If Start fails (e.g. hook error), though currently it mainly swallows,
-		// but if we change it later. For now Start() mainly returns state.
-		// Actually runtime.Start returns error? No, I defined it to return error but implementation swallowed load error.
-		// Let's propagate error if I changed implementation to return it.
-		// My implementation returns nil error.
 		return fmt.Errorf("failed to start engine: %w", err)
 	}
 

@@ -77,11 +77,8 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 	interceptor := r.Interceptor
 	if interceptor == nil {
 		// Default Policy:
-		// If Headless -> AutoApprove (Automation)
-		// If Interactive -> Confirmation (Safety)
-		// For backward compatibility with Phase 1 "mock" behavior, we might want AutoApprove.
-		// BUT, we want to upgrade security.
-		// Let's implement smart default: If Headless, AutoApprove. If Interactive, Confirm.
+		// - Headless: Auto-approve all tool calls for automation.
+		// - Interactive: Require user confirmation for safety.
 		if r.Headless {
 			interceptor = AutoApproveMiddleware()
 		} else {
