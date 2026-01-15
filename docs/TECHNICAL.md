@@ -476,7 +476,7 @@ flowchart TD
 
 ### 10.6 Input Sanitization & Limits
 
-To ensure robust operation in production (especially in shared-memory environments like Kubernetes Pods), Trellis enforces limits on user input at the Runner layer.
+To ensure robust operation in production (especially in shared-memory environments like Kubernetes Pods), Trellis enforces limits on user input at the Runner layer. This applies globally to **all adapters** (CLI, HTTP, MCP).
 
 - **Max Input Size**: Defaults to 4KB. Configurable via `TRELLIS_MAX_INPUT_SIZE`.
 - **Control Characters**: Automatically strips dangerous ANSI/Control codes to prevent log poisoning.

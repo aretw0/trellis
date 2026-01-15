@@ -12,6 +12,7 @@ import (
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
+	"github.com/aretw0/trellis/pkg/runner"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -191,7 +192,14 @@ func (s *Server) registerTools() {
 			_ = json.Unmarshal([]byte(memStr), &state.Context)
 		}
 
-		newState, err := s.engine.Navigate(ctx, state, input)
+		// Sanitize Input
+		clean, err := runner.SanitizeInput(input)
+		if err != nil {
+			slog.Warn("MCP Navigate: Input rejected", "error", err, "size", len(input))
+			return mcp.NewToolResultError(fmt.Sprintf("input rejected: %v", err)), nil
+		}
+
+		newState, err := s.engine.Navigate(ctx, state, clean)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("navigate failed: %v", err)), nil
 		}

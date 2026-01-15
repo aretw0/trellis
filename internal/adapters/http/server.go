@@ -11,6 +11,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/runner"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -128,6 +129,17 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 			slog.Warn("Navigate: Invalid input format", "error", err)
 			return
 		}
+	}
+
+	// Sanitize Input (Global Policy)
+	if input != "" {
+		clean, err := runner.SanitizeInput(input)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid input: %v", err), http.StatusBadRequest)
+			slog.Warn("Navigate: Input rejected", "error", err, "size", len(input))
+			return
+		}
+		input = clean
 	}
 
 	newState, err := s.Engine.Navigate(r.Context(), &domainState, input)
