@@ -124,22 +124,21 @@ Foco: Tornar o Trellis seguro e observável para rodar em produção.
 - [x] **Error Handling**: Adicionar transição explícita `on_error: "node_id"` para recuperação automática de falhas em Tools. Implementada estratégia "Fail Fast" para erros não tratados.
 - [x] **Observability Hooks**: Refatorar Engine para emitir eventos (`OnTransition`, `OnNodeEnter`) permitindo instrumentação externa (OpenTelemetry).
 - [x] **Data Schema Validation**: Permitir definição de `required_context` no início do grafo para Fail Fast.
-- [ ] **Input Sanitization**: Validar inputs (Regex, Length) antes de salvar no contexto. Prevenção de DoS/Corrupção.
 
-### 🏭 v0.5.2: Production & Hardening (The "Ops" Phase)
+### 🛡️ v0.5.2: Control & Safety (The "Brakes" Phase)
 
-Foco: Levar a robustez dos exemplos para os adaptadores oficiais (CLI, HTTP, MCP).
+Foco: Mecanismos de controle de execução e segurança. O Trellis deve ser interrompível e seguro por padrão, essencial para orquestração de Agentes IA imprevisíveis.
 
-- [ ] **Instrumented Adapters**: Aplicar o padrão de *Structured Logging* e *Metrics* (Prometheus) no `internal/adapters/http` e `internal/adapters/mcp`.
-- [ ] **Graceful Shutdown**: Garantir que todos os servidores (HTTP/MCP) respeitem sinais de terminação (SIGINT/SIGTERM) para evitar goroutines zumbis.
-- [ ] **Configuration Flags**: Padronizar flags de CLI para `--metrics-port`, `--log-format=json|text`.
+- [ ] **Global Signals (Interrupts)**: Mecanismo nativo para lidar com sinais de interrupção (Ctrl+C, Timeout) e comandos globais ("cancel") convertendo-os em eventos de transição (`on_signal`).
+- [ ] **Graceful Shutdown**: Garantir que o Runner e Listeners (`http`, `mcp`) parem de forma limpa, drenando conexões e salvando estado se necessário.
+- [ ] **Input Sanitization**: Validar limitações físicas de input (tamanho, caracteres invisíveis) antes de injetar no State. Proteção contra DoS e contaminação de logs.
 
 ### 👩‍💻 v0.6: Developer Experience (The "Ergonomics" Phase)
 
-Foco: Facilitar a vida de quem cria fluxos, seja em Markdown ou Go.
+Foco: Facilitar a vida de quem cria fluxos e remover fricção operacional.
 
 - [ ] **Context Injection**: Adicionar flag `--context '{"key": "val"}'` à CLI para facilitar testes e integração.
-- [ ] **Global Signals (Interrupts)**: Mecanismo para definir comandos globais ("cancel", "help") que interrompem qualquer nó.
+- [ ] **Configuration Flags**: Padronizar flags de CLI para `--metrics-port`, `--log-format=json|text`.
 - [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
 - [ ] **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
 - [ ] **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
@@ -161,7 +160,7 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 
 - **Emergent Data Attributes**: Investigar forma idiomática de declarar valores padrão (`default_context`) nos nós, permitindo módulos autocontidos.
 - **Typed Flows**: Expandir `required_context` para suportar tipos (`api_key: string`, `retries: int`).
-- **Global Signals**: Mecanismo de interrupção (Ctrl+C, Timeout) tratado como evento no grafo.
+
 - **TUI Elements**: Melhorar `trellis run` com inputs ricos (select, multiselect, password) usando `charmbracelet/buble tea`.
 
 ---
@@ -176,19 +175,8 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 - **2025-12-14**: *Test Strategy*. Decidido que a cobertura de testes deve ser explícita em cada fase crítica.
 - **2026-01-11**: *Interpolation Strategy*. Adotada Interface `Interpolator` para permitir plugabilidade de estratégias de template (o usuário pode escolher entre Go Template, Legacy ou outros), mantendo o Core agnóstico.
 - **2026-01-13**: *Tool Definition Strategy*. Adotada abordagem polimórfica para a chave `tools`. Aceita tanto definições inline (Maps) quanto referências (Strings). Decidido aceitar o trade-off de tipagem em `[]any` em troca de DX superior, mitigando riscos com validação manual e detecção de ciclos no Loader.
-
 - **2026-01-14**: *Context Security*. Implementado namespace reservado `sys.*` no Engine. Escrita via `save_to` é bloqueada para prevenir injeção de estado. Leitura via templates é permitida para introspecção e error handling.
 - **2026-01-14**: *Execution Lifecycle*. Refatorado `Engine.Navigate` para seguir estritamente `applyInput` (Update) -> `resolveTransition` (Resolve) -> `Transition`. Adicionado Deep Interpolation para argumentos de ferramenta em `Engine.Render`.
-
----
-
-## 3. Estratégia de Testes
-
-Para evitar regressões, definimos níveis de teste obrigatórios:
-
-1. **Core/Logic (Engine)**: Unit Tests + Table Driven.
-2. **Adapters (Loam/Memory)**: *Contract Tests*. O mesmo suite deve rodar contra Loam e MemoryLoader para garantir funcionalidade idêntica.
-3. **Integration**: Testes End-to-End simulando JSON in/out.
-4. **CLI**: Snapshot testing.
+- **2026-01-15**: *Strategic Pivot*. Roadmap v0.5.2 reorientado de "Ops" para "Control & Safety". Decidido que instrumentação (Prometheus/Log) é responsabilidade do Host via Lifecycle Hooks, mantendo o Core leve. "Instrumented Adapters" removido do roadmap, com `examples/structured-logging` servindo como referência canônica.
 
 ---
