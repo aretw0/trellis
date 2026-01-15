@@ -697,3 +697,34 @@ engine, err := trellis.New(repoPath, trellis.WithLifecycleHooks(hooks))
 ### 13.3 CLI Debug Mode
 
 The standard CLI supports a `--debug` flag which injects a default localized logger to print these events to `stderr` during execution.
+
+### 13.4 Recipe: Production Observability (Slog + Prometheus)
+
+You can combine `LifecycleHooks` with industry-standard tools like `log/slog` (Structured Logging) and `Prometheus` (Metrics) to create production-ready observability.
+
+```go
+// 1. Setup Slog (JSON)
+logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+// 2. Setup Prometheus Counter
+nodeVisits := prometheus.NewCounterVec(
+    prometheus.CounterOpts{Name: "trellis_node_visits_total"},
+    []string{"node_id"},
+)
+prometheus.MustRegister(nodeVisits)
+
+// 3. Define Hooks
+hooks := &domain.LifecycleHooks{
+    OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
+        // Log formatted JSON
+        logger.Info("node_enter", "node_id", e.NodeID, "type", e.NodeType)
+        // Increment Metric
+        nodeVisits.WithLabelValues(e.NodeID).Inc()
+    },
+}
+
+// 4. Inject
+eng, _ := trellis.New(dir, trellis.WithLifecycleHooks(hooks))
+```
+
+See `examples/structured-logging` for a full implementation.
