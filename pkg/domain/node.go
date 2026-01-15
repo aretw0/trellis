@@ -13,8 +13,6 @@ const (
 
 	// NodeTypeStart indicates the entry point (typically convention-based, but can be explicit).
 	NodeTypeStart = "start"
-	// NodeTypePrompt is an alias for "question", waiting for user input.
-	NodeTypePrompt = "prompt"
 )
 
 // Node represents a logical unit in the graph.

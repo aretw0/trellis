@@ -30,7 +30,7 @@ func GenerateMermaid(nodes []domain.Node) string {
 			opener, closer = "((", "))" // Circle
 		case node.Type == domain.NodeTypeTool:
 			opener, closer = "[[", "]]" // Subroutine
-		case node.Type == domain.NodeTypeQuestion || node.Type == domain.NodeTypePrompt:
+		case node.Type == domain.NodeTypeQuestion:
 			opener, closer = "[/", "/]" // Parallelogram (Input)
 		}
 

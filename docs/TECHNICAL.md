@@ -296,7 +296,6 @@ O comportamento de nós de texto segue a semântica de State Machine pura:
     - **Nota de UX**: No modo **Interativo (CLI)**, o Runner força uma pausa após renderizar o texto para permitir leitura. No modo **Headless**, a transição é imediata.
 2. **Pausas Explícitas**:
     - `wait: true`: Força pausa para input (ex: "Pressione Enter") em *ambos* os modos.
-    - `type: prompt`: Alias semântico para `question`.
 
 #### 7.3. Diagrama de Decisão (Input Logic)
 
@@ -502,7 +501,7 @@ Responsável por converter visualmente o grafo e estados.
 - **Trellis Graph**: Gera diagramas Mermaid.
   - Start: `(( ))`
   - Tool: `[[ ]]`
-  - Prompt: `[/ /]`
+  - Question: `[/ /]`
 
 #### 11.2. HTTP Server (Stateless)
 

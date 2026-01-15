@@ -38,11 +38,9 @@ func TestGenerateMermaid(t *testing.T) {
 			name: "Input Node Shape",
 			nodes: []domain.Node{
 				{ID: "q1", Type: domain.NodeTypeQuestion},
-				{ID: "p1", Type: domain.NodeTypePrompt},
 			},
 			contains: []string{
 				"q1[/\"q1\"/]",
-				"p1[/\"p1\"/]",
 			},
 		},
 		{
