@@ -118,6 +118,10 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 
 	// Map Tool Configuration
 	if doc.Data.ToolCall != nil {
+		// Ensure ID is present
+		if doc.Data.ToolCall.ID == "" {
+			doc.Data.ToolCall.ID = doc.Data.ToolCall.Name
+		}
 		data["tool_call"] = doc.Data.ToolCall
 	}
 	if len(doc.Data.Tools) > 0 {
