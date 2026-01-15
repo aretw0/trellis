@@ -399,6 +399,18 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 	}
 	fmt.Fprintf(os.Stderr, "[DEBUG] Signal %s handled by node %s -> %s\n", signalName, node.ID, targetNodeID)
 
+	// Emit Leave Event for interrupted node (before context reset)
+	if e.hooks.OnNodeLeave != nil {
+		e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventNodeLeave,
+			},
+			NodeID:   node.ID,
+			NodeType: node.Type,
+		})
+	}
+
 	// Initialize next state with clean context copy (similar to OnError)
 	// We do NOT apply input here, as this is an interruption.
 	nextState := *currentState

@@ -59,8 +59,18 @@ func TestEngine_Signal(t *testing.T) {
 }`
 	loader.Nodes["cancel_node"] = []byte(cancelNodeRaw)
 
+	// Capture hooks
+	leaveCalled := false
+	hooks := domain.LifecycleHooks{
+		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
+			if e.NodeID == "start" {
+				leaveCalled = true
+			}
+		},
+	}
+
 	// Engine handles parser creation internally
-	engine := runtime.NewEngine(loader, nil, nil)
+	engine := runtime.NewEngine(loader, nil, nil, runtime.WithLifecycleHooks(hooks))
 
 	// Start state
 	state := domain.NewState("start")
@@ -74,6 +84,7 @@ func TestEngine_Signal(t *testing.T) {
 	assert.NotNil(t, nextState)
 	assert.Equal(t, "cancel_node", nextState.CurrentNodeID)
 	assert.Equal(t, "bar", nextState.Context["foo"], "Context should be preserved")
+	assert.True(t, leaveCalled, "OnNodeLeave should be triggered for interrupting node")
 }
 
 func TestEngine_Signal_Unhandled(t *testing.T) {

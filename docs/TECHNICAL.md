@@ -445,6 +445,15 @@ on_signal:
 
 Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine transitará para `confirm_exit` em vez de encerrar o processo.
 
+> **Consistency Note**: Quando um sinal dispara uma transição, o evento `OnNodeLeave` é emitido para o nó interrompido, mantendo a consistência do ciclo de vida.
+
+#### 10.5. Future Signals (Contexts)
+
+O mecanismo de `on_signal` é a base para futuros recursos de interrupção:
+
+- **System Contexts (Timeouts)**: `on_signal: { timeout: "retry_node" }`. O Host dispara após N segundos.
+- **External Contexts (Webhooks)**: `on_signal: { payment_received: "success" }`. Eventos assíncronos de APIs.
+
 ```mermaid
 flowchart TD
     Start([User Input]) --> Wait{Waiting Input?}
