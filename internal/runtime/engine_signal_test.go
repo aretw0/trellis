@@ -100,7 +100,17 @@ func TestEngine_Signal_Unhandled(t *testing.T) {
 }`
 	loader.Nodes["start"] = []byte(startNodeRaw)
 
-	engine := runtime.NewEngine(loader, nil, nil)
+	// Capture hooks
+	leaveCalled := false
+	hooks := domain.LifecycleHooks{
+		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
+			if e.NodeID == "start" {
+				leaveCalled = true
+			}
+		},
+	}
+
+	engine := runtime.NewEngine(loader, nil, nil, runtime.WithLifecycleHooks(hooks))
 	state := domain.NewState("start")
 
 	// Execute Signal
@@ -109,4 +119,5 @@ func TestEngine_Signal_Unhandled(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, domain.ErrUnhandledSignal, err)
+	assert.True(t, leaveCalled, "OnNodeLeave should be triggered even for unhandled signal (graceful exit logging)")
 }

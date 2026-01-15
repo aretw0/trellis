@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"os"
 	"strings"
 	"time"
 
@@ -392,14 +391,7 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
-	targetNodeID, ok := node.OnSignal[signalName]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Signal %s NOT found in node %s (OnSignal has %d entries)\n", signalName, node.ID, len(node.OnSignal))
-		return nil, domain.ErrUnhandledSignal
-	}
-	fmt.Fprintf(os.Stderr, "[DEBUG] Signal %s handled by node %s -> %s\n", signalName, node.ID, targetNodeID)
-
-	// Emit Leave Event for interrupted node (before context reset)
+	// Emit Leave Event for interrupted node (before context reset or exit)
 	if e.hooks.OnNodeLeave != nil {
 		e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
 			EventBase: domain.EventBase{
@@ -409,6 +401,11 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 			NodeID:   node.ID,
 			NodeType: node.Type,
 		})
+	}
+
+	targetNodeID, ok := node.OnSignal[signalName]
+	if !ok {
+		return nil, domain.ErrUnhandledSignal
 	}
 
 	// Initialize next state with clean context copy (similar to OnError)
