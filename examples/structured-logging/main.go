@@ -117,6 +117,6 @@ func main() {
 	// Wait for final interrupt if not already received, or exit if flow finished naturally
 	// For this demo, we want to keep the metrics server alive until manual cancellation
 	logger.Info("Flow finished. Metrics available at http://localhost:2112/metrics. Press Ctrl+C to exit.")
-	<-sigChan
+	<-ctx.Done()
 	logger.Info("goodbye")
 }
