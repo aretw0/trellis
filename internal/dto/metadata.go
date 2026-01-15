@@ -39,5 +39,7 @@ type LoaderTransition struct {
 	ToFull    string `json:"to_node_id" mapstructure:"to_node_id"`
 	JumpTo    string `json:"jump_to" mapstructure:"jump_to"`
 	Condition string `json:"condition" mapstructure:"condition"`
-	Text      string `json:"text" mapstructure:"text"`
+	// Text is the display label for options/buttons.
+	// It is also used as the implicit match condition (Condition="input == Text") if Condition is empty.
+	Text string `json:"text" mapstructure:"text"`
 }
