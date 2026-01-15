@@ -130,7 +130,7 @@ Foco: Tornar o Trellis seguro e observável para rodar em produção.
 Foco: Mecanismos de controle de execução e segurança. O Trellis deve ser interrompível e seguro por padrão, essencial para orquestração de Agentes IA imprevisíveis.
 
 - [x] **Global Signals (Interrupts)**: Mecanismo nativo para lidar com sinais de interrupção (Ctrl+C, Timeout) e comandos globais ("cancel") convertendo-os em eventos de transição (`on_signal`).
-- [ ] **Graceful Shutdown**: Garantir que o Runner e Listeners (`http`, `mcp`) parem de forma limpa, drenando conexões e salvando estado se necessário.
+- [x] **Graceful Shutdown**: Implementado `SignalManager` para garantir cancelamento limpo de contextos e `OnNodeLeave` hooks mesmo em interrupções forçadas.
 - [ ] **Input Sanitization**: Validar limitações físicas de input (tamanho, caracteres invisíveis) antes de injetar no State. Proteção contra DoS e contaminação de logs.
 
 ### 👩‍💻 v0.6: Developer Experience (The "Ergonomics" Phase)
@@ -179,5 +179,6 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 - **2026-01-14**: *Context Security*. Implementado namespace reservado `sys.*` no Engine. Escrita via `save_to` é bloqueada para prevenir injeção de estado. Leitura via templates é permitida para introspecção e error handling.
 - **2026-01-14**: *Execution Lifecycle*. Refatorado `Engine.Navigate` para seguir estritamente `applyInput` (Update) -> `resolveTransition` (Resolve) -> `Transition`. Adicionado Deep Interpolation para argumentos de ferramenta em `Engine.Render`.
 - **2026-01-15**: *Strategic Pivot*. Roadmap v0.5.2 reorientado de "Ops" para "Control & Safety". Decidido que instrumentação (Prometheus/Log) é responsabilidade do Host via Lifecycle Hooks, mantendo o Core leve. "Instrumented Adapters" removido do roadmap, com `examples/structured-logging` servindo como referência canônica.
+- **2026-01-15**: *Sober Refactor*. Consolidação da confiabilidade do Runner. Unificada a lógica de nós terminais (garantindo logs de saída) e extraído `SignalManager` para isolar complexidade de concorrência. Adotado `log/slog` padronizado em todo o CLI.
 
 ---

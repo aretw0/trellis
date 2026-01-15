@@ -78,6 +78,12 @@ go run ./cmd/trellis mcp --dir ./examples/tour
 # Modo Debug (Observability)
 go run ./cmd/trellis run --debug ./examples/observability
 
+# Exemplo Global Signals (Interrupts)
+go run ./cmd/trellis run ./examples/interrupt-demo
+
+# Exemplo Tool Safety & Error Handling
+go run ./cmd/trellis run ./examples/tools-demo
+
 # Exemplo Log Estruturado (Production Recipe)
 go run ./examples/structured-logging
 ```

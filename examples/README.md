@@ -36,4 +36,19 @@ Demonstrates industry-standard observability by integrating Trellis with Go's `l
 
 **Path:** [`fail_fast/`](./fail_fast)
 **Concepts:** `required_context`, `Fail Fast`
-Demonstrates how to use `required_context` to enforce data dependencies at the start of a flow. This shows how Trellis protects against missing execution context by failing immediately with a clear error.
+
+## 7. Global Signals (Interrupts)
+
+**Path:** [`interrupt-demo/`](./interrupt-demo)
+**Concepts:** `on_signal`, `Graceful Shutdown`, `Ctrl+C`
+Demonstrates how to handle global interruptions (like `SIGINT`) gracefully. Instead of crashing, the flow transitions to a confirmation node ("Are you sure?"), preventing data loss.
+
+## 8. Tools Demo (Safety & Metadata)
+
+**Path:** [`tools-demo/`](./tools-demo)
+**Concepts:** `on_error`, `metadata.confirm_msg`, `Implicit IDs`
+Demonstrates robust tool usage, including:
+
+- **Safety Middleware**: Using `confirm_msg` to prompt users before dangerous actions.
+- **Error Handling**: Using `on_error` to recover from tool failures.
+- **Implicit IDs**: How the loader handles tool calls defined without explicit IDs.

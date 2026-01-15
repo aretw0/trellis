@@ -273,6 +273,8 @@ flowchart TD
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.
 
+It delegates signal handling to a dedicated **SignalManager** (`pkg/runner/signal_manager.go`) which ensures race-free context cancellation and signal resetting.
+
 #### 7.1. Stateless & Async IO
 
 Trellis supports two primary modes of operation:
@@ -520,4 +522,8 @@ Expõe o Trellis como um servidor MCP (Model Context Protocol).
 Trellis fornece **Lifecycle Hooks** para instrumentação externa.
 
 - **Hooks**: `OnNodeEnter`, `OnNodeLeave`, `OnToolReturn`, etc.
+- **Log Standard**: Events use consistent keys.
+  - `node_id`: ID of the node.
+  - `tool_name`: Name of the tool (never empty).
+  - `type`: Event type (enter, leave, tool_call).
 - **Integração**: Pode ser usado com `log/slog` e `Prometheus` sem acoplar essas dependências ao Core (ex: `examples/structured-logging`).
