@@ -138,6 +138,7 @@ Foco: Mecanismos de controle de execução e segurança. O Trellis deve ser inte
 Foco: Facilitar a vida de quem cria fluxos e remover fricção operacional.
 
 - [ ] **Context Injection**: Adicionar flag `--context '{"key": "val"}'` à CLI para facilitar testes e integração.
+- [ ] **Default Context (Mocks)**: Permitir declarar valores padrão (`default_context`) no frontmatter para facilitar o desenvolvimento local e mocks de dependências.
 - [ ] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
 - [ ] **Configuration Flags**: Padronizar flags de CLI para `--metrics-port`, `--log-format=json|text`.
 - [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
@@ -159,7 +160,7 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 
 ### 🔮 Backlog & Future (v0.7+)
 
-- **Emergent Data Attributes**: Investigar forma idiomática de declarar valores padrão (`default_context`) nos nós, permitindo módulos autocontidos.
+- **Module Encapsulation**: Investigar escopo privado e atributos emergentes para permitir módulos verdadeiramente auto-contidos e reutilizáveis (Input/Output Contracts).
 - **Typed Flows**: Expandir `required_context` para suportar tipos (`api_key: string`, `retries: int`).
 
 - **TUI Elements**: Melhorar `trellis run` com inputs ricos (select, multiselect, password) usando `charmbracelet/buble tea`.
