@@ -291,10 +291,11 @@ Trellis supports two primary modes of operation:
 
 O comportamento de nós de texto segue a semântica de State Machine pura:
 
-1. **Nodes de Texto (`type: text`)**: São, por padrão, **Non-Blocking (Pass-through)**.
+1. **Nodes de Texto (`type: text`)**: São, por padrão, **Non-Blocking (Pass-through)** para o Engine.
     - Se houver uma transição válida incondicional, transita *imediatamente*.
+    - **Nota de UX**: No modo **Interativo (CLI)**, o Runner força uma pausa após renderizar o texto para permitir leitura. No modo **Headless**, a transição é imediata.
 2. **Pausas Explícitas**:
-    - `wait: true`: Força pausa para input (ex: "Pressione Enter").
+    - `wait: true`: Força pausa para input (ex: "Pressione Enter") em *ambos* os modos.
     - `type: prompt`: Alias semântico para `question`.
 
 #### 7.3. Diagrama de Decisão (Input Logic)
