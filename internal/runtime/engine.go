@@ -22,6 +22,7 @@ type Engine struct {
 	evaluator    ConditionEvaluator
 	interpolator Interpolator
 	hooks        domain.LifecycleHooks
+	entryNodeID  string
 }
 
 // EngineOption allows configuring the engine via functional options.
@@ -31,6 +32,13 @@ type EngineOption func(*Engine)
 func WithLifecycleHooks(hooks domain.LifecycleHooks) EngineOption {
 	return func(e *Engine) {
 		e.hooks = hooks
+	}
+}
+
+// WithEntryNode configures the initial node ID (default: "start").
+func WithEntryNode(nodeID string) EngineOption {
+	return func(e *Engine) {
+		e.entryNodeID = nodeID
 	}
 }
 
@@ -112,6 +120,7 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpola
 		parser:       compiler.NewParser(),
 		evaluator:    evaluator,
 		interpolator: interpolator,
+		entryNodeID:  "start", // Default convention
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -121,34 +130,36 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpola
 
 // Start creates the initial state and triggers the OnNodeEnter hook.
 func (e *Engine) Start(ctx context.Context, initialContext map[string]any) (*domain.State, error) {
-	state := domain.NewState("start")
+	state := domain.NewState(e.entryNodeID)
+	// Load start node to get defaults and metadata
+	var startNode *domain.Node
+	raw, err := e.loader.GetNode(e.entryNodeID)
+	if err == nil {
+		startNode, _ = e.parser.Parse(raw)
+	}
+
+	// Apply Defaults if available
+	if startNode != nil && startNode.DefaultContext != nil {
+		for k, v := range startNode.DefaultContext {
+			state.Context[k] = v
+		}
+	}
+
 	for k, v := range initialContext {
 		state.Context[k] = v
 	}
 
 	// Trigger OnNodeEnter for the start node
-	if e.hooks.OnNodeEnter != nil {
-		// Attempt to load the start node to populate event metadata (Type).
-		// If loading fails, we skip the hook or could emit with default values.
-		// Current behavior: Skip hook on load failure implicitly.
-		raw, err := e.loader.GetNode("start")
-		if err == nil {
-			if node, err := e.parser.Parse(raw); err == nil {
-				e.hooks.OnNodeEnter(ctx, &domain.NodeEvent{
-					EventBase: domain.EventBase{
-						Timestamp: time.Now(),
-						Type:      domain.EventNodeEnter,
-						// StateID:   "", // State has no ID
-					},
-					NodeID:   "start",
-					NodeType: node.Type,
-				})
-				// Early return to avoid double lookup?
-				// No, we just return state.
-			}
-		}
-		// If load fails, we can either skip the hook or emit with "unknown".
-		// For now, let's skip/swallow error for the hook, as Render will catch the error later.
+	if e.hooks.OnNodeEnter != nil && startNode != nil {
+		e.hooks.OnNodeEnter(ctx, &domain.NodeEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventNodeEnter,
+				// StateID:   "", // State has no ID
+			},
+			NodeID:   e.entryNodeID,
+			NodeType: startNode.Type,
+		})
 	}
 
 	return state, nil

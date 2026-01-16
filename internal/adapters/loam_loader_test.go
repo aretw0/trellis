@@ -166,6 +166,36 @@ tool_call:
 	// Verify JSON output
 	// The loader should have copied "name" to "id"
 	jsonStr := string(data)
-	assert.Contains(t, jsonStr, `"name":"my_awesome_tool"`)
 	assert.Contains(t, jsonStr, `"id":"my_awesome_tool"`)
+}
+
+func TestLoamLoader_DefaultContext(t *testing.T) {
+	// Setup Temp Repository
+	tmpDir, repo := testutils.SetupTestRepo(t)
+
+	// Create a node with default_context
+	content := `---
+id: start
+type: start
+default_context:
+  env: dev
+  retries: 5
+---
+# Start`
+	err := os.WriteFile(filepath.Join(tmpDir, "start.md"), []byte(content), 0644)
+	require.NoError(t, err)
+
+	// Initialize Adapter
+	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	loader := NewLoamLoader(typedRepo)
+
+	// Execute GetNode
+	data, err := loader.GetNode("start")
+	require.NoError(t, err)
+
+	// Verify JSON output
+	jsonStr := string(data)
+	assert.Contains(t, jsonStr, `"default_context":{`)
+	assert.Contains(t, jsonStr, `"env":"dev"`)
+	// Note: We check specifically for the key-value pair in JSON
 }

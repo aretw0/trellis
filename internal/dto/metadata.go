@@ -20,6 +20,9 @@ type NodeMetadata struct {
 	// RequiredContext lists keys that MUST exist in the context
 	RequiredContext []string `json:"required_context" mapstructure:"required_context"`
 
+	// DefaultContext provides fallback values for context keys
+	DefaultContext map[string]any `json:"default_context" mapstructure:"default_context"`
+
 	// Interactive Input Config
 	InputType    string   `json:"input_type" mapstructure:"input_type"`
 	InputOptions []string `json:"input_options" mapstructure:"input_options"`

@@ -28,6 +28,9 @@ type Node struct {
 	// RequiredContext lists keys that MUST exist in the context for this node to execute.
 	RequiredContext []string `json:"required_context,omitempty" yaml:"required_context,omitempty"`
 
+	// DefaultContext provides fallback values for context keys
+	DefaultContext map[string]any `json:"default_context,omitempty" yaml:"default_context,omitempty"`
+
 	// Content holds the raw data for this node.
 	// For a text node, it might be the markdown content.
 	// For a logic node, it might be the script or parameters.
