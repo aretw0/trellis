@@ -220,26 +220,24 @@ No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação 
 
 ```mermaid
 sequenceDiagram
-    participant Watcher as "FS Watcher"
-    participant CLI as "CLI/Runner"
-    participant Engine as "Engine (New)"
-    participant Store as "StateStore"
+    participant W as Watcher (fsnotify)
+    participant O as Orchestrator (internal/cli)
+    participant R as Runner (pkg/runner)
+    participant H as Handler (Stdin/Out)
 
-    Watcher->>CLI: Change Detected
-    CLI->>CLI: Cancel Context (Stop Runner)
-    
-    CLI->>Engine: New(repoPath)
-    
-    rect rgba(0, 0, 0, 0.1)
-        Note right of CLI: Recovery Guardrails
-        CLI->>Store: Load(SessionID)
-        CLI->>Engine: Inspect Current Node
-        alt Type Mismatch / Missing Node
-            CLI->>CLI: Reset to StatusActive
-        end
+    Note over W, H: Ciclo de Hot Reload (Context-Aware)
+    W->>O: Evento: file.md alterado
+    O->>O: Cancela iterationCtx
+    par Runner Shutdown
+        O->>R: ctx.Done() propagado
+        R->>H: Input/Output cancelado
+        R-->>O: Run() retorna ctx.Err()
+    and Wait for Fix
+        Note right of O: Garante término do processo anterior
     end
-
-    CLI->>CLI: Resume Execution
+    O->>O: Aguarda término/estabilização (100ms)
+    O->>R: Nova Iteração: Run(newCtx, engine, state)
+    R->>H: Renderiza Nodo Atual (sem input pendente)
 ```
 
 **Estratégias de Recuperação (Guardrails):**
