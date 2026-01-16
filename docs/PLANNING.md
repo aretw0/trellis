@@ -157,24 +157,23 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução completa par
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
-Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
+Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Systems).
 
-- [ ] **Granular SSE Events**: Update parcial de estado para frontends reativos.
-- [ ] **MCP Enrichment**: Suporte a Prompts, Sampling e Docker.
-- [ ] **gRPC**: Interface binária para alta performance interna.
-- [ ] **WASM Playground**: Trellis no navegador.
-- [ ] **Secure Storage**: Criptografar campos sensíveis no Contexto (para logs).
-- [ ] **Context Serialization Safety**: Middleware ou check no Engine para garantir que dados em `save_to` sejam JSON-safe.
-- [ ] **Immutable Collections**: Investigar estruturas de dados persistentes para otimizar Deep Copy do Contexto.
+- [ ] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
+- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
+- [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
+- [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
+- [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
 
-### 🔮 Backlog & Future (v0.7+)
+### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
-- **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
-- **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
-- **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
-- **Module Encapsulation**: Investigar escopo privado e atributos emergentes para permitir módulos verdadeiramente auto-contidos e reutilizáveis (Input/Output Contracts).
-- **Typed Flows**: Expandir `required_context` para suportar tipos (`api_key: string`, `retries: int`).
-- **TUI Elements**: Melhorar `trellis run` com inputs ricos (select, multiselect, password) usando `charmbracelet/buble tea`.
+Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
+
+- [ ] **Module Encapsulation**: Escopo privado e contratos de entrada/saída para criar bibliotecas de nós reutilizáveis.
+- [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
+- [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
+- [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
+- [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
 
 ---
 
