@@ -21,6 +21,7 @@ import (
 type Engine interface {
 	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
 	Navigate(ctx context.Context, state *domain.State, input any) (*domain.State, error)
+	Signal(ctx context.Context, state *domain.State, signal string) (*domain.State, error)
 	Inspect() ([]domain.Node, error)
 	Watch(ctx context.Context) (<-chan string, error)
 }
@@ -153,6 +154,35 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		slog.Error("Navigate response encode failed", "error", err)
+	}
+}
+
+// Signal handles the POST /signal request.
+func (s *Server) Signal(w http.ResponseWriter, r *http.Request) {
+	var body SignalJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		slog.Warn("Signal: Invalid request body", "error", err)
+		return
+	}
+
+	domainState := mapStateToDomain(body.State)
+
+	newState, err := s.Engine.Signal(r.Context(), &domainState, body.Signal)
+	if err != nil {
+		if err == domain.ErrUnhandledSignal {
+			http.Error(w, fmt.Sprintf("Signal unhandled: %v", err), http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("Signal error: %v", err), http.StatusInternalServerError)
+		slog.Error("Signal failed", "error", err)
+		return
+	}
+
+	resp := mapStateFromDomain(*newState)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		slog.Error("Signal response encode failed", "error", err)
 	}
 }
 

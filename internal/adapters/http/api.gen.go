@@ -78,11 +78,21 @@ type ToolResult struct {
 	Result interface{} `json:"result"`
 }
 
+// SignalJSONBody defines parameters for Signal.
+type SignalJSONBody struct {
+	// Signal The name of the signal (e.g., "interrupt", "timeout")
+	Signal string `json:"signal"`
+	State  State  `json:"state"`
+}
+
 // NavigateJSONRequestBody defines body for Navigate for application/json ContentType.
 type NavigateJSONRequestBody = NavigateRequest
 
 // RenderJSONRequestBody defines body for Render for application/json ContentType.
 type RenderJSONRequestBody = State
+
+// SignalJSONRequestBody defines body for Signal for application/json ContentType.
+type SignalJSONRequestBody SignalJSONBody
 
 // AsNavigateRequestInput0 returns the union data inside the NavigateRequest_Input as a NavigateRequestInput0
 func (t NavigateRequest_Input) AsNavigateRequestInput0() (NavigateRequestInput0, error) {
@@ -166,6 +176,9 @@ type ServerInterface interface {
 	// Get the current view (actions) for a given state
 	// (POST /render)
 	Render(w http.ResponseWriter, r *http.Request)
+	// Send a global signal to the state machine
+	// (POST /signal)
+	Signal(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -205,6 +218,12 @@ func (_ Unimplemented) Navigate(w http.ResponseWriter, r *http.Request) {
 // Get the current view (actions) for a given state
 // (POST /render)
 func (_ Unimplemented) Render(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Send a global signal to the state machine
+// (POST /signal)
+func (_ Unimplemented) Signal(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -292,6 +311,20 @@ func (siw *ServerInterfaceWrapper) Render(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Render(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Signal operation middleware
+func (siw *ServerInterfaceWrapper) Signal(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Signal(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -432,6 +465,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/render", wrapper.Render)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/signal", wrapper.Signal)
+	})
 
 	return r
 }
@@ -439,27 +475,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
