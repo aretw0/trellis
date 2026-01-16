@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -22,8 +23,10 @@ func RunWatch(repoPath string, sessionID string, debug bool) {
 	tui.PrintBanner(trellis.Version)
 
 	// Default session for watch mode to enable Stateful Hot Reload by default
+	// We scope it by path hash to prevent collisions between projects.
 	if sessionID == "" {
-		sessionID = "watch-dev"
+		hash := md5.Sum([]byte(repoPath))
+		sessionID = fmt.Sprintf("watch-%x", hash[:4])
 	}
 
 	logger.Info("Starting Watcher", "path", repoPath, "session_id", sessionID)
@@ -45,6 +48,8 @@ func RunWatch(repoPath string, sessionID string, debug bool) {
 
 	// Graceful exit message for the outer loop
 	fmt.Println(">>> Watcher stopped. Goodbye!")
+	// Ensure we exit cleanly
+	os.Exit(0)
 }
 
 func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan os.Signal, ioHandler runner.IOHandler) bool {
@@ -116,7 +121,9 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 		}
 	}
 
-	fmt.Printf("--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
+	if debug {
+		fmt.Printf("--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
+	}
 
 	// Use a dedicated context for this run iteration that can be cancelled by reloads
 	runCtx, runCancel := context.WithCancel(ctx)
