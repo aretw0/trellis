@@ -39,6 +39,11 @@ var runCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if watchMode && sessionID != "" {
+			fmt.Println("Error: --watch and --session cannot be used together (yet).")
+			os.Exit(1)
+		}
+
 		if watchMode {
 			cli.RunWatch(repoPath)
 		} else {

@@ -87,13 +87,9 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 
 	if jsonMode {
 		runnerOpts = append(runnerOpts, runner.WithInputHandler(runner.NewJSONHandler(os.Stdin, os.Stdout)))
-	} else {
-		// Use TextHandler with TUI renderer for interactive mode.
-		th := runner.NewTextHandler(os.Stdin, os.Stdout)
-		if !headless {
-			th.Renderer = tui.NewRenderer()
-		}
-		runnerOpts = append(runnerOpts, runner.WithInputHandler(th))
+	} else if !headless {
+		// Use TUI renderer for interactive mode (default handler will be used)
+		runnerOpts = append(runnerOpts, runner.WithRenderer(tui.NewRenderer()))
 	}
 
 	r := runner.NewRunner(runnerOpts...)
@@ -144,9 +140,9 @@ func RunWatch(repoPath string) {
 		th := runner.NewTextHandler(interruptReader, os.Stdout)
 		th.Renderer = tui.NewRenderer()
 
-		// RunWatch implies simple ephemeral runner? Or reuse session logic?
-		// For simplicity, Watcher is ephemeral (no loop persistence yet).
-		// We can support it later if needed.
+		// RunWatch uses an ephemeral runner (no session persistence).
+		// We re-create the runner on each reload, but share the Input Reader
+		// to maintain the Stdin loop across reloads.
 		r := runner.NewRunner(
 			runner.WithInputHandler(th),
 		)
@@ -171,9 +167,9 @@ func RunWatch(repoPath string) {
 			}
 		}()
 
-		// 5. Run Execution in a non-blocking check for signals? No, Run blocks.
-		// We rely on interruptReader to unblock Run if sessionCtx is cancelled.
-		// BUT we also need to handle global SIGINT.
+		// 5. Run Execution blocks by default.
+		// We rely on interruptReader to unblock Run if sessionCtx is cancelled (file change).
+		// We also handle global SIGINT via sigCh.
 
 		fmt.Println("--- Session Started ---")
 

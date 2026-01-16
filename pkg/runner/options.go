@@ -44,3 +44,10 @@ func WithSessionID(id string) Option {
 		r.SessionID = id
 	}
 }
+
+// WithRenderer configures the content renderer (e.g. TUI, Markdown).
+func WithRenderer(renderer ContentRenderer) Option {
+	return func(r *Runner) {
+		r.Renderer = renderer
+	}
+}

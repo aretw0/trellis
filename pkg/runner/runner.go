@@ -24,10 +24,6 @@ type Runner struct {
 	SessionID   string
 	Renderer    ContentRenderer
 	Interceptor ToolInterceptor
-
-	// Deprecated: Use Handler instead.
-	Input  io.Reader
-	Output io.Writer
 }
 
 // ContentRenderer is a function that transforms the content before outputting it.
@@ -38,8 +34,6 @@ type ContentRenderer func(string) (string, error)
 func NewRunner(opts ...Option) *Runner {
 	r := &Runner{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Input:  os.Stdin,
-		Output: os.Stdout,
 	}
 
 	for _, opt := range opts {
@@ -154,11 +148,9 @@ func (r *Runner) resolveHandler() IOHandler {
 	if r.Handler != nil {
 		return r.Handler
 	}
-	th := NewTextHandler(r.Input, r.Output)
+	th := NewTextHandler(os.Stdin, os.Stdout)
 	th.Renderer = r.Renderer
-	if !r.Headless && r.Output != nil {
-		fmt.Fprintln(r.Output, "--- Trellis CLI (Runner) ---")
-	}
+
 	// Memoize to prevent creating new Pumps on subsequent Run() calls
 	r.Handler = th
 	return th

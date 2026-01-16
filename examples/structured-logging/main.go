@@ -100,10 +100,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	r := &runner.Runner{
-		Input:  os.Stdin,
-		Output: os.Stdout,
-	}
+	r := runner.NewRunner()
 
 	if err := r.Run(eng, state); err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {

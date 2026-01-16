@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/presentation/tui"
@@ -46,11 +45,9 @@ func main() {
 	}
 
 	// 3. Configure Runner with TUI
-	r := runner.NewRunner()
-	r.Input = os.Stdin
-	r.Output = os.Stdout
-	r.Headless = false
-	r.Renderer = tui.NewRenderer() // Inject TUI Renderer
+	r := runner.NewRunner(
+		runner.WithRenderer(tui.NewRenderer()),
+	)
 
 	// 4. Create initial state and seed data
 	ctx := context.Background()
