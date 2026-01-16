@@ -4,7 +4,15 @@
 
 Esta seção define os pilares arquiteturais, regras de design e estratégias que governam todo o projeto.
 
-### 1. Arquitetura Hexagonal (Ports & Adapters)
+### 1. Definição Formal (Identity)
+
+Tecnicamente, o Trellis é um **Reentrant Deterministic Finite Automaton (DFA) with Controlled Side-Effects**.
+
+- **Reentrant**: O Engine pode ser serializado ("adormecido") e reidratado ("acordado") em qualquer estado estável sem perda de continuidade.
+- **Deterministic**: Dado o mesmo Estado Inicial + Input + Resultado de Tools, o Engine *sempre* produzirá a mesma transição, eliminando "flaky workflows".
+- **Managed Side-Effects**: Efeitos colaterais (IO, API calls) são delegados ao Host via *Syscalls* (`ActionCallTool`), garantindo que a lógica de transição permaneça pura e testável.
+
+### 2. Arquitetura Hexagonal (Ports & Adapters)
 
 O *Core* da Trellis não conhece banco de dados, não conhece HTTP e não conhece CLI. Ele define **Portas** (Interfaces) que o mundo externo deve satisfazer.
 Essa arquitetura desacoplada torna o Trellis leve o suficiente para ser embutido em CLIs simples ou usado como biblioteca "low-level" dentro de frameworks de Agentes de IA maiores.
@@ -39,7 +47,7 @@ graph TD
     Loader -.->|Adapter| Mem[InMemory - Testing]
 ```
 
-### 2. Estrutura de Diretórios
+### 3. Estrutura de Diretórios
 
 ```text
 trellis/
@@ -59,7 +67,7 @@ trellis/
 └── go.mod
 ```
 
-### 3. Princípios de Design (Constraints)
+### 4. Princípios de Design (Constraints)
 
 Para evitar a "Complexidade Oculta", seguimos estas restrições:
 
@@ -89,7 +97,7 @@ O Trellis segue a filosofia **Convention over Configuration** para o início do 
 
 > **Nota**: Embora seja possível injetar um `State` inicial diferente via código (`engine.Navigate(ctx, customState, input)`), a CLI e os Runners padrão assumem `start` como entrypoint.
 
-### 4. Estratégia de Testes
+### 5. Estratégia de Testes
 
 Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pirâmide de testes rígida:
 
@@ -121,7 +129,7 @@ Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pi
 
 Esta seção detalha o funcionamento interno do engine, ciclo de vida e tratamento de dados.
 
-### 5. Ciclo de Vida do Engine (Lifecycle)
+### 6. Ciclo de Vida do Engine (Lifecycle)
 
 O Engine segue um ciclo de vida estrito de **Resolve-Execute-Update** para garantir previsibilidade.
 
@@ -164,7 +172,7 @@ sequenceDiagram
     - **Resolve**: Avalia as condições de transição baseadas no novo contexto.
     - **Transition**: Retorna o novo estado apontando para o próximo nó.
 
-### 6. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
+### 7. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
 
 O protocolo de side-effects permite que o Trellis solicite a execução de código externo (ferramentas) de forma determinística e segura.
 
@@ -269,7 +277,7 @@ flowchart TD
 2. **Cycle Detection**: Recursive imports are guarded against infinite loops (`visited` set).
 3. **Shadowing Policy**: Local definitions always override imported ones.
 
-### 7. Runner & IO Architecture
+### 8. Runner & IO Architecture
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.
 
@@ -347,7 +355,7 @@ flowchart LR
 
 > **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
-### 8. Fluxo de Dados e Serialização
+### 9. Fluxo de Dados e Serialização
 
 #### 8.1. Data Binding (SaveTo)
 
@@ -415,7 +423,7 @@ Para facilitar testes automatizados e integração, o Trellis permite injetar o 
 
 Recursos avançados para escalabilidade, segurança e integração.
 
-### 9. Escalabilidade: Sub-Grafos e Namespaces
+### 10. Escalabilidade: Sub-Grafos e Namespaces
 
 Para escalar fluxos complexos, o Trellis suporta **Sub-Grafos** via organização de diretórios.
 
@@ -436,7 +444,7 @@ Atalho para menus de escolha simples.
 - **Options**: Correspondência exata de texto. Avaliadas PRIMEIRO.
 - **Transitions**: Lógica genérica. Avaliadas DEPOIS.
 
-### 10. Segurança e Policies
+### 11. Segurança e Policies
 
 #### 10.1. Interceptors (Safety Middleware)
 
@@ -556,7 +564,7 @@ To ensure robust operation in production (especially in shared-memory environmen
 
 See [Deployment Strategies](../docs/guides/deployment_strategies.md) for provisioning advice.
 
-### 11. Adapters & Interfaces
+### 12. Adapters & Interfaces
 
 #### 11.1. Camada de Apresentação
 
@@ -608,7 +616,7 @@ Expõe o Trellis como um servidor MCP (Model Context Protocol).
 - **Tools Expostas**: `navigate`, `render_state`.
 - **Resources**: `trellis://graph`.
 
-### 12. Observability
+### 13. Observability
 
 Trellis fornece **Lifecycle Hooks** para instrumentação externa.
 
