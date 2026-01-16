@@ -192,5 +192,6 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - **2026-01-15**: *Strategic Pivot*. Roadmap v0.5.2 reorientado de "Ops" para "Control & Safety". Decidido que instrumentação (Prometheus/Log) é responsabilidade do Host via Lifecycle Hooks, mantendo o Core leve. "Instrumented Adapters" removido do roadmap, com `examples/structured-logging` servindo como referência canônica.
 - **2026-01-15**: *Sober Refactor*. Consolidação da confiabilidade do Runner. Unificada a lógica de nós terminais (garantindo logs de saída) e extraído `SignalManager` para isolar complexidade de concorrência. Adotado `log/slog` padronizado em todo o CLI.
 - **2026-01-16**: *Roadmap Pivot*. v0.6 redefinida de "DX/Ergonomics" para "Integration & Persistence". Reconhecimento de que a gestão de estado persistente e concorrência é o "Elo Perdido" para adoção em ChatOps reais, priorizando-o sobre features de luxo (LSP/DSL).
+- **2026-01-16**: *Future Phases*. Roadmap v0.7 e v0.8 reestruturados para separar preocupações de Runtime/Escala (v0.7 - Network) das preocupações de Ferramental/Ecossistema (v0.8 - Modularity).
 
 ---
