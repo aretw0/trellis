@@ -160,9 +160,10 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `inspect` (Inspecionar State JSON).
   - [ ] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
   - [ ] **Auto-Pruning**: Implementar TTL ou política de limpeza para sessões antigas (FileStore).
-- [ ] **Stateful Hot Reload (Live Coding)**:
-  - Permitir `--watch` e `--session` simultâneos.
-  - Ao recarregar o grafo, o Runner reidrata o estado da sessão existente, mantendo o histórico e variáveis.
+- [x] **Stateful Hot Reload (Live Coding)**:
+  - [x] Permitir `--watch` e `--session` simultâneos.
+  - [x] Ao recarregar o grafo, o Runner reidrata o estado da sessão existente, mantendo o histórico e variáveis.
+  - [x] **Reload Guardrails**: Recuperação automática de Missing Node e Type Mismatch.
   - Permite corrigir typos e lógica sem reiniciar o fluxo do zero.
   - *Risk Check*: Se o nó atual for deletado, fallback para erro ou inicio.
 
