@@ -139,7 +139,7 @@ Foco: Facilitar a vida de quem cria fluxos e remover fricção operacional.
 
 - [x] **Context Injection**: Adicionar flag `--context '{"key": "val"}'` à CLI para facilitar testes e integração.
 - [x] **Default Context (Mocks)**: Permitir declarar valores padrão (`default_context`) no frontmatter para facilitar o desenvolvimento local e mocks de dependências.
-- [ ] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
+- [x] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
 - [ ] **Configuration Flags**: Padronizar flags de CLI para `--metrics-port`, `--log-format=json|text`.
 - [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
 - [ ] **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
