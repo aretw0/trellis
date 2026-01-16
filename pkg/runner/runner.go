@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
@@ -51,161 +52,77 @@ func NewRunner() *Runner {
 // Run executes the engine loop until termination.
 // If initialState is nil, engine.Start() is called to create a new state.
 func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
-	// Resolve Strategy
-	handler := r.Handler
-	if handler == nil {
-		// Fallback to legacy TextHandler behavior using struct fields
-		th := NewTextHandler(r.Input, r.Output)
-		th.Renderer = r.Renderer
+	// 1. Setup Phase
+	handler := r.resolveHandler()
+	interceptor := r.resolveInterceptor(handler)
 
-		// Legacy headless support: suppress welcome message in TextHandler fallback
-		if !r.Headless && r.Output != nil {
-			fmt.Fprintln(r.Output, "--- Trellis CLI (Runner) ---")
-		}
-
-		handler = th
+	state, err := r.resolveInitialState(engine, initialState)
+	if err != nil {
+		return err
 	}
 
-	var state *domain.State
-	if initialState != nil {
-		state = initialState
-	} else {
-		// If no initial state provided, creating default "start" state
-		var err error
-		state, err = engine.Start(context.Background(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create initial state: %w", err)
-		}
-	}
-	lastRenderedID := ""
-
-	// Setup Signal Manager
 	signals := NewSignalManager()
 	defer signals.Stop()
 
-	// Resolve Interceptor
-	interceptor := r.Interceptor
-	if interceptor == nil {
-		// Default Policy:
-		// - Headless: Auto-approve all tool calls for automation.
-		// - Interactive: Require user confirmation for safety.
-		if r.Headless {
-			interceptor = AutoApproveMiddleware()
-		} else {
-			interceptor = ConfirmationMiddleware(handler)
-		}
-	}
+	lastRenderedID := ""
 
+	// 2. Execution Loop
 	for {
-		// 1. Render Phase (View)
-		// We use the signals.Context() because it might be reset
 		currentCtx := signals.Context()
-		actions, _, err := engine.Render(currentCtx, state)
+
+		// A. Render
+		actions, isTerminal, err := engine.Render(currentCtx, state)
 		if err != nil {
 			return fmt.Errorf("render error: %w", err)
 		}
 
-		// 2. Output Phase
+		// B. Output
+		stepTimeout := r.detectTimeout(actions)
+		inputCtx, cancel := r.createInputContext(currentCtx, stepTimeout)
+
 		needsInput, err := handler.Output(currentCtx, actions)
 		if err != nil {
+			cancel()
 			return fmt.Errorf("output error: %w", err)
 		}
 
-		// Optimization: Update lastRendered
+		if isTerminal {
+			cancel()
+			break
+		}
+
 		if state.CurrentNodeID != lastRenderedID {
 			lastRenderedID = state.CurrentNodeID
 		}
 
-		// 3. Input/Action Phase
+		// C. Input / Tool Execution
 		var nextInput any
+		var nextState *domain.State
 
 		if state.Status == domain.StatusWaitingForTool {
-			// Find the ToolCall in actions that matches the pending call
-			var pendingCall *domain.ToolCall
-
-			// We iterate actions to find the one that triggered this wait.
-			// Ideally, Render should return it, or we find it in the actions payload.
-			for _, act := range actions {
-				if act.Type == domain.ActionCallTool {
-					if call, ok := act.Payload.(domain.ToolCall); ok {
-						if call.ID == state.PendingToolCall {
-							pendingCall = &call
-							break
-						}
-					}
-				}
-			}
-
-			if pendingCall == nil {
-				return fmt.Errorf("state is waiting for tool %s but no corresponding action produced", state.PendingToolCall)
-			}
-
-			// Interceptor / Policy Check
-			allowed, policyResult, err := interceptor(currentCtx, *pendingCall)
-			if err != nil {
-				return fmt.Errorf("tool interceptor error: %w", err)
-			}
-
-			if !allowed {
-				// Blocked by policy, return the policy result (denial)
-				nextInput = policyResult
-			} else {
-				// Approved: Execute Tool (Mechanic: Pause -> host executes -> Result)
-				result, err := handler.HandleTool(currentCtx, *pendingCall)
-				if err != nil {
-					return fmt.Errorf("tool execution failed: %w", err)
-				}
-				nextInput = result
-			}
-
+			nextInput, err = r.handleTool(currentCtx, actions, state, handler, interceptor)
 		} else {
-			// Active State: Standard User Input
-			if needsInput || !r.Headless {
-				// We pass ctx to Input. If signal received, Input implies cancellation.
-				// Note: TextHandler's Input (standard fmt.Scan) might not respect context immediately.
-				val, err := handler.Input(currentCtx)
-				if err != nil {
-					// Check if error is due to signal cancellation
-					signals.CheckRace()
+			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, signals, engine, state)
+		}
 
-					if currentCtx.Err() != nil {
-						r.Logger.Debug("Runner input: Context cancelled", "err", currentCtx.Err())
-						// Attempt Global Signal Transition
-						nextState, sigErr := engine.Signal(context.Background(), state, "interrupt")
-						if sigErr == nil {
-							r.Logger.Debug("Runner input: Signal transition success")
-							// Re-arm signals for the new state
-							signals.Reset()
+		cancel() // Ensure context is cancelled after input/tool phase
 
-							// Successfully handled signal! Update state and loop.
-							state = nextState
-							continue
-						}
-						r.Logger.Debug("Runner input: Signal failed", "error", sigErr)
-						// If signal unhandled, fallthrough to exit
-						return fmt.Errorf("interrupted")
-					}
-
-					if err == io.EOF {
-						break
-					}
-					return fmt.Errorf("input error: %w", err)
-				}
-
-				if val == "exit" || val == "quit" {
-					break
-				}
-				nextInput = val
-			} else {
-				// No input needed (auto-transition?), but usually this implies a Wait or immediate move.
-				// If headless and no input needed, we might Loop forever if logic is broken.
-				// For now, pass empty string.
-				nextInput = ""
+		if err != nil {
+			if err == io.EOF {
+				break
 			}
+			return err
+		}
+
+		// If a signal caused a transition, update state and loop immediately
+		if nextState != nil {
+			state = nextState
+			continue
 		}
 
 		// 4. Navigate Phase (Controller)
-		nextState, err := engine.Navigate(context.Background(), state, nextInput)
+		// nextInput is valid here
+		nextState, err = engine.Navigate(context.Background(), state, nextInput)
 		if err != nil {
 			return fmt.Errorf("navigation error: %w", err)
 		}
@@ -216,4 +133,165 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		state = nextState
 	}
 	return nil
+}
+
+// resolveHandler ensures a valid IOHandler is set.
+func (r *Runner) resolveHandler() IOHandler {
+	if r.Handler != nil {
+		return r.Handler
+	}
+	th := NewTextHandler(r.Input, r.Output)
+	th.Renderer = r.Renderer
+	if !r.Headless && r.Output != nil {
+		fmt.Fprintln(r.Output, "--- Trellis CLI (Runner) ---")
+	}
+	return th
+}
+
+// resolveInterceptor returns the configured or default interceptor.
+func (r *Runner) resolveInterceptor(h IOHandler) ToolInterceptor {
+	if r.Interceptor != nil {
+		return r.Interceptor
+	}
+	if r.Headless {
+		return AutoApproveMiddleware()
+	}
+	return ConfirmationMiddleware(h)
+}
+
+func (r *Runner) resolveInitialState(engine *trellis.Engine, initial *domain.State) (*domain.State, error) {
+	if initial != nil {
+		return initial, nil
+	}
+	state, err := engine.Start(context.Background(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create initial state: %w", err)
+	}
+	return state, nil
+}
+
+func (r *Runner) detectTimeout(actions []domain.ActionRequest) time.Duration {
+	for _, act := range actions {
+		if act.Type == domain.ActionRequestInput {
+			if req, ok := act.Payload.(domain.InputRequest); ok {
+				return req.Timeout
+			}
+		}
+	}
+	return 0
+}
+
+func (r *Runner) createInputContext(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout > 0 {
+		return context.WithTimeout(parent, timeout)
+	}
+	return parent, func() {}
+}
+
+// handleTool manages the execution of pending tools.
+func (r *Runner) handleTool(
+	ctx context.Context,
+	actions []domain.ActionRequest,
+	state *domain.State,
+	handler IOHandler,
+	interceptor ToolInterceptor,
+) (any, error) {
+	var pendingCall *domain.ToolCall
+	for _, act := range actions {
+		if act.Type == domain.ActionCallTool {
+			if call, ok := act.Payload.(domain.ToolCall); ok {
+				if call.ID == state.PendingToolCall {
+					pendingCall = &call
+					break
+				}
+			}
+		}
+	}
+	if pendingCall == nil {
+		return nil, fmt.Errorf("state is waiting for tool %s but no corresponding action produced", state.PendingToolCall)
+	}
+
+	allowed, policyResult, err := interceptor(ctx, *pendingCall)
+	if err != nil {
+		return nil, fmt.Errorf("tool interceptor error: %w", err)
+	}
+
+	if !allowed {
+		return policyResult, nil
+	}
+
+	result, err := handler.HandleTool(ctx, *pendingCall)
+	if err != nil {
+		return nil, fmt.Errorf("tool execution failed: %w", err)
+	}
+	return result, nil
+}
+
+// handleInput manages standard user interaction and signal recovery.
+// Returns:
+// - input: The value to pass to Navigate (if success)
+// - nextState: A new state if a signal caused a transition (input should be ignored)
+// - error: If input failed or signal execution failed
+func (r *Runner) handleInput(
+	ctx context.Context,
+	handler IOHandler,
+	needsInput bool,
+	signals *SignalManager,
+	engine *trellis.Engine,
+	currentState *domain.State,
+) (any, *domain.State, error) {
+	if !needsInput && r.Headless {
+		// No input needed (auto-transition?), but usually this implies a Wait or immediate move.
+		// If headless and no input needed, we might Loop forever if logic is broken.
+		// For now, pass empty string.
+		return "", nil, nil
+	}
+
+	// We pass ctx to Input. If signal received, Input implies cancellation.
+	// Note: TextHandler's Input (standard fmt.Scan) might not respect context immediately.
+	val, err := handler.Input(ctx)
+	if err != nil {
+		// Check if error is due to signal cancellation
+		signals.CheckRace()
+
+		if ctx.Err() != nil {
+			r.Logger.Debug("Runner input: Context cancelled", "err", ctx.Err())
+
+			// Determine cause: Global Interrupt vs Local Timeout
+			signalName := "interrupt"
+			if ctx.Err() == context.DeadlineExceeded {
+				signalName = "timeout"
+			}
+
+			// Attempt Signal Transition
+			nextState, sigErr := engine.Signal(context.Background(), currentState, signalName)
+			if sigErr == nil {
+				r.Logger.Debug("Runner input: Signal transition success", "signal", signalName)
+				// Re-arm signals for the new state
+				signals.Reset()
+				return nil, nextState, nil
+			}
+
+			if signalName == "timeout" {
+				// If unhandled timeout, we might just loop? Or error?
+				// For now, if unhandled timeout, we return error to stop execution
+				return nil, nil, fmt.Errorf("timeout exceeded and no 'on_signal.timeout' handler defined")
+			}
+
+			r.Logger.Debug("Runner input: Signal failed", "error", sigErr)
+			// If signal unhandled, fallthrough to exit
+			return nil, nil, fmt.Errorf("interrupted")
+		}
+
+		if err == io.EOF {
+			return nil, nil, err
+		}
+		return nil, nil, fmt.Errorf("input error: %w", err)
+	}
+
+	if val == "exit" || val == "quit" {
+		return nil, nil, io.EOF
+	}
+
+	return val, nil, nil
 }
