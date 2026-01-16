@@ -7,7 +7,7 @@ import (
 )
 
 // PrintBanner outputs a professional ASCII art banner for Trellis.
-func PrintBanner() {
+func PrintBanner(version string) {
 	p := termenv.ColorProfile()
 	// Using a subtle gradient-like color scheme (Indigo/Violet)
 	s1 := termenv.String("  _____          _ _ ").Foreground(p.Color("#818cf8"))
@@ -24,5 +24,9 @@ func PrintBanner() {
 	fmt.Println(s4)
 	fmt.Println(s5)
 	fmt.Println(s6)
+	if version != "" {
+		v := termenv.String(fmt.Sprintf("         v%s", version)).Foreground(p.Color("#818cf8"))
+		fmt.Println(v)
+	}
 	fmt.Println()
 }
