@@ -142,24 +142,25 @@ Foco: Facilitar a vida de quem cria fluxos com Context Injection e melhor contro
 - [x] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
 - [x] **CLI DX**: Melhorias de output e logs para feedback mais limpo.
 
-### 🧩 v0.6: Integration & Persistence (The "Stateful" Phase)
+### 🧩 v0.6: Integration & Persistence (The "Durable" Phase)
 
-Foco: Transformar o Trellis de um Engine Stateless em uma solução completa para aplicações reais (ChatOps, Bots), provendo interfaces para persistência e gerenciamento de sessões.
+Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable Execution** (inspirado em Temporal), permitindo fluxos de longa duração e recuperação de falhas.
 
 - [ ] **State Persistence Layer**: Definir interface `StateStore` (Load/Save/Delete) desacoplada do Core.
-  - *Filosofia*: O Engine continua stateless; o Host (Application Layer) gerencia a persistência.
+  - *Filosofia*: Snapshotting de Estado para permitir "Sleep & Resume" (Persistência, não Event Sourcing por enquanto).
 - [ ] **Adapters de Persistência**:
   - [ ] **FileStore (Loam-ish)**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
   - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
 - [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
+- [ ] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
 - [ ] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
-- [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard) usando persistência.
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
 Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Systems).
 
 - [ ] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
+- [ ] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
