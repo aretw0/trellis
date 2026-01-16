@@ -58,7 +58,7 @@ func main() {
 	state.Context["User"] = "World" // Seed Data (Verification of Interpolation)
 
 	// 5. Run!
-	if err := r.Run(eng, state); err != nil {
+	if _, err := r.Run(context.Background(), eng, state); err != nil {
 		log.Fatalf("Error running: %v", err)
 	}
 }

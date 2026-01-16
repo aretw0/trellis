@@ -102,7 +102,7 @@ func main() {
 
 	r := runner.NewRunner()
 
-	if err := r.Run(eng, state); err != nil {
+	if _, err := r.Run(context.Background(), eng, state); err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			logger.Info("execution canceled")
 			return

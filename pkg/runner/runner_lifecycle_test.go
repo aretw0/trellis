@@ -68,7 +68,8 @@ func TestRunner_Lifecycle_Interactive_WaitsOnTerminal(t *testing.T) {
 	// Use a timeout to ensure it doesn't hang if logic is broken
 	done := make(chan error)
 	go func() {
-		done <- r.Run(engine, initialState)
+		_, err := r.Run(context.Background(), engine, initialState)
+		done <- err
 	}()
 
 	select {
@@ -105,7 +106,7 @@ func TestRunner_Lifecycle_Headless_SkipWaitOnTerminal(t *testing.T) {
 
 	initialState := &domain.State{CurrentNodeID: "end"}
 
-	err := r.Run(engine, initialState)
+	_, err := r.Run(context.Background(), engine, initialState)
 	assert.NoError(t, err)
 
 	mockHandler.AssertExpectations(t)

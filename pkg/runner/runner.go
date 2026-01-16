@@ -44,14 +44,14 @@ func NewRunner(opts ...Option) *Runner {
 }
 
 // Run executes the engine loop until termination.
-func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
+func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *domain.State) (*domain.State, error) {
 	// 1. Setup Phase
 	handler := r.resolveHandler()
 	interceptor := r.resolveInterceptor(handler)
 
-	state, err := r.resolveInitialState(engine, initialState)
+	state, err := r.resolveInitialState(ctx, engine, initialState)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	signals := NewSignalManager()
@@ -61,22 +61,39 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 
 	// 2. Execution Loop
 	for {
-		currentCtx := signals.Context()
+		// Check for cancellation before each step
+		select {
+		case <-ctx.Done():
+			return state, ctx.Err()
+		default:
+		}
+
+		// currentCtx combines signals and the runner context
+		currentCtx, currentCancel := context.WithCancel(ctx)
+		go func() {
+			select {
+			case <-signals.Context().Done():
+				currentCancel()
+			case <-ctx.Done():
+				currentCancel()
+			}
+		}()
+		defer currentCancel()
 
 		// A. Render
 		actions, _, err := engine.Render(currentCtx, state)
 		if err != nil {
-			return fmt.Errorf("render error: %w", err)
+			return state, fmt.Errorf("render error: %w", err)
 		}
 
 		// B. Output
 		stepTimeout := r.detectTimeout(actions)
-		inputCtx, cancel := r.createInputContext(currentCtx, stepTimeout)
+		inputCtx, inputCancel := r.createInputContext(currentCtx, stepTimeout)
+		defer inputCancel()
 
 		needsInput, err := handler.Output(currentCtx, actions)
 		if err != nil {
-			cancel()
-			return fmt.Errorf("output error: %w", err)
+			return state, fmt.Errorf("output error: %w", err)
 		}
 
 		if state.CurrentNodeID != lastRenderedID {
@@ -93,13 +110,11 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, signals, engine, state)
 		}
 
-		cancel() // Ensure context is cancelled after input/tool phase
-
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return state, err
 		}
 
 		// If a signal caused a transition, update state and loop immediately
@@ -107,30 +122,31 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 			state = nextState
 			// Auto-Save on Signal Transition
 			if err := r.saveState(currentCtx, r.SessionID, state); err != nil {
-				return err
+				return state, err
 			}
 			continue
 		}
 
 		// 4. Navigate Phase (Controller)
 		// nextInput is valid here
-		nextState, err = engine.Navigate(context.Background(), state, nextInput)
+		nextState, err = engine.Navigate(currentCtx, state, nextInput)
 		if err != nil {
-			return fmt.Errorf("navigation error: %w", err)
+			return state, fmt.Errorf("navigation error: %w", err)
 		}
 
 		// 5. Commit Phase (Persistence)
-		if err := r.saveState(context.Background(), r.SessionID, nextState); err != nil {
-			return fmt.Errorf("critical persistence error: %w", err)
+		if err := r.saveState(currentCtx, r.SessionID, nextState); err != nil {
+			return nextState, fmt.Errorf("critical persistence error: %w", err)
 		}
 
 		if nextState.Terminated || nextState.Status == domain.StatusTerminated {
+			state = nextState
 			break
 		}
 		state = nextState
 	}
 	// Final cleanup if needed (e.g. remove session if complete? Optional logic)
-	return nil
+	return state, nil
 }
 
 func (r *Runner) saveState(ctx context.Context, sessionID string, state *domain.State) error {
@@ -167,11 +183,11 @@ func (r *Runner) resolveInterceptor(h IOHandler) ToolInterceptor {
 	return ConfirmationMiddleware(h)
 }
 
-func (r *Runner) resolveInitialState(engine *trellis.Engine, initial *domain.State) (*domain.State, error) {
+func (r *Runner) resolveInitialState(ctx context.Context, engine *trellis.Engine, initial *domain.State) (*domain.State, error) {
 	if initial != nil {
 		return initial, nil
 	}
-	state, err := engine.Start(context.Background(), nil)
+	state, err := engine.Start(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create initial state: %w", err)
 	}

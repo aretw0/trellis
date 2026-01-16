@@ -26,44 +26,32 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 			ID:      "end",
 			Type:    domain.NodeTypeText,
 			Content: []byte("Goodbye"),
-			// No transitions -> implicit termination or sink state?
-			// Trellis engine doesn't auto-terminate on leaf nodes unless configured.
-			// Let's make "end" clearly terminal or just check we reached it.
 		},
 	)
 	if err != nil {
 		t.Fatalf("Failed to create loader: %v", err)
 	}
 
-	// trellis.New signature: func New(repoPath string, opts ...Option) (*Engine, error)
-	// When using WithLoader, repoPath can be empty.
 	engine, err := trellis.New("", trellis.WithLoader(loader))
 	if err != nil {
 		t.Fatalf("Failed to create engine: %v", err)
 	}
 
 	// 2. Setup Runner with TextHandler (Inputs pre-filled)
-	// We need to provide input to advance "start" -> "end".
-	// "start" is text node, waits for default input (enter) to proceed.
 	inputBuf := bytes.NewBufferString("\n\n") // Enter for start
 	outputBuf := &bytes.Buffer{}
 
 	r := NewRunner()
 	r.Handler = NewTextHandler(inputBuf, outputBuf)
-	r.Interceptor = AutoApproveMiddleware() // Just in case
+	r.Interceptor = AutoApproveMiddleware()
 
-	// 3. Run in a goroutine to prevent deadlock if it hangs,
-	// but for a unit test we want to control execution.
-	// The Runner.Run loop blocks until termination.
-	// We need a way to stop it. "exit" input or termination state.
-	// If "end" node is a sink, the engine might just stay there?
-	// The Engine defaults: Text nodes wait for input.
-	// So at "end", it will wait for input. If we send "exit", it breaks.
+	// 3. Run in a goroutine to prevent deadlock
 	inputBuf.WriteString("exit\n") // Ensure we exit at the end
 
 	done := make(chan error)
 	go func() {
-		done <- r.Run(engine, nil)
+		_, err := r.Run(t.Context(), engine, nil)
+		done <- err
 	}()
 
 	select {
@@ -97,21 +85,18 @@ func TestRunner_Run_Headless(t *testing.T) {
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	// 2. Setup Runner (Headless)
-	// For Headless, we use JSONHandler usually, but let's test the Headless flag behavior on Reader/Writer
-	// Actually, `Headless` field in Runner is deprecated in favor of Handler strategy.
-	// But let's use NewJSONHandler which serves the headless purpose.
-
 	inBuf := bytes.NewBufferString("\"exit\"\n")
 	outBuf := &bytes.Buffer{}
 
 	r := NewRunner()
 	r.Handler = NewJSONHandler(inBuf, outBuf)
-	r.Headless = true // Legacy flag, might still be used by Interceptor defaults if not set
+	r.Headless = true
 
 	// 3. Run
 	done := make(chan error)
 	go func() {
-		done <- r.Run(engine, nil)
+		_, err := r.Run(t.Context(), engine, nil)
+		done <- err
 	}()
 
 	select {

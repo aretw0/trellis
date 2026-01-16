@@ -61,7 +61,7 @@ func TestNonBlockingText(t *testing.T) {
 		t.Fatalf("Start failed: %v", err)
 	}
 
-	err = r.Run(engine, initialState)
+	_, err = r.Run(context.Background(), engine, initialState)
 	if err != nil && err.Error() != "mock EOF" {
 		// mock EOF is expected when inputs out
 		t.Logf("Runner stopped with: %v", err)
