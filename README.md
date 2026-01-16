@@ -7,11 +7,11 @@
 
 > "Simplifique o Caos. Construa fluxos determinísticos." - Filosofia Trellis
 
-**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) projetado para a construção de CLIs, fluxos de automação e Guardrails para Agentes de IA.
+**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) projetado para a construção de CLIs, **ChatOps** resilientes e Guardrails para Agentes de IA (**Neuro-Symbolic**).
 
 Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio, o contexto e as transições permitidas.
 
-> **Visão**: O Trellis almeja ser o "Temporal Visual" — uma plataforma de **Durable Execution** que permite fluxos de longa duração (ChatOps, SAGA) resilientes a falhas.
+> **Visão**: O Trellis almeja ser o "Temporal Visual" — uma plataforma de **Durable Execution** que permite fluxos de longa duração (SAGA) e recuperação de falhas.
 
 ## Como funciona?
 
