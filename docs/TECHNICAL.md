@@ -53,7 +53,7 @@ graph TD
     Loader -.->|Adapter| Loam[Loam - File System]
     Loader -.->|Adapter| Mem[InMemory - Testing]
     
-    Engine -->|Driven Port| Store[StateStore Interface]
+    Host -->|Uses| Store[StateStore Interface]
     Store -.->|Adapter| FileStore[FileStore - Local JSON]
     Store -.->|Adapter| Redis[Redis - Cloud]
 ```
@@ -294,7 +294,40 @@ The `Runner` serves as the bridge between the Core Engine and the outside world.
 
 It delegates signal handling to a dedicated **SignalManager** (`pkg/runner/signal_manager.go`) which ensures race-free context cancellation and signal resetting.
 
-#### 8.1. Stateless & Async IO
+#### 8.1. Session Cycle
+
+```mermaid
+sequenceDiagram
+    participant CLI
+    participant Runner
+    participant SessionManager
+    participant Engine
+    participant Store
+
+    CLI->>Runner: Run(sessionID)
+    Runner->>SessionManager: LoadOrStart(sessionID)
+    SessionManager->>Store: Load(sessionID)
+    alt Session Exists
+        Store-->>SessionManager: State
+    else New Session
+        SessionManager->>Engine: Start()
+        Engine-->>SessionManager: State
+        SessionManager->>Store: Save(InitialState)
+    end
+    SessionManager-->>Runner: State
+
+    loop Execution Loop
+        Runner->>Engine: Render(State)
+        Engine-->>Runner: Actions (Text/Tools)
+        Runner->>CLI: Output / Wait Input
+        CLI-->>Runner: Input
+        Runner->>Engine: Navigate(State, Input)
+        Engine-->>Runner: NewState
+        Runner->>Store: Save(NewState)
+    end
+```
+
+#### 8.2. Stateless & Async IO
 
 Trellis supports two primary modes of operation:
 
@@ -309,7 +342,7 @@ Trellis supports two primary modes of operation:
   - `context.DeadlineExceeded` -> `"timeout"`
   - `context.Canceled` -> `"interrupt"`
 
-#### 8.2. Semântica de Texto e Bloqueio
+#### 8.3. Semântica de Texto e Bloqueio
 
 O comportamento de nós de texto segue a semântica de State Machine pura:
 
@@ -320,7 +353,7 @@ O comportamento de nós de texto segue a semântica de State Machine pura:
     - `wait: true`: Força pausa para input (ex: "Pressione Enter") em *ambos* os modos.
     - `type: question`: Pausa explícita aguardando resposta (hard step).
 
-#### 8.3. Diagrama de Decisão (Input Logic)
+#### 8.4. Diagrama de Decisão (Input Logic)
 
 ```mermaid
 flowchart TD
@@ -343,7 +376,7 @@ flowchart TD
     Result -- Active --> Next([Next State - Loop])
 ```
 
-#### 8.4. Pattern: Stdin Pump (IO Safety)
+#### 8.5. Pattern: Stdin Pump (IO Safety)
 
 Input handling in Go, especially with `os.Stdin`, is blocking by nature. To support **Timeouts** (cancelable reads) without blocking the main event loop or leaking "ghost readers" (race conditions where a stale goroutine eats input intended for the next step), `TextHandler` implements the **Stdin Pump** pattern.
 
@@ -366,7 +399,7 @@ flowchart LR
 
 > **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
-#### 8.5. Architectural Insight: Engine-bound vs Runner-bound
+#### 8.6. Architectural Insight: Engine-bound vs Runner-bound
 
 Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside:
 
@@ -382,7 +415,7 @@ Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside
 
 Essa separação garante que o Core permaneça uma Máquina de Estados Pura e Determinística, enquanto o Runner assume a responsabilidade pela "sujeira" (Timeouts, Discos, Sinais de SO).
 
-#### 8.6. Estratégia de Persistência (Scope)
+#### 8.7. Estratégia de Persistência (Scope)
 
 - **Workspace-first**: As sessões são armazenadas em `.trellis/sessions/` no diretório de trabalho atual.
 - **Motivação**: Isolar sessões por projeto (como `.git` ou `.terraform`), facilitando o desenvolvimento e evitando colisões globais em ambientes multi-projeto.

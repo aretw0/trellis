@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/internal/adapters"
 	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 )
 
 // RunSession executes a single session of Trellis.
-func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initialContext map[string]any) error {
+func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initialContext map[string]any, sessionID string) error {
 	// Configure Logger
 	var logger *slog.Logger
 	if debug {
@@ -45,15 +46,39 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	}
 
 	ctx := context.Background()
-	initialState, err := engine.Start(ctx, initialContext)
+
+	// Initialize Session Logic
+	var store *adapters.FileStore
+	if sessionID != "" {
+		store = adapters.NewFileStore("") // Uses default .trellis/sessions
+	}
+
+	sessionManager := runner.NewSessionManager(store)
+
+	// Load or Start
+	// We pass initialContext only if starting new. SessionManager handles this check internally.
+	initialState, loaded, err := sessionManager.LoadOrStart(ctx, engine, sessionID, initialContext)
 	if err != nil {
-		return fmt.Errorf("failed to start engine: %w", err)
+		return fmt.Errorf("failed to init session: %w", err)
+	}
+
+	if loaded {
+		logger.Info("Session Resumed", "session_id", sessionID, "node", initialState.CurrentNodeID)
+		if !jsonMode && !headless {
+			fmt.Printf(">>> Resuming session '%s' at node '%s'...\n", sessionID, initialState.CurrentNodeID)
+		}
+	} else if sessionID != "" {
+		logger.Info("Session Created", "session_id", sessionID)
+		if !jsonMode && !headless {
+			fmt.Printf(">>> Created new session '%s'...\n", sessionID)
+		}
 	}
 
 	// Configure Runner
 	r := runner.NewRunner()
 	r.Headless = headless
 	r.Logger = logger
+	r.Store = store // Inject Store into Runner for persistence loop
 
 	if jsonMode {
 		r.Handler = runner.NewJSONHandler(os.Stdin, os.Stdout)
@@ -70,7 +95,7 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	}
 
 	// Execute
-	if err := r.Run(engine, initialState); err != nil {
+	if err := r.Run(engine, initialState, sessionID); err != nil {
 		return fmt.Errorf("error running trellis: %w", err)
 	}
 	return nil
@@ -147,7 +172,7 @@ func RunWatch(repoPath string) {
 		// Run logic
 		doneCh := make(chan error, 1)
 		go func() {
-			doneCh <- r.Run(engine, nil)
+			doneCh <- r.Run(engine, nil, "")
 		}()
 
 		// Wait for Run completion OR Global Signal

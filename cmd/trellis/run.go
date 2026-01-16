@@ -24,6 +24,7 @@ var runCmd = &cobra.Command{
 		jsonMode, _ := cmd.Flags().GetBool("json")
 		debug, _ := cmd.Flags().GetBool("debug")
 		contextStr, _ := cmd.Flags().GetString("context")
+		sessionID, _ := cmd.Flags().GetString("session")
 
 		var initialContext map[string]any
 		if contextStr != "" {
@@ -41,7 +42,7 @@ var runCmd = &cobra.Command{
 		if watchMode {
 			cli.RunWatch(repoPath)
 		} else {
-			if err := cli.RunSession(repoPath, headless, jsonMode, debug, initialContext); err != nil {
+			if err := cli.RunSession(repoPath, headless, jsonMode, debug, initialContext, sessionID); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -56,6 +57,7 @@ func init() {
 	runCmd.Flags().Bool("json", false, "Run in JSON mode (NDJSON input/output)")
 	runCmd.Flags().Bool("debug", false, "Enable verbose debug logging (observability hooks)")
 	runCmd.Flags().StringP("context", "c", "", "Initial context JSON string (e.g. '{\"user\": \"Alice\"}')")
+	runCmd.Flags().StringP("session", "s", "", "Session ID for durable execution (resumes if exists)")
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 
 	// Make 'run' the default subcommand if no other command is provided.

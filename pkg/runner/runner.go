@@ -10,6 +10,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/ports"
 )
 
 // Runner handles the execution loop of the Trellis engine using provided IO.
@@ -27,6 +28,10 @@ type Runner struct {
 	// Logger is used for internal debug logging.
 	// If nil, a no-op logger is used.
 	Logger *slog.Logger
+
+	// Store is the persistence adapter for durable execution.
+	// If nil, sessions are ephemeral.
+	Store ports.StateStore
 
 	// Deprecated: Use Handler instead. These are kept for backward compatibility.
 	Input    io.Reader
@@ -51,7 +56,10 @@ func NewRunner() *Runner {
 
 // Run executes the engine loop until termination.
 // If initialState is nil, engine.Start() is called to create a new state.
-func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
+// If sessionID is provided (via RunSession wrapper or custom logic), it is used for persistence.
+// Note: backward compatible signature, but we might want `RunSession` in future.
+// For now, we assume explicit session management is done before calling Run, OR we rely on Runner.Store.
+func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State, sessionID string) error {
 	// 1. Setup Phase
 	handler := r.resolveHandler()
 	interceptor := r.resolveInterceptor(handler)
@@ -112,6 +120,10 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		// If a signal caused a transition, update state and loop immediately
 		if nextState != nil {
 			state = nextState
+			// Auto-Save on Signal Transition
+			if err := r.saveState(currentCtx, sessionID, state); err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -122,10 +134,26 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 			return fmt.Errorf("navigation error: %w", err)
 		}
 
+		// 5. Commit Phase (Persistence)
+		if err := r.saveState(context.Background(), sessionID, nextState); err != nil {
+			return fmt.Errorf("critical persistence error: %w", err)
+		}
+
 		if nextState.Terminated || nextState.Status == domain.StatusTerminated {
 			break
 		}
 		state = nextState
+	}
+	// Final cleanup if needed (e.g. remove session if complete? Optional logic)
+	return nil
+}
+
+func (r *Runner) saveState(ctx context.Context, sessionID string, state *domain.State) error {
+	if r.Store != nil && sessionID != "" {
+		if err := r.Store.Save(ctx, sessionID, state); err != nil {
+			return err
+		}
+		r.Logger.Debug("state saved", "session_id", sessionID, "node_id", state.CurrentNodeID)
 	}
 	return nil
 }
