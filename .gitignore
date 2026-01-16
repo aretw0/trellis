@@ -1,5 +1,6 @@
 *.exe
 .loam/
+.trellis/
 
 .gemini/
 gha-creds-*.json
