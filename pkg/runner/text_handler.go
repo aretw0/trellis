@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"strings"
 	"sync"
@@ -89,11 +88,17 @@ func (h *TextHandler) Input(ctx context.Context) (string, error) {
 	h.initPump()
 
 	for {
-		// Prompt
-		fmt.Fprint(h.Writer, "> ")
+		// Only show prompt if context is not yet done
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
+			fmt.Fprint(h.Writer, "> ")
+		}
 
 		select {
 		case <-ctx.Done():
+			// Important: don't print anything here, just exit silently
 			return "", ctx.Err()
 		case res, ok := <-h.inputChan:
 			if !ok {
@@ -107,8 +112,6 @@ func (h *TextHandler) Input(ctx context.Context) (string, error) {
 			// Sanitize Input (Limit + Control Chars)
 			clean, err := SanitizeInput(text)
 			if err != nil {
-				// Observability: Log warning
-				slog.Warn("Input Rejected", "tool_name", "TextHandler", "error", err, "size", len(text))
 				// User Feedback: Prompt retry
 				fmt.Fprintf(h.Writer, "Error: %v. Please try again.\n", err)
 				continue

@@ -60,7 +60,7 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	// Log Completion
 	logCompletion(state.CurrentNodeID, sessionID, runErr, jsonMode || headless)
 
-	return handleExecutionError(runErr, jsonMode || headless)
+	return handleExecutionError(runErr)
 }
 
 func createLogger(debug bool) *slog.Logger {
@@ -99,15 +99,20 @@ func RunWatch(repoPath string, sessionID string, debug bool) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
+	// Reuse the same IO handler to avoid multiple Stdin Pumps (ghost readers)
+	// We use the interruptible reader to stop blocking on Stdin during reload
+	ioHandler := runner.NewTextHandler(os.Stdin, os.Stdout)
+	ioHandler.Renderer = tui.NewRenderer()
+
 	for {
-		if !runWatchIteration(repoPath, sessionID, debug, sigCh) {
+		if !runWatchIteration(repoPath, sessionID, debug, sigCh, ioHandler) {
 			break
 		}
 		logger.Info("Watcher restarting")
 	}
 }
 
-func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan os.Signal) bool {
+func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan os.Signal, ioHandler runner.IOHandler) bool {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -141,13 +146,10 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 
 	// 3. Setup Watcher & Runner
 	watchCh, _ := engine.Watch(ctx)
-	interruptReader := NewInterruptibleReader(os.Stdin, ctx.Done())
-	th := runner.NewTextHandler(interruptReader, os.Stdout)
-	th.Renderer = tui.NewRenderer()
 
 	rOpts := createRunnerOptions(logger, false, sessionID, store, false)
-	// Override with specialized handler for interactive watch
-	rOpts = append(rOpts, runner.WithInputHandler(th))
+	// Use the shared handler
+	rOpts = append(rOpts, runner.WithInputHandler(ioHandler))
 
 	r := runner.NewRunner(rOpts...)
 
@@ -162,6 +164,7 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 		case _, ok := <-watchCh:
 			if ok {
 				logger.Info("Change detected, triggering reload")
+				// Delay slightly to ensure file system is stable
 				time.Sleep(100 * time.Millisecond)
 				cancel()
 			}
@@ -169,7 +172,7 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	}()
 
 	// 5. Run
-	fmt.Println("--- Session Started ---")
+	fmt.Printf("\n--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
 	doneCh := make(chan error, 1)
 	go func() { doneCh <- r.Run(engine, state) }()
 
@@ -205,8 +208,13 @@ func waitForFix(ctx context.Context, engine *trellis.Engine, sigCh chan os.Signa
 
 func handleRunCompletion(ctx context.Context, err error, watchCh <-chan string, sigCh chan os.Signal, logger *slog.Logger) bool {
 	if err != nil {
+		// If the context was cancelled, it's a reload request
+		if errors.Is(err, context.Canceled) {
+			return true // Continue to next iteration
+		}
+
 		if isInterrupted(err) {
-			return false
+			return false // User stop
 		}
 		logger.Error("Runtime error", "error", err)
 	}
@@ -236,7 +244,7 @@ func isInterrupted(err error) bool {
 		(errors.Unwrap(err) != nil && isInterrupted(errors.Unwrap(err)))
 }
 
-func handleExecutionError(err error, quiet bool) error {
+func handleExecutionError(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -251,12 +259,13 @@ func logCompletion(nodeID string, sessionID string, err error, quiet bool) {
 		return
 	}
 	if err == nil {
-		fmt.Printf("\n>>> Flow finished at node '%s'\n", nodeID)
+		fmt.Printf("\n\n>>> Flow finished at node '%s'\n", nodeID)
 	} else if isInterrupted(err) {
+		fmt.Println() // Extra newline to break from prompt
 		if sessionID != "" {
-			fmt.Printf("\n>>> Session saved at node '%s'. Goodbye!\n", nodeID)
+			fmt.Printf(">>> Session saved at node '%s'. Goodbye!\n", nodeID)
 		} else {
-			fmt.Println("\n>>> Interrupted. Goodbye!")
+			fmt.Println(">>> Interrupted. Goodbye!")
 		}
 	}
 }
