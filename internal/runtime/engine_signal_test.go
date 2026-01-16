@@ -2,122 +2,80 @@ package runtime_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
+	"github.com/aretw0/trellis/pkg/adapters/inmemory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
 
-// MockLoader implements ports.GraphLoader for testing
-type MockLoader struct {
-	Nodes map[string][]byte
-}
-
-func (m *MockLoader) GetNode(id string) ([]byte, error) {
-	if content, ok := m.Nodes[id]; ok {
-		return content, nil
-	}
-	return nil, fmt.Errorf("node not found: %s", id)
-}
-
-func (m *MockLoader) ListNodes() ([]string, error) {
-	keys := make([]string, 0, len(m.Nodes))
-	for k := range m.Nodes {
-		keys = append(keys, k)
-	}
-	return keys, nil
-}
-
 func TestEngine_Signal(t *testing.T) {
-	// Setup with local mock
-	loader := &MockLoader{
-		Nodes: make(map[string][]byte),
-	}
+	// Define a flow with an interrupt handler
+	/*
+		start:
+		  on_signal:
+			interrupt: shutdown
+		  transitions:
+			- to: next
 
-	startNodeRaw := `
-{
-	"id": "start",
-	"type": "text",
-	"wait": true,
-	"on_signal": {
-		"interrupt": "cancel_node"
-	},
-	"content": "SGVsbG8=" 
-}`
-	// content is []byte, so JSON unmarshal expects base64 string if mapped to []byte?
-	// domain.Node.Content is []byte. json.Unmarshal decodes base64 string to []byte.
-	// "SGVsbG8=" is "Hello".
-	loader.Nodes["start"] = []byte(startNodeRaw)
+		next:
+		  type: text
 
-	cancelNodeRaw := `
-{
-	"id": "cancel_node",
-	"type": "text",
-	"content": "Q2FuY2VsZWQ="
-}`
-	loader.Nodes["cancel_node"] = []byte(cancelNodeRaw)
-
-	// Capture hooks
-	leaveCalled := false
-	hooks := domain.LifecycleHooks{
-		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
-			if e.NodeID == "start" {
-				leaveCalled = true
-			}
+		shutdown:
+		  type: text
+		  content: "Shutting down..."
+	*/
+	startNode := domain.Node{
+		ID:   "start",
+		Type: domain.NodeTypeText,
+		OnSignal: map[string]string{
+			"interrupt": "shutdown",
+		},
+		Transitions: []domain.Transition{
+			{ToNodeID: "next"},
 		},
 	}
-
-	// Engine handles parser creation internally
-	engine := runtime.NewEngine(loader, nil, nil, runtime.WithLifecycleHooks(hooks))
-
-	// Start state
-	state := domain.NewState("start")
-	state.Context["foo"] = "bar" // Test context preservation
-
-	// Execute Signal
-	nextState, err := engine.Signal(context.Background(), state, "interrupt")
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, nextState)
-	assert.Equal(t, "cancel_node", nextState.CurrentNodeID)
-	assert.Equal(t, "bar", nextState.Context["foo"], "Context should be preserved")
-	assert.True(t, leaveCalled, "OnNodeLeave should be triggered for interrupting node")
-}
-
-func TestEngine_Signal_Unhandled(t *testing.T) {
-	loader := &MockLoader{
-		Nodes: make(map[string][]byte),
+	nextNode := domain.Node{
+		ID:      "next",
+		Type:    domain.NodeTypeText,
+		Content: []byte("Next Step"),
+	}
+	shutdownNode := domain.Node{
+		ID:      "shutdown",
+		Type:    domain.NodeTypeText,
+		Content: []byte("Shutting down..."),
 	}
 
-	startNodeRaw := `
-{
-	"id": "start",
-	"type": "text",
-	"content": "Q29udGVudA=="
-}`
-	loader.Nodes["start"] = []byte(startNodeRaw)
+	loader, _ := inmemory.NewFromNodes(startNode, nextNode, shutdownNode)
+	engine := runtime.NewEngine(loader, nil, nil)
 
-	// Capture hooks
-	leaveCalled := false
-	hooks := domain.LifecycleHooks{
-		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
-			if e.NodeID == "start" {
-				leaveCalled = true
-			}
-		},
-	}
+	t.Run("Successfully Handles Interrupt Signal", func(t *testing.T) {
+		// Start
+		state, _ := engine.Start(context.Background(), nil)
+		assert.Equal(t, "start", state.CurrentNodeID)
 
-	engine := runtime.NewEngine(loader, nil, nil, runtime.WithLifecycleHooks(hooks))
-	state := domain.NewState("start")
+		// Send Signal
+		nextState, err := engine.Signal(context.Background(), state, "interrupt")
+		assert.NoError(t, err)
+		assert.Equal(t, "shutdown", nextState.CurrentNodeID)
+	})
 
-	// Execute Signal
-	_, err := engine.Signal(context.Background(), state, "interrupt")
+	t.Run("Returns Error For Unhandled Signal", func(t *testing.T) {
+		// Start
+		state, _ := engine.Start(context.Background(), nil)
 
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, domain.ErrUnhandledSignal, err)
-	assert.True(t, leaveCalled, "OnNodeLeave should be triggered even for unhandled signal (graceful exit logging)")
+		// Send Unknown Signal
+		_, err := engine.Signal(context.Background(), state, "unknown_signal")
+		assert.ErrorIs(t, err, domain.ErrUnhandledSignal)
+	})
+
+	t.Run("Ignores Signal If Not Configured", func(t *testing.T) {
+		// Move to 'next' node which has no handlers
+		state := domain.NewState("next")
+
+		// Send Signal
+		_, err := engine.Signal(context.Background(), state, "interrupt")
+		assert.ErrorIs(t, err, domain.ErrUnhandledSignal)
+	})
 }

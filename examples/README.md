@@ -51,6 +51,11 @@ Demonstrates how to inject initial data into the flow via the CLI flag `--contex
 
 ## 4. Production & Observability
 
+### [Signals Demo (Interrupts & Timeouts)](./signals-demo)
+
+**Concepts:** `on_signal`, `step_timeout`
+Demonstrates global signals (interrupts) and step timeouts.
+
 ### [Structured Logging (Production)](./structured-logging)
 
 **Concepts:** `slog` (JSON Logs), `Prometheus` (Metrics)
