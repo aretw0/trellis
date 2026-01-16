@@ -11,6 +11,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/adapters/mcp"
+	"github.com/aretw0/trellis/internal/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -41,10 +42,7 @@ Supported Transports:
 		}
 
 		// Configure logger
-		opts := &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		}
-		logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
+		logger := logging.New(slog.LevelInfo)
 		slog.SetDefault(logger)
 
 		// 2. Initialize MCP Server Adapter

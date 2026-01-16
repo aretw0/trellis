@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	httpAdapter "github.com/aretw0/trellis/internal/adapters/http"
+	"github.com/aretw0/trellis/internal/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +23,13 @@ var serveCmd = &cobra.Command{
 		dir, _ := cmd.Flags().GetString("dir")
 		port, _ := cmd.Flags().GetString("port")
 
+		// Initialize Logger
+		logger := logging.New(slog.LevelInfo)
+		slog.SetDefault(logger)
+
 		engine, err := trellis.New(dir)
 		if err != nil {
-			fmt.Printf("Error initializing trellis: %v\n", err)
+			logger.Error("Error initializing trellis", "err", err)
 			os.Exit(1)
 		}
 
@@ -39,8 +44,7 @@ var serveCmd = &cobra.Command{
 		serverErrors := make(chan error, 1)
 
 		go func() {
-			fmt.Printf("Starting Trellis Server on %s\n", srv.Addr)
-			fmt.Printf("Serving content from: %s\n", dir)
+			logger.Info("Starting Trellis Server", "addr", srv.Addr, "dir", dir)
 			serverErrors <- srv.ListenAndServe()
 		}()
 
@@ -52,11 +56,11 @@ var serveCmd = &cobra.Command{
 		select {
 		case err := <-serverErrors:
 			// Error when starting HTTP server.
-			fmt.Printf("Server error: %v\n", err)
+			logger.Error("Server error", "err", err)
 			os.Exit(1)
 
 		case sig := <-shutdown:
-			fmt.Printf("\nStart shutdown... Signal: %v\n", sig)
+			logger.Info("Start shutdown", "signal", sig)
 
 			// Give outstanding requests a deadline for completion.
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -64,12 +68,12 @@ var serveCmd = &cobra.Command{
 
 			// Asking listener to shut down and shed load.
 			if err := srv.Shutdown(ctx); err != nil {
-				fmt.Printf("Graceful shutdown did not complete in %v: %v\n", 5*time.Second, err)
+				logger.Error("Graceful shutdown failed", "timeout", "5s", "err", err)
 				if err := srv.Close(); err != nil {
-					fmt.Printf("Error killing server: %v\n", err)
+					logger.Error("Error killing server", "err", err)
 				}
 			}
-			fmt.Println("Trellis Server stopped gracefully")
+			logger.Info("Trellis Server stopped gracefully")
 		}
 	},
 }
