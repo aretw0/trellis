@@ -30,7 +30,7 @@ Para manter a sanidade do projeto, definimos limites claros:
 
 À medida que os fluxos crescem, a organização se torna crítica. O Trellis suporta **Sub-Grafos e Namespaces** nativamente. Isso permite que equipes dividam grandes fluxos monolíticos em pequenos módulos independentes (pastas), conectados via `jump_to`.
 
-### Visão de Futuro: The Toolmaker's Tool
+### Posicionamento: The Toolmaker's Tool
 
 Para responder onde o Trellis quer chegar: **Ele deve ser a ferramenta que os criadores de ferramentas usam.**
 
