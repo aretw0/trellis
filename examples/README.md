@@ -58,3 +58,9 @@ Demonstrates robust tool usage, including:
 **Path:** [`context-demo/`](./context-demo)
 **Concepts:** `--context`, `Seed State`, `Templates`
 Demonstrates how to inject initial data into the flow via the CLI flag `--context`. This is critical for automated testing or when integrating Trellis with systems that provide pre-existing user data.
+
+## 10. Default Context (Mocking)
+
+**Path:** [`default-context-demo/`](./default-context-demo)
+**Concepts:** `default_context`, `Mocking`, `Local Dev`
+Demonstrates how to define fallback values in `start.md`. These defaults act as mocks for local development, allowing you to run flows without needing lengthy CLI context flags, while still being overridable in production.
