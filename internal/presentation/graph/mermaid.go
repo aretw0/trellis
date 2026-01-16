@@ -35,6 +35,10 @@ func GenerateMermaid(nodes []domain.Node) string {
 		}
 
 		label := fmt.Sprintf("    %s%s\"%s\"%s\n", safeID, opener, node.ID, closer)
+		if node.Timeout != "" {
+			// Annotate node with Timeout clock icon or text
+			label = fmt.Sprintf("    %s%s\"%s <br/> ⏱️ %s\"%s\n", safeID, opener, node.ID, node.Timeout, closer)
+		}
 		sb.WriteString(label)
 
 		// Transitions
@@ -58,6 +62,14 @@ func GenerateMermaid(nodes []domain.Node) string {
 					arrow = fmt.Sprintf("-. \"%s\" .->", safeCondition)
 				}
 			}
+			sb.WriteString(fmt.Sprintf("    %s %s %s\n", safeID, arrow, safeTo))
+		}
+
+		// Signal Transitions (Intervention)
+		for signalName, targetID := range node.OnSignal {
+			safeTo := sanitizeMermaidID(targetID)
+			// Use dotted line with lightning bolt/signal icon
+			arrow := fmt.Sprintf("-. ⚡ %s .->", signalName)
 			sb.WriteString(fmt.Sprintf("    %s %s %s\n", safeID, arrow, safeTo))
 		}
 	}
