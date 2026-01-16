@@ -20,78 +20,34 @@ import (
 
 // RunSession executes a single session of Trellis.
 func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initialContext map[string]any, sessionID string) error {
-	// Configure Logger
-	var logger *slog.Logger
-	if debug {
-		// Debug level to Stderr
-		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		// No-op logger
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	}
-
-	// Options
-	var opts []trellis.Option
-
-	// Pass Logger to Engine (if using Debug)
-	if debug {
-		opts = append(opts, trellis.WithLogger(logger))
-		opts = append(opts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
-	}
+	logger := createLogger(debug)
 
 	// Initialize Engine
-	engine, err := trellis.New(repoPath, opts...)
+	engineOpts := []trellis.Option{}
+	if debug {
+		engineOpts = append(engineOpts, trellis.WithLogger(logger))
+		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
+	}
+
+	engine, err := trellis.New(repoPath, engineOpts...)
 	if err != nil {
 		return fmt.Errorf("error initializing trellis: %w", err)
 	}
 
+	// Setup Persistence
+	store, sessionManager := setupPersistence(sessionID)
+
+	// Hydrate State
 	ctx := context.Background()
-
-	// Initialize Session Logic
-	var store *adapters.FileStore
-	if sessionID != "" {
-		store = adapters.NewFileStore("") // Uses default .trellis/sessions
-	}
-
-	sessionManager := runner.NewSessionManager(store)
-
-	// Load or Start
-	// We pass initialContext only if starting new. SessionManager handles this check internally.
-	initialState, loaded, err := sessionManager.LoadOrStart(ctx, engine, sessionID, initialContext)
+	initialState, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, initialContext, sessionManager)
 	if err != nil {
 		return fmt.Errorf("failed to init session: %w", err)
 	}
 
-	if loaded {
-		logger.Info("Session Resumed", "session_id", sessionID, "node", initialState.CurrentNodeID)
-		if !jsonMode && !headless {
-			fmt.Printf(">>> Resuming session '%s' at node '%s'...\n", sessionID, initialState.CurrentNodeID)
-		}
-	} else if sessionID != "" {
-		logger.Info("Session Created", "session_id", sessionID)
-		if !jsonMode && !headless {
-			fmt.Printf(">>> Created new session '%s'...\n", sessionID)
-		}
-	}
+	logSessionStatus(logger, sessionID, initialState.CurrentNodeID, loaded, jsonMode || headless)
 
-	// Configure Runner
-	runnerOpts := []runner.Option{
-		runner.WithLogger(logger),
-		runner.WithHeadless(headless),
-	}
-
-	if sessionID != "" {
-		runnerOpts = append(runnerOpts, runner.WithSessionID(sessionID))
-		runnerOpts = append(runnerOpts, runner.WithStore(store))
-	}
-
-	if jsonMode {
-		runnerOpts = append(runnerOpts, runner.WithInputHandler(runner.NewJSONHandler(os.Stdin, os.Stdout)))
-	} else if !headless {
-		// Use TUI renderer for interactive mode (default handler will be used)
-		runnerOpts = append(runnerOpts, runner.WithRenderer(tui.NewRenderer()))
-	}
-
+	// Setup Runner
+	runnerOpts := createRunnerOptions(logger, headless, sessionID, store, jsonMode)
 	r := runner.NewRunner(runnerOpts...)
 
 	// Execute
@@ -101,131 +57,241 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	return nil
 }
 
-// RunWatch executes Trellis in development mode, reloading on file changes.
-func RunWatch(repoPath string) {
-	fmt.Printf("Starting Trellis Watcher in %s...\n", repoPath)
+func createLogger(debug bool) *slog.Logger {
+	if debug {
+		return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	}
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
-	// Catch OS signals for graceful shutdown of the Watch loop
+func logSessionStatus(logger *slog.Logger, sessionID, nodeID string, loaded, quiet bool) {
+	if loaded {
+		logger.Info("Session Resumed", "session_id", sessionID, "node", nodeID)
+		if !quiet {
+			fmt.Printf(">>> Resuming session '%s' at node '%s'...\n", sessionID, nodeID)
+		}
+	} else if sessionID != "" {
+		logger.Info("Session Created", "session_id", sessionID)
+		if !quiet {
+			fmt.Printf(">>> Created new session '%s'...\n", sessionID)
+		}
+	}
+}
+
+// RunWatch executes Trellis in development mode, reloading on file changes.
+func RunWatch(repoPath string, sessionID string, debug bool) {
+	logger := createLogger(debug)
+	logger.Info("Starting Watcher", "path", repoPath, "session_id", sessionID)
+
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
 	for {
-		// 1. Initialize Engine
-		engine, err := trellis.New(repoPath)
-		if err != nil {
-			fmt.Printf("Error initializing trellis: %v\nRetrying in 2s...\n", err)
-
-			// Allow exit during backoff
-			select {
-			case <-sigCh:
-				fmt.Println("\nStopping watcher...")
-				return
-			case <-time.After(2 * time.Second):
-				continue
-			}
+		if !runWatchIteration(repoPath, sessionID, debug, sigCh) {
+			break
 		}
+		logger.Info("Watcher restarting")
+	}
+}
 
-		// 2. Setup Watcher
-		// Context for this specific session
-		sessionCtx, cancelRequest := context.WithCancel(context.Background())
+func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan os.Signal) bool {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		watchCh, err := engine.Watch(sessionCtx)
-		if err != nil {
-			fmt.Printf("Warning: Watch failed (%v). Running in normal mode.\n", err)
+	logger := createLogger(debug)
+
+	// 1. Initialize Engine
+	engineOpts := []trellis.Option{}
+	if debug {
+		engineOpts = append(engineOpts, trellis.WithLogger(logger))
+		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
+	}
+
+	engine, err := trellis.New(repoPath, engineOpts...)
+	if err != nil {
+		logger.Error("Engine initialization failed", "error", err)
+		return waitBackoff(sigCh, 2*time.Second)
+	}
+
+	// 2. Setup Persistence and Session Management
+	store, sessionManager := setupPersistence(sessionID)
+
+	state, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, nil, sessionManager)
+	if err != nil {
+		logger.Error("State rehydration failed", "error", err)
+		return waitForFix(ctx, engine, sigCh)
+	}
+
+	if loaded && sessionID != "" {
+		logger.Info("Session rehydrated", "session_id", sessionID, "node_id", state.CurrentNodeID)
+	}
+
+	// 3. Setup Watcher & Runner
+	watchCh, _ := engine.Watch(ctx)
+	interruptReader := NewInterruptibleReader(os.Stdin, ctx.Done())
+	th := runner.NewTextHandler(interruptReader, os.Stdout)
+	th.Renderer = tui.NewRenderer()
+
+	rOpts := createRunnerOptions(logger, false, sessionID, store, false)
+	// Override with specialized handler for interactive watch
+	rOpts = append(rOpts, runner.WithInputHandler(th))
+
+	r := runner.NewRunner(rOpts...)
+
+	// 4. Start Watcher Routine
+	go func() {
+		if watchCh == nil {
+			return
 		}
-
-		// 3. Configure Runner with Interruptible Input
-		interruptReader := NewInterruptibleReader(os.Stdin, sessionCtx.Done())
-
-		th := runner.NewTextHandler(interruptReader, os.Stdout)
-		th.Renderer = tui.NewRenderer()
-
-		// RunWatch uses an ephemeral runner (no session persistence).
-		// We re-create the runner on each reload, but share the Input Reader
-		// to maintain the Stdin loop across reloads.
-		r := runner.NewRunner(
-			runner.WithInputHandler(th),
-		)
-
-		// 4. Start Watcher Routine
-		go func() {
-			if watchCh == nil {
-				return
-			}
-			// Wait for change OR context cancellation (re-render, exit)
-			select {
-			case <-sessionCtx.Done():
-				return // Session ended normally or manually cancelled
-			case _, ok := <-watchCh:
-				if !ok {
-					return // Channel closed (shouldn't happen if ctx is valid, but safety)
-				}
-				fmt.Println("\n\n>>> Change detected! Reloading... <<<")
-				// Debounce slightly to let multiple file writes finish
+		select {
+		case <-ctx.Done():
+			return
+		case _, ok := <-watchCh:
+			if ok {
+				logger.Info("Change detected, triggering reload")
 				time.Sleep(100 * time.Millisecond)
-				cancelRequest() // Cancel to stop the runner
+				cancel()
 			}
-		}()
+		}
+	}()
 
-		// 5. Run Execution blocks by default.
-		// We rely on interruptReader to unblock Run if sessionCtx is cancelled (file change).
-		// We also handle global SIGINT via sigCh.
+	// 5. Run
+	fmt.Println("--- Session Started ---")
+	doneCh := make(chan error, 1)
+	go func() { doneCh <- r.Run(engine, state) }()
 
-		fmt.Println("--- Session Started ---")
+	select {
+	case <-sigCh:
+		logger.Info("Stopping watcher (signal received)")
+		return false
+	case err := <-doneCh:
+		return handleRunCompletion(ctx, err, watchCh, sigCh, logger)
+	}
+}
 
-		// Run logic
-		doneCh := make(chan error, 1)
-		go func() {
-			doneCh <- r.Run(engine, nil)
-		}()
+func waitBackoff(sigCh chan os.Signal, d time.Duration) bool {
+	select {
+	case <-sigCh:
+		fmt.Println("\nStopping watcher...")
+		return false
+	case <-time.After(d):
+		return true
+	}
+}
 
-		// Wait for Run completion OR Global Signal
+func waitForFix(ctx context.Context, engine *trellis.Engine, sigCh chan os.Signal) bool {
+	watchCh, _ := engine.Watch(ctx)
+	select {
+	case <-sigCh:
+		fmt.Println("\nStopping watcher...")
+		return false
+	case _, ok := <-watchCh:
+		return ok
+	}
+}
+
+func handleRunCompletion(ctx context.Context, err error, watchCh <-chan string, sigCh chan os.Signal, logger *slog.Logger) bool {
+	isInterrupted := false
+	if err != nil {
+		isInterrupted = errors.Is(err, context.Canceled) ||
+			err.Error() == "input error: interrupted" ||
+			errors.Is(err, io.EOF) ||
+			(errors.Unwrap(err) != nil && errors.Is(errors.Unwrap(err), context.Canceled))
+
+		if !isInterrupted {
+			logger.Error("Runtime error", "error", err)
+		}
+	}
+
+	if !isInterrupted && watchCh != nil {
+		logger.Info("Flow finished, waiting for changes")
 		select {
 		case <-sigCh:
-			// User pressed Ctrl+C
-			fmt.Println("\nStopping watcher...")
-			cancelRequest() // Stop session
-			return          // Exit loop
-		case err := <-doneCh:
-			// Session finished (either naturally, or via internal cancellation/reload)
+			logger.Info("Stopping watcher (signal received)")
+			return false
+		case <-ctx.Done():
+			return true
+		}
+	}
+	return true
+}
 
-			// Normalize error
-			isInterrupted := false
-			if err != nil {
-				isInterrupted = errors.Is(err, context.Canceled) ||
-					err.Error() == "input error: interrupted" ||
-					errors.Is(err, io.EOF) ||
-					// Check for wrapped error
-					(errors.Unwrap(err) != nil && errors.Is(errors.Unwrap(err), context.Canceled))
+// setupPersistence initializes the state store and session manager.
+func setupPersistence(sessionID string) (*adapters.FileStore, *runner.SessionManager) {
+	var store *adapters.FileStore
+	if sessionID != "" {
+		store = adapters.NewFileStore("") // Uses default .trellis/sessions
+	}
+	return store, runner.NewSessionManager(store)
+}
 
-				if !isInterrupted {
-					fmt.Printf("Runtime error: %v\n", err)
-					// Don't wait here, we will wait below if we decide not to restart immediately
-				}
-			}
+// hydrateAndValidateState handles session rehydration and reload guardrails.
+func hydrateAndValidateState(ctx context.Context, engine *trellis.Engine, sessionID string, initialContext map[string]any, sessionManager *runner.SessionManager) (*domain.State, bool, error) {
+	state, loaded, err := sessionManager.LoadOrStart(ctx, engine, sessionID, initialContext)
+	if err != nil {
+		return nil, false, err
+	}
 
-			// If the session finished naturally (flow end), we should NOT restart immediately.
-			// We should wait for a file change.
-			if !isInterrupted && watchCh != nil {
-				fmt.Println("\nFlow finished. Waiting for changes...")
-				select {
-				case <-sigCh:
-					// User pressed Ctrl+C
-					fmt.Println("\nStopping watcher...")
-					cancelRequest()
-					return
-				case <-sessionCtx.Done():
-					// Watcher signaled change (via cancelRequest)
-					// Proceed to restart
-				}
+	if loaded && sessionID != "" {
+		// Reload Guardrail: Check if node still exists and handle type mismatches
+		nodes, _ := engine.Inspect()
+		var node *domain.Node
+		for _, n := range nodes {
+			if n.ID == state.CurrentNodeID {
+				node = &n
+				break
 			}
 		}
 
-		// Cleanup before restart
-		cancelRequest()
+		if state.Status == domain.StatusWaitingForTool && (node == nil || node.Type != domain.NodeTypeTool) {
+			fmt.Printf(">>> Resetting status from WaitingForTool to Active (Node type changed or missing)\n")
+			state.Status = domain.StatusActive
+			state.PendingToolCall = ""
+		}
+	}
 
-		// Visual separation
-		fmt.Println("--- Restarting ---")
+	return state, loaded, nil
+}
+
+// createRunnerOptions prepares the functional options for the Runner.
+func createRunnerOptions(logger *slog.Logger, headless bool, sessionID string, store *adapters.FileStore, jsonMode bool) []runner.Option {
+	opts := []runner.Option{
+		runner.WithLogger(logger),
+		runner.WithHeadless(headless),
+	}
+
+	if sessionID != "" {
+		opts = append(opts, runner.WithSessionID(sessionID))
+		opts = append(opts, runner.WithStore(store))
+	}
+
+	if jsonMode {
+		opts = append(opts, runner.WithInputHandler(runner.NewJSONHandler(os.Stdin, os.Stdout)))
+	} else if !headless {
+		opts = append(opts, runner.WithRenderer(tui.NewRenderer()))
+	}
+
+	return opts
+}
+
+func createDebugHooks(logger *slog.Logger) domain.LifecycleHooks {
+	return domain.LifecycleHooks{
+		OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
+			logger.Debug("Enter Node", "node_id", e.NodeID, "type", e.NodeType)
+		},
+		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
+			logger.Debug("Leave Node", "node_id", e.NodeID)
+		},
+		OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
+			logger.Debug("Tool Call", "tool_name", e.ToolName)
+		},
+		OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
+			if e.IsError {
+				logger.Debug("Tool Return (Error)", "tool_name", e.ToolName, "error", e.Output)
+			} else {
+				logger.Debug("Tool Return (Success)", "tool_name", e.ToolName)
+			}
+		},
 	}
 }
 
@@ -260,25 +326,4 @@ func (r *InterruptibleReader) Read(p []byte) (n int, err error) {
 	default:
 	}
 	return n, err
-}
-
-func createDebugHooks(logger *slog.Logger) domain.LifecycleHooks {
-	return domain.LifecycleHooks{
-		OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
-			logger.Debug("Enter Node", "node_id", e.NodeID, "type", e.NodeType)
-		},
-		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
-			logger.Debug("Leave Node", "node_id", e.NodeID)
-		},
-		OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
-			logger.Debug("Tool Call", "tool_name", e.ToolName)
-		},
-		OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
-			if e.IsError {
-				logger.Debug("Tool Return (Error)", "tool_name", e.ToolName, "error", e.Output)
-			} else {
-				logger.Debug("Tool Return (Success)", "tool_name", e.ToolName)
-			}
-		},
-	}
 }
