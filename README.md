@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/aretw0/trellis.svg)](LICENSE.txt)
 [![Release](https://img.shields.io/github/release/aretw0/trellis.svg?branch=main)](https://github.com/aretw0/trellis/releases)
 
-> "Faça uma coisa e faça bem feita. Trabalhe com fluxos de texto." - Filosofia Unix
+> "Simplifique o Caos. Construa fluxos determinísticos." - Filosofia Trellis
 
 **Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) projetado para a construção de CLIs, fluxos de automação e Guardrails para Agentes de IA.
 
