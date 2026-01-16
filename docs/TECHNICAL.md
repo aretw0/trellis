@@ -324,6 +324,29 @@ flowchart TD
     Result -- Active --> Next([Next State - Loop])
 ```
 
+#### 7.4. Pattern: Stdin Pump (IO Safety)
+
+Input handling in Go, especially with `os.Stdin`, is blocking by nature. To support **Timeouts** (cancelable reads) without blocking the main event loop or leaking "ghost readers" (race conditions where a stale goroutine eats input intended for the next step), `TextHandler` implements the **Stdin Pump** pattern.
+
+- **Single Producer**: A persistent goroutine (`pump`) reads from the underlying Reader loop forever.
+- **Buffered Channel**: Results (`string` or `error`) are sent to `inputChan`.
+- **Select-based Consumption**: The `Input(ctx)` method listens to `inputChan`. If `ctx` times out, it stops listening, but the pump **remains active**, ready to serve the next call (type-ahead support).
+
+```mermaid
+flowchart LR
+    Stdin[os.Stdin] -->|ReadString| Pump((Pump Goroutine))
+    Pump -->|inputResult| Chan[inputChan]
+    
+    subgraph "Input(ctx) Call"
+        Chan -->|Select| Consumer[Runner]
+        Timer[Context Timeout] -.->|Cancel| Consumer
+    end
+    
+    Consumer -->|Sanitized Input| Engine
+```
+
+> **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`, which causes undefined behavior and "swallowed" newlines.
+
 ### 8. Fluxo de Dados e Serialização
 
 #### 8.1. Data Binding (SaveTo)
