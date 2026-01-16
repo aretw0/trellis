@@ -366,6 +366,22 @@ flowchart LR
 
 > **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
+#### 8.5. Architectural Insight: Engine-bound vs Runner-bound
+
+Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside:
+
+1. **Engine-bound (Passive/Logic)**:
+    - *Exemplos*: `LifecycleHooks` (`OnNodeEnter`, `OnTransition`).
+    - *Natureza*: O Engine apenas **emite** eventos sobre o que calculou. Ele não sabe quem está ouvindo e não espera resposta.
+    - *Propósito*: Observabilidade pura.
+
+2. **Runner-bound (Active/Control)**:
+    - *Exemplos*: `StateStore` (Persistência), `ToolInterceptor` (Segurança), `SignalManager` (Interrupção).
+    - *Natureza*: O Runner **orquestra** e decide se o fluxo deve continuar, pausar ou falhar.
+    - *Propósito*: Controle do Ciclo de Vida e Integração com o Mundo Real (IO).
+
+Essa separação garante que o Core permaneça uma Máquina de Estados Pura e Determinística, enquanto o Runner assume a responsabilidade pela "sujeira" (Timeouts, Discos, Sinais de SO).
+
 ### 9. Fluxo de Dados e Serialização
 
 #### 9.1. Data Binding (SaveTo)
