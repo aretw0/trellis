@@ -41,7 +41,9 @@ Seja para criar um CLI interativo, um bot de WhatsApp, ou um wizard de instalaç
 - Ele apenas diz *para onde ir* (Próximo Nó).
 - Ele não *dirige o carro* (não faz chamadas de API, não processa pagamentos).
 
-Isso permite que ele seja usado tanto em um script bash simples quanto em um backend Go complexo para Telegram.
+1. **Durable Execution (Vision)**: Embora o Core seja stateless, a plataforma Trellis almeja ser um sistema de **Durable Execution** (inspirado em Temporal/Cadence). O objetivo é que, através de Adapters de Persistência, um fluxo Trellis possa "dormir" por dias e acordar exatamente onde parou, permitindo padrões **SAGA** (transações longas compensatórias) de forma visual.
+
+Isso permite que ele seja usado tanto em um script bash simples quanto em um backend Go complexo para Telegram com requisitos de missão crítica.
 
 ## Trellis na Era da IA (Agentes)
 

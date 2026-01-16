@@ -11,6 +11,8 @@
 
 Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio, o contexto e as transições permitidas.
 
+> **Visão**: O Trellis almeja ser o "Temporal Visual" — uma plataforma de **Durable Execution** que permite fluxos de longa duração (ChatOps, SAGA) resilientes a falhas.
+
 ## Como funciona?
 
 O Trellis define fluxos através de arquivos Markdown (Loam). Texto, Lógica e Dados vivem juntos:
