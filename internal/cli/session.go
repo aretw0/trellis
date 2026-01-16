@@ -75,27 +75,31 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	}
 
 	// Configure Runner
-	r := runner.NewRunner()
-	r.Headless = headless
-	r.Logger = logger
-	r.Store = store // Inject Store into Runner for persistence loop
+	runnerOpts := []runner.Option{
+		runner.WithLogger(logger),
+		runner.WithHeadless(headless),
+	}
+
+	if sessionID != "" {
+		runnerOpts = append(runnerOpts, runner.WithSessionID(sessionID))
+		runnerOpts = append(runnerOpts, runner.WithStore(store))
+	}
 
 	if jsonMode {
-		r.Handler = runner.NewJSONHandler(os.Stdin, os.Stdout)
+		runnerOpts = append(runnerOpts, runner.WithInputHandler(runner.NewJSONHandler(os.Stdin, os.Stdout)))
 	} else {
 		// Use TextHandler with TUI renderer for interactive mode.
-		// We explicitly instantiate it here to attach the TUI renderer,
-		// as the default runner fallback would not include it.
-
 		th := runner.NewTextHandler(os.Stdin, os.Stdout)
 		if !headless {
 			th.Renderer = tui.NewRenderer()
 		}
-		r.Handler = th
+		runnerOpts = append(runnerOpts, runner.WithInputHandler(th))
 	}
 
+	r := runner.NewRunner(runnerOpts...)
+
 	// Execute
-	if err := r.Run(engine, initialState, sessionID); err != nil {
+	if err := r.Run(engine, initialState); err != nil {
 		return fmt.Errorf("error running trellis: %w", err)
 	}
 	return nil
@@ -140,8 +144,12 @@ func RunWatch(repoPath string) {
 		th := runner.NewTextHandler(interruptReader, os.Stdout)
 		th.Renderer = tui.NewRenderer()
 
-		r := runner.NewRunner()
-		r.Handler = th
+		// RunWatch implies simple ephemeral runner? Or reuse session logic?
+		// For simplicity, Watcher is ephemeral (no loop persistence yet).
+		// We can support it later if needed.
+		r := runner.NewRunner(
+			runner.WithInputHandler(th),
+		)
 
 		// 4. Start Watcher Routine
 		go func() {
@@ -172,7 +180,7 @@ func RunWatch(repoPath string) {
 		// Run logic
 		doneCh := make(chan error, 1)
 		go func() {
-			doneCh <- r.Run(engine, nil, "")
+			doneCh <- r.Run(engine, nil)
 		}()
 
 		// Wait for Run completion OR Global Signal

@@ -15,51 +15,42 @@ import (
 
 // Runner handles the execution loop of the Trellis engine using provided IO.
 // This allows for easy testing and integration with different frontends (CLI, TUI, etc).
-// Runner handles the execution loop of the Trellis engine using provided IO.
-// It uses an IOHandler strategy to abstract the interaction mode (Text vs JSON).
+// Runner handler the execution loop of the Trellis engine.
 type Runner struct {
-	// Handler is the strategy for IO. If nil, it falls back to legacy fields.
-	Handler IOHandler
-
-	// Interceptor is a middleware for tool execution policy.
-	// If nil, defaults to AutoApprove (Phase 1 behavior).
+	Handler     IOHandler
+	Store       ports.StateStore
+	Logger      *slog.Logger
+	Headless    bool
+	SessionID   string
+	Renderer    ContentRenderer
 	Interceptor ToolInterceptor
 
-	// Logger is used for internal debug logging.
-	// If nil, a no-op logger is used.
-	Logger *slog.Logger
-
-	// Store is the persistence adapter for durable execution.
-	// If nil, sessions are ephemeral.
-	Store ports.StateStore
-
-	// Deprecated: Use Handler instead. These are kept for backward compatibility.
-	Input    io.Reader
-	Output   io.Writer
-	Headless bool
-	Renderer ContentRenderer
+	// Deprecated: Use Handler instead.
+	Input  io.Reader
+	Output io.Writer
 }
 
 // ContentRenderer is a function that transforms the content before outputting it.
 // This allows for TUI rendering (markdown to ANSI) without coupling the core package.
 type ContentRenderer func(string) (string, error)
 
-// NewRunner creates a new Runner with default Stdin/Stdout.
-func NewRunner() *Runner {
-	return &Runner{
-		Input:    os.Stdin,
-		Output:   os.Stdout,
-		Headless: false,
-		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+// NewRunner creates a new Runner with options.
+func NewRunner(opts ...Option) *Runner {
+	r := &Runner{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Input:  os.Stdin,
+		Output: os.Stdout,
 	}
+
+	for _, opt := range opts {
+		opt(r)
+	}
+
+	return r
 }
 
 // Run executes the engine loop until termination.
-// If initialState is nil, engine.Start() is called to create a new state.
-// If sessionID is provided (via RunSession wrapper or custom logic), it is used for persistence.
-// Note: backward compatible signature, but we might want `RunSession` in future.
-// For now, we assume explicit session management is done before calling Run, OR we rely on Runner.Store.
-func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State, sessionID string) error {
+func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 	// 1. Setup Phase
 	handler := r.resolveHandler()
 	interceptor := r.resolveInterceptor(handler)
@@ -121,7 +112,7 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State, session
 		if nextState != nil {
 			state = nextState
 			// Auto-Save on Signal Transition
-			if err := r.saveState(currentCtx, sessionID, state); err != nil {
+			if err := r.saveState(currentCtx, r.SessionID, state); err != nil {
 				return err
 			}
 			continue
@@ -135,7 +126,7 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State, session
 		}
 
 		// 5. Commit Phase (Persistence)
-		if err := r.saveState(context.Background(), sessionID, nextState); err != nil {
+		if err := r.saveState(context.Background(), r.SessionID, nextState); err != nil {
 			return fmt.Errorf("critical persistence error: %w", err)
 		}
 
