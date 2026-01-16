@@ -35,6 +35,18 @@ Trellis enforces a strict input limit to make this variable predictable.
 If you set `TRELLIS_MAX_INPUT_SIZE=65536` (64KB) and expect 100 concurrent sessions:
 `RAM Spike Risk = 100 * 64KB = 6.4MB`. This is safe and predictable.
 
+### Goroutine Management (Stdin Pump)
+
+When using `TextHandler` (Interactive Mode) in a long-running application:
+
+> [!CAUTION]
+> **Avoid recreating `TextHandler` on `os.Stdin` repeatedly.**
+
+The `TextHandler` starts a **persistent background goroutine** (Pump) to safely read from the input stream. This goroutine runs until the stream is closed. Since `os.Stdin` is typically never closed until process exit:
+
+1. **Leak Risk**: Creating new Handlers for every request will leak goroutines.
+2. **Mitigation**: Use a **Singleton** `TextHandler` instance if getting input from Stdin, or rely on distinct `io.Reader` sources (like Net Connections) that actually close.
+
 ## 2. Sidecar (Standalone Service)
 
 For high-traffic or multi-tenant environments (e.g., Kubernetes Pods), you may want to isolate Trellis to protect your main application from resource contention.
