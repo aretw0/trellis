@@ -45,7 +45,7 @@ When using `TextHandler` (Interactive Mode) in a long-running application:
 The `TextHandler` starts a **persistent background goroutine** (Pump) to safely read from the input stream. This goroutine runs until the stream is closed. Since `os.Stdin` is typically never closed until process exit:
 
 1. **Leak Risk**: Creating new Handlers for every request will leak goroutines.
-2. **Mitigation**: Use a **Singleton** `TextHandler` instance if getting input from Stdin, or rely on distinct `io.Reader` sources (like Net Connections) that actually close.
+2. **Mitigation (Automatic)**: The `Runner` memoizes the Handler. **Best Practice**: Instantiate `Runner` ONCE and reuse it across multiple `.Run()` calls.
 
 ## 2. Sidecar (Standalone Service)
 

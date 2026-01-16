@@ -345,7 +345,7 @@ flowchart LR
     Consumer -->|Sanitized Input| Engine
 ```
 
-> **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`, which causes undefined behavior and "swallowed" newlines.
+> **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
 ### 8. Fluxo de Dados e Serialização
 
