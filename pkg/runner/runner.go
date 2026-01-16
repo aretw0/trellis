@@ -140,6 +140,8 @@ func (r *Runner) resolveHandler() IOHandler {
 	if !r.Headless && r.Output != nil {
 		fmt.Fprintln(r.Output, "--- Trellis CLI (Runner) ---")
 	}
+	// Memoize to prevent creating new Pumps on subsequent Run() calls
+	r.Handler = th
 	return th
 }
 
