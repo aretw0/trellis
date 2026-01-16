@@ -163,6 +163,7 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 			return
 		case _, ok := <-watchCh:
 			if ok {
+				fmt.Println() // Clear current line (prompt) before reload logs
 				logger.Info("Change detected, triggering reload")
 				// Delay slightly to ensure file system is stable
 				time.Sleep(100 * time.Millisecond)
@@ -172,6 +173,13 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	}()
 
 	// 5. Run
+	if loaded {
+		logger.Debug("Resuming node execution", "node_id", state.CurrentNodeID)
+		if debug {
+			fmt.Printf(">>> Resuming at node '%s'...\n", state.CurrentNodeID)
+		}
+	}
+
 	fmt.Printf("\n--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
 	doneCh := make(chan error, 1)
 	go func() { doneCh <- r.Run(engine, state) }()
@@ -261,7 +269,9 @@ func logCompletion(nodeID string, sessionID string, err error, quiet bool) {
 	if err == nil {
 		fmt.Printf("\n\n>>> Flow finished at node '%s'\n", nodeID)
 	} else if isInterrupted(err) {
-		fmt.Println() // Extra newline to break from prompt
+		// Only print a newline if we didn't just have a debug log?
+		// Actually, let's keep it simple: always start with a clean line.
+		fmt.Print("\n")
 		if sessionID != "" {
 			fmt.Printf(">>> Session saved at node '%s'. Goodbye!\n", nodeID)
 		} else {
@@ -277,6 +287,15 @@ func setupPersistence(sessionID string) (*adapters.FileStore, *runner.SessionMan
 		store = adapters.NewFileStore("") // Uses default .trellis/sessions
 	}
 	return store, runner.NewSessionManager(store)
+}
+
+// ResetSession clears the session data for the given ID.
+func ResetSession(sessionID string) {
+	if sessionID == "" {
+		sessionID = "watch-dev"
+	}
+	store := adapters.NewFileStore("")
+	_ = store.Delete(context.Background(), sessionID)
 }
 
 // hydrateAndValidateState handles session rehydration and reload guardrails.

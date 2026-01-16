@@ -25,6 +25,11 @@ var runCmd = &cobra.Command{
 		debug, _ := cmd.Flags().GetBool("debug")
 		contextStr, _ := cmd.Flags().GetString("context")
 		sessionID, _ := cmd.Flags().GetString("session")
+		fresh, _ := cmd.Flags().GetBool("fresh")
+
+		if fresh {
+			cli.ResetSession(sessionID)
+		}
 
 		var initialContext map[string]any
 		if contextStr != "" {
@@ -60,6 +65,7 @@ func init() {
 	runCmd.Flags().StringP("context", "c", "", "Initial context JSON string (e.g. '{\"user\": \"Alice\"}')")
 	runCmd.Flags().StringP("session", "s", "", "Session ID for durable execution (resumes if exists)")
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
+	runCmd.Flags().Bool("fresh", false, "Start with a clean session (deletes existing session data)")
 
 	// Make 'run' the default subcommand if no other command is provided.
 	// This allows users to type 'trellis .' instead of 'trellis run .'
