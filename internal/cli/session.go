@@ -55,10 +55,15 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	r := runner.NewRunner(runnerOpts...)
 
 	// Execute
-	runErr := r.Run(engine, state)
+	finalState, runErr := r.Run(ctx, engine, state)
 
 	// Log Completion
-	logCompletion(state.CurrentNodeID, sessionID, runErr, jsonMode || headless)
+	// Use finalState ID if available, otherwise fallback to initial state (for early errors)
+	completionNodeID := state.CurrentNodeID
+	if finalState != nil {
+		completionNodeID = finalState.CurrentNodeID
+	}
+	logCompletion(completionNodeID, sessionID, runErr, jsonMode || headless)
 
 	return handleExecutionError(runErr)
 }
@@ -154,6 +159,7 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	r := runner.NewRunner(rOpts...)
 
 	// 4. Start Watcher Routine
+	reloadCh := make(chan struct{}, 1)
 	go func() {
 		if watchCh == nil {
 			return
@@ -163,10 +169,10 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 			return
 		case _, ok := <-watchCh:
 			if ok {
-				fmt.Println() // Clear current line (prompt) before reload logs
 				logger.Info("Change detected, triggering reload")
 				// Delay slightly to ensure file system is stable
 				time.Sleep(100 * time.Millisecond)
+				reloadCh <- struct{}{}
 				cancel()
 			}
 		}
@@ -180,16 +186,36 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 		}
 	}
 
-	fmt.Printf("\n--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
-	doneCh := make(chan error, 1)
-	go func() { doneCh <- r.Run(engine, state) }()
+	fmt.Printf("--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
+
+	// Use a dedicated context for this run iteration that can be cancelled by reloads
+	runCtx, runCancel := context.WithCancel(ctx)
+	defer runCancel()
+
+	doneCh := make(chan struct {
+		state *domain.State
+		err   error
+	}, 1)
+	go func() {
+		s, err := r.Run(runCtx, engine, state)
+		doneCh <- struct {
+			state *domain.State
+			err   error
+		}{s, err}
+	}()
 
 	select {
 	case <-sigCh:
+		runCancel() // Stop the runner
+		<-doneCh    // Wait for it to exit
 		logger.Info("Stopping watcher (signal received)")
 		return false
-	case err := <-doneCh:
-		return handleRunCompletion(ctx, err, watchCh, sigCh, logger)
+	case <-reloadCh:
+		runCancel() // Stop the runner
+		<-doneCh    // Wait for it to exit
+		return true // Continue to next iteration
+	case res := <-doneCh:
+		return handleRunCompletion(runCtx, res.state, res.err, watchCh, sigCh, logger)
 	}
 }
 
@@ -214,7 +240,12 @@ func waitForFix(ctx context.Context, engine *trellis.Engine, sigCh chan os.Signa
 	}
 }
 
-func handleRunCompletion(ctx context.Context, err error, watchCh <-chan string, sigCh chan os.Signal, logger *slog.Logger) bool {
+func handleRunCompletion(ctx context.Context, finalState *domain.State, err error, watchCh <-chan string, sigCh chan os.Signal, logger *slog.Logger) bool {
+	nodeID := ""
+	if finalState != nil {
+		nodeID = finalState.CurrentNodeID
+	}
+
 	if err != nil {
 		// If the context was cancelled, it's a reload request
 		if errors.Is(err, context.Canceled) {
@@ -228,6 +259,9 @@ func handleRunCompletion(ctx context.Context, err error, watchCh <-chan string, 
 	}
 
 	if watchCh != nil {
+		if err == nil {
+			fmt.Printf("\n>>> Flow finished at node '%s'\n", nodeID)
+		}
 		logger.Info("Flow finished, waiting for changes")
 		select {
 		case <-sigCh:
@@ -267,10 +301,8 @@ func logCompletion(nodeID string, sessionID string, err error, quiet bool) {
 		return
 	}
 	if err == nil {
-		fmt.Printf("\n\n>>> Flow finished at node '%s'\n", nodeID)
+		fmt.Printf("\n>>> Flow finished at node '%s'\n", nodeID)
 	} else if isInterrupted(err) {
-		// Only print a newline if we didn't just have a debug log?
-		// Actually, let's keep it simple: always start with a clean line.
 		fmt.Print("\n")
 		if sessionID != "" {
 			fmt.Printf(">>> Session saved at node '%s'. Goodbye!\n", nodeID)
