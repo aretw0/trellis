@@ -71,7 +71,7 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		currentCtx := signals.Context()
 
 		// A. Render
-		actions, isTerminal, err := engine.Render(currentCtx, state)
+		actions, _, err := engine.Render(currentCtx, state)
 		if err != nil {
 			return fmt.Errorf("render error: %w", err)
 		}
@@ -84,11 +84,6 @@ func (r *Runner) Run(engine *trellis.Engine, initialState *domain.State) error {
 		if err != nil {
 			cancel()
 			return fmt.Errorf("output error: %w", err)
-		}
-
-		if isTerminal {
-			cancel()
-			break
 		}
 
 		if state.CurrentNodeID != lastRenderedID {

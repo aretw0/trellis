@@ -494,17 +494,19 @@ Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine trans
 
 > **Consistency Note**: Quando um sinal dispara uma transição, o evento `OnNodeLeave` é emitido para o nó interrompido, mantendo a consistência do ciclo de vida.
 
-#### 10.6. Future Signals (Contexts)
+#### 10.6. Extensibility: Signals & Contexts
 
-O mecanismo de `on_signal` é a base para futuros recursos de interrupção:
+O mecanismo de `on_signal` é a base para extensibilidade do fluxo via eventos:
 
-- **System Contexts (Timeouts)**: `on_signal: { timeout: "retry_node" }`. O Host dispara após N segundos.
-- **External Contexts (Webhooks)**: `on_signal: { payment_received: "success" }`. Eventos assíncronos de APIs.
+- **System Contexts (Timeouts)**: `on_signal: { timeout: "retry_node" }`. (Implementado)
+- **External Signals (Webhooks)**: `on_signal: { payment_received: "success" }`. Disparado via `POST /signal`. (Implementado)
+- **Payload injection (Future)**: Injeção de dados junto com o sinal (ex: webhook payload -> `context.webhook_data`).
 
 ```mermaid
 flowchart TD
     Start([User Input]) --> Wait{Waiting Input?}
     Wait -- Ctrl+C / Timeout --> Sig[SignalManager: Capture Signal]
+    InputAPI([API / Webhook]) -.-> Sig
     Sig --> Engine[Engine.Signal]
     
     Engine --> Handled{Has on_signal?}
@@ -521,7 +523,7 @@ flowchart TD
     style Exit fill:#f00,stroke:#333,color:#fff
 ```
 
-### 10.6 Input Sanitization & Limits
+### 10.7 Input Sanitization & Limits
 
 To ensure robust operation in production (especially in shared-memory environments like Kubernetes Pods), Trellis enforces limits on user input at the Runner layer. This applies globally to **all adapters** (CLI, HTTP, MCP).
 
