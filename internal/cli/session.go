@@ -22,6 +22,10 @@ import (
 func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initialContext map[string]any, sessionID string) error {
 	logger := createLogger(debug)
 
+	if !jsonMode && !headless {
+		tui.PrintBanner()
+	}
+
 	// Initialize Engine
 	engineOpts := []trellis.Option{}
 	if debug {
@@ -39,22 +43,24 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 
 	// Hydrate State
 	ctx := context.Background()
-	initialState, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, initialContext, sessionManager)
+	state, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, initialContext, sessionManager)
 	if err != nil {
 		return fmt.Errorf("failed to init session: %w", err)
 	}
 
-	logSessionStatus(logger, sessionID, initialState.CurrentNodeID, loaded, jsonMode || headless)
+	logSessionStatus(logger, sessionID, state.CurrentNodeID, loaded, jsonMode || headless)
 
 	// Setup Runner
 	runnerOpts := createRunnerOptions(logger, headless, sessionID, store, jsonMode)
 	r := runner.NewRunner(runnerOpts...)
 
 	// Execute
-	if err := r.Run(engine, initialState); err != nil {
-		return fmt.Errorf("error running trellis: %w", err)
-	}
-	return nil
+	runErr := r.Run(engine, state)
+
+	// Log Completion
+	logCompletion(state.CurrentNodeID, sessionID, runErr, jsonMode || headless)
+
+	return handleExecutionError(runErr, jsonMode || headless)
 }
 
 func createLogger(debug bool) *slog.Logger {
@@ -81,6 +87,13 @@ func logSessionStatus(logger *slog.Logger, sessionID, nodeID string, loaded, qui
 // RunWatch executes Trellis in development mode, reloading on file changes.
 func RunWatch(repoPath string, sessionID string, debug bool) {
 	logger := createLogger(debug)
+	tui.PrintBanner()
+
+	// Default session for watch mode to enable Stateful Hot Reload by default
+	if sessionID == "" {
+		sessionID = "watch-dev"
+	}
+
 	logger.Info("Starting Watcher", "path", repoPath, "session_id", sessionID)
 
 	sigCh := make(chan os.Signal, 1)
@@ -191,29 +204,61 @@ func waitForFix(ctx context.Context, engine *trellis.Engine, sigCh chan os.Signa
 }
 
 func handleRunCompletion(ctx context.Context, err error, watchCh <-chan string, sigCh chan os.Signal, logger *slog.Logger) bool {
-	isInterrupted := false
 	if err != nil {
-		isInterrupted = errors.Is(err, context.Canceled) ||
-			err.Error() == "input error: interrupted" ||
-			errors.Is(err, io.EOF) ||
-			(errors.Unwrap(err) != nil && errors.Is(errors.Unwrap(err), context.Canceled))
-
-		if !isInterrupted {
-			logger.Error("Runtime error", "error", err)
+		if isInterrupted(err) {
+			return false
 		}
+		logger.Error("Runtime error", "error", err)
 	}
 
-	if !isInterrupted && watchCh != nil {
+	if watchCh != nil {
 		logger.Info("Flow finished, waiting for changes")
 		select {
 		case <-sigCh:
 			logger.Info("Stopping watcher (signal received)")
+			fmt.Println("\nStopping watcher...")
 			return false
 		case <-ctx.Done():
 			return true
 		}
 	}
 	return true
+}
+
+func isInterrupted(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, context.Canceled) ||
+		err.Error() == "interrupted" ||
+		err.Error() == "input error: interrupted" ||
+		errors.Is(err, io.EOF) ||
+		(errors.Unwrap(err) != nil && isInterrupted(errors.Unwrap(err)))
+}
+
+func handleExecutionError(err error, quiet bool) error {
+	if err == nil {
+		return nil
+	}
+	if isInterrupted(err) {
+		return nil // Exit 0 for interruptions
+	}
+	return err
+}
+
+func logCompletion(nodeID string, sessionID string, err error, quiet bool) {
+	if quiet {
+		return
+	}
+	if err == nil {
+		fmt.Printf("\n>>> Flow finished at node '%s'\n", nodeID)
+	} else if isInterrupted(err) {
+		if sessionID != "" {
+			fmt.Printf("\n>>> Session saved at node '%s'. Goodbye!\n", nodeID)
+		} else {
+			fmt.Println("\n>>> Interrupted. Goodbye!")
+		}
+	}
 }
 
 // setupPersistence initializes the state store and session manager.

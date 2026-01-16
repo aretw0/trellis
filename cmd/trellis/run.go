@@ -42,7 +42,8 @@ var runCmd = &cobra.Command{
 		if watchMode {
 			cli.RunWatch(repoPath, sessionID, debug)
 		} else {
-			if err := cli.RunSession(repoPath, headless, jsonMode, debug, initialContext, sessionID); err != nil {
+			err := cli.RunSession(repoPath, headless, jsonMode, debug, initialContext, sessionID)
+			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
