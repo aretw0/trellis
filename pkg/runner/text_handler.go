@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/registry"
@@ -19,6 +20,14 @@ type TextHandler struct {
 	Writer   io.Writer
 	Renderer ContentRenderer
 	Registry *registry.Registry
+
+	inputChan chan inputResult
+	startOnce sync.Once
+}
+
+type inputResult struct {
+	text string
+	err  error
 }
 
 // NewTextHandler creates a handler for standard text IO.
@@ -33,6 +42,24 @@ func NewTextHandler(r io.Reader, w io.Writer) *TextHandler {
 		Reader: bufio.NewReader(r),
 		Writer: w,
 	}
+}
+
+func (h *TextHandler) initPump() {
+	h.startOnce.Do(func() {
+		h.inputChan = make(chan inputResult)
+		go func() {
+			for {
+				text, err := h.Reader.ReadString('\n')
+				// Send result. This blocks until someone (Input) reads it.
+				// This implies that if no one asks for input, we buffer exactly one line (OS buffer aside).
+				h.inputChan <- inputResult{text: text, err: err}
+				if err != nil {
+					close(h.inputChan)
+					return
+				}
+			}
+		}()
+	})
 }
 
 func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest) (bool, error) {
@@ -58,25 +85,20 @@ func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest
 }
 
 func (h *TextHandler) Input(ctx context.Context) (string, error) {
+	// Ensure the pump is running
+	h.initPump()
+
 	for {
 		// Prompt
 		fmt.Fprint(h.Writer, "> ")
 
-		type result struct {
-			text string
-			err  error
-		}
-		ch := make(chan result, 1)
-
-		go func() {
-			text, err := h.Reader.ReadString('\n')
-			ch <- result{text: text, err: err}
-		}()
-
 		select {
 		case <-ctx.Done():
 			return "", ctx.Err()
-		case res := <-ch:
+		case res, ok := <-h.inputChan:
+			if !ok {
+				return "", io.EOF
+			}
 			if res.err != nil {
 				return "", res.err
 			}
