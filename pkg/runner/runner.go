@@ -302,8 +302,9 @@ func (r *Runner) handleInput(
 				return nil, nil, fmt.Errorf("timeout exceeded and no 'on_signal.timeout' handler defined")
 			}
 
-			r.Logger.Debug("Runner input: Signal failed", "error", sigErr)
-			// If signal unhandled, fallthrough to exit
+			// Reduce noise: If it's a generic interrupt/reload and no handler logic exists,
+			// just stop execution without scary logs.
+			r.Logger.Debug("Runner input: Stopping (Context cancelled)", "signal", signalName)
 			return nil, nil, fmt.Errorf("interrupted")
 		}
 
