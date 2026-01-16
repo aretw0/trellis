@@ -133,18 +133,18 @@ Foco: Mecanismos de controle de execução e segurança. O Trellis deve ser inte
 - [x] **Graceful Shutdown**: Implementado `SignalManager` para garantir cancelamento limpo de contextos e `OnNodeLeave` hooks mesmo em interrupções forçadas.
 - [x] **Input Sanitization**: Validar limitações físicas de input (tamanho, caracteres invisíveis) antes de injetar no State. Proteção contra DoS e contaminação de logs.
 
-### 👩‍💻 v0.6: Developer Experience (The "Ergonomics" Phase)
+### 🧩 v0.6: Integration & Persistence (The "Stateful" Phase)
 
-Foco: Facilitar a vida de quem cria fluxos e remover fricção operacional.
+Foco: Transformar o Trellis de um Engine Stateless em uma solução completa para aplicações reais (ChatOps, Bots), provendo interfaces para persistência e gerenciamento de sessões.
 
-- [x] **Context Injection**: Adicionar flag `--context '{"key": "val"}'` à CLI para facilitar testes e integração.
-- [x] **Default Context (Mocks)**: Permitir declarar valores padrão (`default_context`) no frontmatter para facilitar o desenvolvimento local e mocks de dependências.
-- [x] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
-- [ ] **Configuration Flags**: Padronizar flags de CLI para `--metrics-port`, `--log-format=json|text`.
-- [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard).
-- [ ] **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
-- [ ] **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
-- [ ] **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
+- [ ] **State Persistence Layer**: Definir interface `StateStore` (Load/Save/Delete) desacoplada do Core.
+  - *Filosofia*: O Engine continua stateless; o Host (Application Layer) gerencia a persistência.
+- [ ] **Adapters de Persistência**:
+  - [ ] **FileStore (Loam-ish)**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
+  - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
+- [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
+- [ ] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
+- [ ] **Form Wizard Pattern**: Criar exemplo robusto de coleta de dados (Wizard) usando persistência.
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
@@ -160,6 +160,9 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 
 ### 🔮 Backlog & Future (v0.7+)
 
+- **Go DSL / Builders**: Criar helpers (`pkg/dsl`) para facilitar a criação de grafos em Go puro.
+- **Language Server Protocol (LSP)**: Plugin de VSCode para autocompletar nomes de nós e variáveis.
+- **Visual Assets**: GIFs demonstrando fluxo TUI e Hot Reload no README.
 - **Module Encapsulation**: Investigar escopo privado e atributos emergentes para permitir módulos verdadeiramente auto-contidos e reutilizáveis (Input/Output Contracts).
 - **Typed Flows**: Expandir `required_context` para suportar tipos (`api_key: string`, `retries: int`).
 - **TUI Elements**: Melhorar `trellis run` com inputs ricos (select, multiselect, password) usando `charmbracelet/buble tea`.
@@ -180,5 +183,6 @@ Foco: Expandir as fronteiras do Trellis para redes e grandes aplicações.
 - **2026-01-14**: *Execution Lifecycle*. Refatorado `Engine.Navigate` para seguir estritamente `applyInput` (Update) -> `resolveTransition` (Resolve) -> `Transition`. Adicionado Deep Interpolation para argumentos de ferramenta em `Engine.Render`.
 - **2026-01-15**: *Strategic Pivot*. Roadmap v0.5.2 reorientado de "Ops" para "Control & Safety". Decidido que instrumentação (Prometheus/Log) é responsabilidade do Host via Lifecycle Hooks, mantendo o Core leve. "Instrumented Adapters" removido do roadmap, com `examples/structured-logging` servindo como referência canônica.
 - **2026-01-15**: *Sober Refactor*. Consolidação da confiabilidade do Runner. Unificada a lógica de nós terminais (garantindo logs de saída) e extraído `SignalManager` para isolar complexidade de concorrência. Adotado `log/slog` padronizado em todo o CLI.
+- **2026-01-16**: *Roadmap Pivot*. v0.6 redefinida de "DX/Ergonomics" para "Integration & Persistence". Reconhecimento de que a gestão de estado persistente e concorrência é o "Elo Perdido" para adoção em ChatOps reais, priorizando-o sobre features de luxo (LSP/DSL).
 
 ---
