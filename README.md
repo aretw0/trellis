@@ -124,6 +124,7 @@ O engine monitorará seus arquivos `.md`, `.json`, `.yaml`. Ao salvar, a sessão
 - [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
 - [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
 - [🎮 Guide: Interactive Inputs](./docs/guides/interactive_inputs.md)
+- [💾 Guide: Session Management (Chaos Control)](./docs/guides/session_management.md)
 - [📅 Roadmap & Planning](./docs/PLANNING.md)
 
 ## Estrutura

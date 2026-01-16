@@ -421,6 +421,16 @@ Essa separação garante que o Core permaneça uma Máquina de Estados Pura e De
 - **Motivação**: Isolar sessões por projeto (como `.git` ou `.terraform`), facilitando o desenvolvimento e evitando colisões globais em ambientes multi-projeto.
 - **Formato**: Arquivos JSON simples para facilitar inspeção e debugging manual ("Loam-ish").
 
+#### 8.8. Session Management CLI (Chaos Control)
+
+Para gerenciar o ciclo de vida dessas sessões persistentes, o Trellis expõe comandos administrativos ("Chaos Control"):
+
+- **List (`ls`)**: Enumera sessões ativas no workspace.
+- **Inspect**: Visualiza o Estado JSON puro (Current Node, Context, History) para debugging.
+- **Remove (`rm`)**: Permite "matar" sessões travadas ou limpar o ambiente.
+
+Essa camada é crucial para operações de longa duração, onde "desligar e ligar de novo" (resetar o processo) não é suficiente para limpar o estado.
+
 ### 9. Fluxo de Dados e Serialização
 
 #### 9.1. Data Binding (SaveTo)
