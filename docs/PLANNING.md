@@ -152,12 +152,12 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **FileStore**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
   - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
 - [x] **Runner Refactor**: Migrar `Runner` para Functional Options Pattern (remover `sessionID` de `Run`).
-  - [ ] **Session CLI**: Comandos para listar/inspecionar sessões (`trellis session ls`).
+  - [x] **Session CLI**: Comandos para listar/inspecionar sessões (`trellis session ls`).
 - [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
 - [ ] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
 - [ ] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
-- [ ] **Persistency Management (Chaos Control)**:
-  - [ ] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `cat` (Inspecionar State JSON).
+- [x] **Persistency Management (Chaos Control)**:
+  - [x] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `inspect` (Inspecionar State JSON).
   - [ ] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
   - [ ] **Auto-Pruning**: Implementar TTL ou política de limpeza para sessões antigas (FileStore).
 - [ ] **Stateful Hot Reload (Live Coding)**:
