@@ -108,6 +108,37 @@ O Trellis segue a filosofia **Convention over Configuration** para o início do 
 
 > **Nota**: Embora seja possível injetar um `State` inicial diferente via código (`engine.Navigate(ctx, customState, input)`), a CLI e os Runners padrão assumem `start` como entrypoint.
 
+#### 4.4. Hot Reload Lifecycle (v0.6)
+
+Com a introdução do `StateStore`, o ciclo de Hot Reload tornou-se "Stateful". Ao detectar uma mudança, o Engine é recarregado, mas o Runner tenta reidratar o estado anterior.
+
+```mermaid
+sequenceDiagram
+    participant W as File Watcher
+    participant C as CLI (RunWatch)
+    participant E as Engine (New)
+    participant S as SessionManager
+    participant R as Runner
+
+    Note over W, R: Loop de Desenvolvimento
+    W->>C: Change Detected
+    C->>E: Initialize New Engine
+    alt Compile Error
+        C->>C: Log & Wait for fix
+    else Success
+        C->>S: LoadOrStart(sessionID)
+        S->>C: Return InitialState
+        C->>C: Validate Node exists & Context
+        C->>R: Run(Engine, InitialState)
+    end
+```
+
+**Estratégias de Recuperação (Guardrails)**:
+
+- **Missing Node**: Fallback para `start` se o nó atual for removido.
+- **Validation Failure**: Pausa se novos `required_context` surgirem sem dados na sessão.
+- **Type Mismatch**: Reseta o status de `WaitingForTool` se o nó mudar de tipo.
+
 ### 5. Estratégia de Testes
 
 Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pirâmide de testes rígida:
@@ -182,6 +213,39 @@ sequenceDiagram
     - **Update**: Aplica o input ao contexto da sessão (se `save_to` estiver definido).
     - **Resolve**: Avalia as condições de transição baseadas no novo contexto.
     - **Transition**: Retorna o novo estado apontando para o próximo nó.
+
+#### 6.1. Hot Reload Lifecycle (v0.6)
+
+No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado.
+
+```mermaid
+sequenceDiagram
+    participant Watcher as "FS Watcher"
+    participant CLI as "CLI/Runner"
+    participant Engine as "Engine (New)"
+    participant Store as "StateStore"
+
+    Watcher->>CLI: Change Detected
+    CLI->>CLI: Cancel Context (Stop Runner)
+    
+    CLI->>Engine: New(repoPath)
+    
+    rect rgba(0, 0, 0, 0.1)
+        Note right of CLI: Recovery Guardrails
+        CLI->>Store: Load(SessionID)
+        CLI->>Engine: Inspect Current Node
+        alt Type Mismatch / Missing Node
+            CLI->>CLI: Reset to StatusActive
+        end
+    end
+
+    CLI->>CLI: Resume Execution
+```
+
+**Estratégias de Recuperação (Guardrails):**
+
+1. **Node Tipo 'tool' → 'text'**: Se o estado salvo era `WaitingForTool`, mas o nó foi alterado para `text` (ou deletado), o motor reseta o status para `Active` para evitar travamentos.
+2. **Erro de Sintaxe**: Se o arquivo alterado contiver erro de sintaxe, o Runner aguarda a próxima correção sem derrubar o processo e registra o erro via `logger.Error`.
 
 ### 7. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
 
