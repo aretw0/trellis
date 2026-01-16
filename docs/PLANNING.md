@@ -133,6 +133,15 @@ Foco: Mecanismos de controle de execução e segurança. O Trellis deve ser inte
 - [x] **Graceful Shutdown**: Implementado `SignalManager` para garantir cancelamento limpo de contextos e `OnNodeLeave` hooks mesmo em interrupções forçadas.
 - [x] **Input Sanitization**: Validar limitações físicas de input (tamanho, caracteres invisíveis) antes de injetar no State. Proteção contra DoS e contaminação de logs.
 
+### ✅ v0.5.3: Signals & Developer Experience (The "Ergonomics" Patch)
+
+Foco: Facilitar a vida de quem cria fluxos com Context Injection e melhor controle de sinais.
+
+- [x] **Context Injection**: Adicionar flag `--context '{"key": "val"}'` à CLI para facilitar testes e integração.
+- [x] **Default Context (Mocks)**: Permitir declarar valores padrão (`default_context`) no frontmatter para facilitar o desenvolvimento local e mocks de dependências.
+- [x] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
+- [x] **CLI DX**: Melhorias de output e logs para feedback mais limpo.
+
 ### 🧩 v0.6: Integration & Persistence (The "Stateful" Phase)
 
 Foco: Transformar o Trellis de um Engine Stateless em uma solução completa para aplicações reais (ChatOps, Bots), provendo interfaces para persistência e gerenciamento de sessões.
