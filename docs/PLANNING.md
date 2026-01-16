@@ -151,7 +151,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 - [ ] **Adapters de Persistência**:
   - [x] **FileStore**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
   - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
-- [ ] **Runner Refactor**: Migrar `Runner` para Functional Options Pattern (remover `sessionID` de `Run`).
+- [x] **Runner Refactor**: Migrar `Runner` para Functional Options Pattern (remover `sessionID` de `Run`).
   - [ ] **Session CLI**: Comandos para listar/inspecionar sessões (`trellis session ls`).
 - [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
 - [ ] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
@@ -160,6 +160,11 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [ ] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `cat` (Inspecionar State JSON).
   - [ ] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
   - [ ] **Auto-Pruning**: Implementar TTL ou política de limpeza para sessões antigas (FileStore).
+- [ ] **Stateful Hot Reload (Live Coding)**:
+  - Permitir `--watch` e `--session` simultâneos.
+  - Ao recarregar o grafo, o Runner reidrata o estado da sessão existente, mantendo o histórico e variáveis.
+  - Permite corrigir typos e lógica sem reiniciar o fluxo do zero.
+  - *Risk Check*: Se o nó atual for deletado, fallback para erro ou inicio.
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
