@@ -115,24 +115,24 @@ Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pi
 #### 5.1. Níveis de Teste
 
 1. **Core/Logic (Unit)**:
-   - **Alvo**: `pkg/domain`, `internal/runtime`.
-   - **Estilo**: Table-Driven Tests extensivos.
-   - **Objetivo**: Garantir que a máquina de estados (Engine) transite corretamente dado um input, sem depender de IO ou Filesystem.
-   - **Strict Serialization**: Inclui testes de regressão (`tests/serialization_test.go`) para garantir consistência de `json.Number` e tipos.
+    - **Alvo**: `pkg/domain`, `internal/runtime`.
+    - **Estilo**: Table-Driven Tests extensivos.
+    - **Objetivo**: Garantir que a máquina de estados (Engine) transite corretamente dado um input, sem depender de IO ou Filesystem.
+    - **Strict Serialization**: Inclui testes de regressão (`tests/serialization_test.go`) para garantir consistência de `json.Number` e tipos.
 
 2. **Adapters (Contract Tests)**:
-   - **Alvo**: `LoamLoader` vs `MemoryLoader`.
-   - **Estilo**: Interface Compliance Tests.
-   - **Objetivo**: O mesmo suite de testes deve rodar contra ambas as implementações para garantir que o comportamento seja idêntico. Se o `MemoryLoader` funciona, o `LoamLoader` deve funcionar igual.
+    - **Alvo**: `LoamLoader` vs `MemoryLoader`.
+    - **Estilo**: Interface Compliance Tests.
+    - **Objetivo**: O mesmo suite de testes deve rodar contra ambas as implementações para garantir que o comportamento seja idêntico. Se o `MemoryLoader` funciona, o `LoamLoader` deve funcionar igual.
 
 3. **Integration (E2E)**:
-   - **Alvo**: `cmd/trellis` (Blackbox).
-   - **Estilo**: CLI Runners / JSON In-Out.
-   - **Objetivo**: Simular um usuário real ou sistema externo interagindo com o binário. Verifica se a "cola" (Wiring) entre as camadas está funcionando.
+    - **Alvo**: `cmd/trellis` (Blackbox).
+    - **Estilo**: CLI Runners / JSON In-Out.
+    - **Objetivo**: Simular um usuário real ou sistema externo interagindo com o binário. Verifica se a "cola" (Wiring) entre as camadas está funcionando.
 
 4. **Snapshot Testing**:
-   - **Alvo**: CLI Output / TUI.
-   - **Objetivo**: Garantir que a experiência de cada pixel na tela não regrediu (útil para detectar quebras de layout).
+    - **Alvo**: CLI Output / TUI.
+    - **Objetivo**: Garantir que a experiência de cada pixel na tela não regrediu (útil para detectar quebras de layout).
 
 ---
 
@@ -381,6 +381,12 @@ Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside
     - *Propósito*: Controle do Ciclo de Vida e Integração com o Mundo Real (IO).
 
 Essa separação garante que o Core permaneça uma Máquina de Estados Pura e Determinística, enquanto o Runner assume a responsabilidade pela "sujeira" (Timeouts, Discos, Sinais de SO).
+
+#### 8.6. Estratégia de Persistência (Scope)
+
+- **Workspace-first**: As sessões são armazenadas em `.trellis/sessions/` no diretório de trabalho atual.
+- **Motivação**: Isolar sessões por projeto (como `.git` ou `.terraform`), facilitando o desenvolvimento e evitando colisões globais em ambientes multi-projeto.
+- **Formato**: Arquivos JSON simples para facilitar inspeção e debugging manual ("Loam-ish").
 
 ### 9. Fluxo de Dados e Serialização
 

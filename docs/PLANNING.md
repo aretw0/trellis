@@ -149,7 +149,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 - [x] **State Persistence Layer**: Definir interface `StateStore` (Load/Save/Delete) desacoplada do Core.
   - *Filosofia*: Snapshotting de Estado para permitir "Sleep & Resume" (Persistência, não Event Sourcing por enquanto).
 - [ ] **Adapters de Persistência**:
-  - [ ] **FileStore (Loam-ish)**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
+  - [x] **FileStore**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
   - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
 - [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
 - [ ] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
