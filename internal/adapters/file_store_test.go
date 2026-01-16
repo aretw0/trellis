@@ -101,4 +101,49 @@ func TestFileStore_Contract(t *testing.T) {
 			t.Errorf("Delete of non-existent session should not fail, got %v", err)
 		}
 	})
+
+	t.Run("ListSessions", func(t *testing.T) {
+		// Isolate this test
+		listDir, err := os.MkdirTemp("", "trellis_store_list_test")
+		if err != nil {
+			t.Fatalf("failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(listDir)
+		listStore := adapters.NewFileStore(listDir)
+
+		// Create a few sessions
+		ids := []string{"s1", "s2", "s3"}
+		for _, id := range ids {
+			if err := listStore.Save(ctx, id, domain.NewState("start")); err != nil {
+				t.Fatalf("Save failed: %v", err)
+			}
+		}
+
+		// Create a garbage file (should be ignored)
+		garbagePath := filepath.Join(listDir, "garbage.txt")
+		if err := os.WriteFile(garbagePath, []byte("garbage"), 0644); err != nil {
+			t.Fatalf("failed to create garbage file: %v", err)
+		}
+
+		// List
+		list, err := listStore.List(ctx)
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+
+		if len(list) != len(ids) {
+			t.Errorf("expected %d sessions, got %d", len(ids), len(list))
+		}
+
+		// Verify IDs present
+		mapped := make(map[string]bool)
+		for _, id := range list {
+			mapped[id] = true
+		}
+		for _, id := range ids {
+			if !mapped[id] {
+				t.Errorf("expected session %s in list", id)
+			}
+		}
+	})
 }

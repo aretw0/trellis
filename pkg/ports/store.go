@@ -18,4 +18,7 @@ type StateStore interface {
 
 	// Delete removes the state for a given session ID.
 	Delete(ctx context.Context, sessionID string) error
+
+	// List returns all active session IDs.
+	List(ctx context.Context) ([]string, error)
 }

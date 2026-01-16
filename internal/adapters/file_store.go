@@ -91,3 +91,26 @@ func (f *FileStore) Delete(ctx context.Context, sessionID string) error {
 
 	return nil
 }
+
+// List returns all active session IDs.
+func (f *FileStore) List(ctx context.Context) ([]string, error) {
+	entries, err := os.ReadDir(f.BasePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	var sessions []string
+	for _, entry := range entries {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
+			// Remove .json extension
+			name := entry.Name()
+			id := name[:len(name)-len(".json")]
+			sessions = append(sessions, id)
+		}
+	}
+
+	return sessions, nil
+}
