@@ -368,6 +368,7 @@ sequenceDiagram
     participant Engine
     participant Store
 
+    Note over CLI: PrintBanner() (Branding)
     CLI->>Runner: Run(sessionID)
     Runner->>SessionManager: LoadOrStart(sessionID)
     SessionManager->>Store: Load(sessionID)
@@ -389,6 +390,9 @@ sequenceDiagram
         Engine-->>Runner: NewState
         Runner->>Store: Save(NewState)
     end
+
+    Note over CLI: logCompletion(nodeID)
+    Note over CLI: handleExecutionError()
 ```
 
 #### 8.2. Stateless & Async IO

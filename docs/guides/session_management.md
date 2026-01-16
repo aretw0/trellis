@@ -91,3 +91,11 @@ trellis run --watch --session dev-session ./my-flow
 
 - **Preservação de Contexto**: Se você estiver no 10º passo de um fluxo complexo e mudar um texto, o Trellis recarrega o arquivo e te mantém no 10º passo, com todas as variáveis anteriores preservadas.
 - **Guardrails de Segurança**: Se o novo código introduzir um erro de sintaxe ou remover o nó atual, o Trellis se recupera graciosamente (voltando para o início ou mantendo a versão anterior estável).
+
+## 7. Sessões Implícitas (`watch-dev`)
+
+Para reduzir a fricção no desenvolvimento, o modo `--watch` habilita automaticamente a persistência, mesmo que você não passe o flag `--session`.
+
+- **Comportamento**: O Trellis cria ou retoma uma sessão chamada `watch-dev` em `.trellis/sessions/`.
+- **Objetivo**: Garantir que o "Stateful Hot Reload" funcione por padrão. Se você salvar um arquivo enquanto estiver no meio de um fluxo, o Trellis recarregará e te manterá no mesmo nó.
+- **Limpeza**: Esta sessão é fixa por projeto. Você pode limpá-la a qualquer momento com `trellis session rm watch-dev`.
