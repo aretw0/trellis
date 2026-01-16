@@ -32,6 +32,13 @@ As interfaces que o engine usa para buscar dados.
 - `GraphLoader.GetNode(id)`: Abstração para carregar nós. O **Loam** implementa isso via adapter.
 - `GraphLoader.ListNodes()`: Descoberta de nós para introspecção.
 
+#### 2.2.1. Portas de Persistência (Store) - *Experimental v0.6*
+
+Interface experimental para "Durable Execution" (Sleep/Resume).
+
+- `StateStore.Save(ctx, sessionID, state)`: Persiste o snapshot da execução.
+- `StateStore.Load(ctx, sessionID)`: Hidrata uma sessão anterior.
+
 #### 2.3. Diagrama de Arquitetura
 
 ```mermaid
@@ -45,6 +52,10 @@ graph TD
     Engine -->|Driven Port| Loader[GraphLoader Interface]
     Loader -.->|Adapter| Loam[Loam - File System]
     Loader -.->|Adapter| Mem[InMemory - Testing]
+    
+    Engine -->|Driven Port| Store[StateStore Interface]
+    Store -.->|Adapter| FileStore[FileStore - Local JSON]
+    Store -.->|Adapter| Redis[Redis - Cloud]
 ```
 
 ### 3. Estrutura de Diretórios

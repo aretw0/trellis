@@ -146,7 +146,7 @@ Foco: Facilitar a vida de quem cria fluxos com Context Injection e melhor contro
 
 Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable Execution** (inspirado em Temporal), permitindo fluxos de longa duração e recuperação de falhas.
 
-- [ ] **State Persistence Layer**: Definir interface `StateStore` (Load/Save/Delete) desacoplada do Core.
+- [x] **State Persistence Layer**: Definir interface `StateStore` (Load/Save/Delete) desacoplada do Core.
   - *Filosofia*: Snapshotting de Estado para permitir "Sleep & Resume" (Persistência, não Event Sourcing por enquanto).
 - [ ] **Adapters de Persistência**:
   - [ ] **FileStore (Loam-ish)**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
