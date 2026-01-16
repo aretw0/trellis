@@ -151,9 +151,15 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 - [ ] **Adapters de Persistência**:
   - [x] **FileStore**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
   - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
+- [ ] **Runner Refactor**: Migrar `Runner` para Functional Options Pattern (remover `sessionID` de `Run`).
+  - [ ] **Session CLI**: Comandos para listar/inspecionar sessões (`trellis session ls`).
 - [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
 - [ ] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
 - [ ] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
+- [ ] **Persistency Management (Chaos Control)**:
+  - [ ] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `cat` (Inspecionar State JSON).
+  - [ ] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
+  - [ ] **Auto-Pruning**: Implementar TTL ou política de limpeza para sessões antigas (FileStore).
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
@@ -194,5 +200,6 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - **2026-01-15**: *Sober Refactor*. Consolidação da confiabilidade do Runner. Unificada a lógica de nós terminais (garantindo logs de saída) e extraído `SignalManager` para isolar complexidade de concorrência. Adotado `log/slog` padronizado em todo o CLI.
 - **2026-01-16**: *Roadmap Pivot*. v0.6 redefinida de "DX/Ergonomics" para "Integration & Persistence". Reconhecimento de que a gestão de estado persistente e concorrência é o "Elo Perdido" para adoção em ChatOps reais, priorizando-o sobre features de luxo (LSP/DSL).
 - **2026-01-16**: *Future Phases*. Roadmap v0.7 e v0.8 reestruturados para separar preocupações de Runtime/Escala (v0.7 - Network) das preocupações de Ferramental/Ecossistema (v0.8 - Modularity).
+- **2026-01-16**: *Runner Refactor Decision*. Decidido refatorar o `Runner` para usar **Functional Options Pattern**. Motivo: A injeção de `Store` e `SessionID` via argumentos/propriedades tornou a API frágil e inconsistente ("bêbada"). A configuração deve ser imutável no momento da construção.
 
 ---
