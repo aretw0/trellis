@@ -12,28 +12,27 @@ const (
 // State represents the current snapshot of the execution.
 type State struct {
 	// CurrentNodeID is the identifier of the active node.
-	CurrentNodeID string
+	CurrentNodeID string `json:"current_node_id"`
 
 	// Status indicates if the engine is running, waiting, or done.
-	Status ExecutionStatus
+	Status ExecutionStatus `json:"status"`
 
 	// PendingToolCall holds the ID of the tool call we are waiting for (if Status == WaitingForTool).
-	PendingToolCall string
+	PendingToolCall string `json:"pending_tool_call,omitempty"`
 
-	// Context holds variable state for the session.
 	// Context holds variable state for the session (User space).
-	Context map[string]any
+	Context map[string]any `json:"context"`
 
 	// SystemContext holds system-level state (Read-only for templates, Host-writable).
 	// Reserved namespace: "sys".
-	SystemContext map[string]any
+	SystemContext map[string]any `json:"system_context"`
 
 	// History could track the path taken (optional for now, but good for debugging)
-	History []string
+	History []string `json:"history,omitempty"`
 
 	// Terminated indicates if the execution has reached a sink state (no transitions).
 	// Deprecated: Use Status == StatusTerminated instead. Kept for backward compat.
-	Terminated bool
+	Terminated bool `json:"terminated,omitempty"`
 }
 
 // NewState creates a clean state starting at a specific node.
