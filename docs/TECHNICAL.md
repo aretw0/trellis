@@ -244,6 +244,7 @@ sequenceDiagram
 
 1. **Node Tipo 'tool' → 'text'**: Se o estado salvo era `WaitingForTool`, mas o nó foi alterado para `text` (ou deletado), o motor reseta o status para `Active` para evitar travamentos.
 2. **Erro de Sintaxe**: Se o arquivo alterado contiver erro de sintaxe, o Runner aguarda a próxima correção sem derrubar o processo e registra o erro via `logger.Error`.
+3. **Session Scoping**: No modo `watch`, se nenhum ID de sessão for fornecido, um ID determinístico baseado no hash do caminho do repositório (`watch-<hash>`) é gerado para evitar colisões entre projetos.
 
 ### 7. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
 
@@ -527,6 +528,12 @@ O Trellis adota uma arquitetura plugável para interpolação de variáveis via 
 O Trellis força **Strict Mode** em todos os adaptadores para resolver o problema do `float64` em JSON. Números são decodificados como `json.Number` ou `int64` para garantir integridade de IDs e timestamps.
 
 #### 9.4. Data Contracts (Validation & Defaults)
+
+**Standard Serialization (Snake Case):**
+
+To ensure interoperability, the Engine serializes its state to JSON using `snake_case` keys (e.g., `current_node_id`, `pending_tool_call`), regardless of the internal Go struct naming. This allows for cleaner integration with external tools and manual session inspection.
+
+**Fail Fast (Required Context):**
 
 Nós servem como fronteiras de dados e podem impor contratos de execução:
 
