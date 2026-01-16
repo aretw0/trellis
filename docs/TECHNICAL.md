@@ -286,6 +286,9 @@ Trellis supports two primary modes of operation:
 
 - **Strict JSON Lines (JSONL)**: All inputs to the `JSONHandler` must be single-line JSON strings.
 - **Async/Non-Blocking**: The handler reads from Stdin in a background goroutine, allowing cancellation (timeout/interrupt).
+- **Signal Mapping**: The Runner monitors the `context.Done()` channel. If the context is cancelled during input, it maps:
+  - `context.DeadlineExceeded` -> `"timeout"`
+  - `context.Canceled` -> `"interrupt"`
 
 #### 7.2. Semântica de Texto e Bloqueio
 
@@ -429,8 +432,29 @@ Mecanismo robusto para recuperação de falhas em ferramentas.
 
 - Se `ToolResult.IsError` for true:
   - O Engine **PULA** o `save_to` (evita context poisoning).
+  - O Engine busca transição `on_error` ou `on_error: "retry"`.
   - Se houver `on_error`: Transita para o nó de recuperação.
-  - Se não houver: **Fail Fast** (Engine aborta com erro).
+  - Se não houver handler, o erro sobe (Panic/Fatal).
+
+#### 10.3. Controle de Execução (Signals & Timeouts)
+
+Mecanismos para controle de fluxo assíncrono e limites de execução.
+
+**Timeouts (Sinal de Sistema):**
+
+- **Definição**: `timeout: 30s` (declarativo no nó).
+- **Mapping**: O Runner mapeia `context.DeadlineExceeded` automaticamente para o sinal `"timeout"`.
+- **Fail Fast**: Se o sinal `"timeout"` não for tratado via `on_signal`, o Runner encerra a execução com erro (`timeout exceeded`). Isso evita loops infinitos ou estados zumbis.
+
+**Sinais Globais (Interrupções):**
+
+- **API**: `POST /signal` (e.g., Interrupt, Shutdown).
+- **Handlers**: O Engine verifica `on_signal` no estado atual.
+- **Workflow**:
+  1. Runner detecta sinal via Context ou Input.
+  2. Engine tenta criar transição (`on_signal`).
+  3. **Sucesso**: Fluxo continua no novo estado.
+  4. **Falha (Unhandled/Loader Error)**: Runner aborta execução (`fail fast`).
 
 ```mermaid
 flowchart TD
@@ -445,14 +469,14 @@ flowchart TD
     style Recovery fill:#6f6,stroke:#333,color:#000
 ```
 
-#### 10.3. System Context Namespace
+#### 10.4. System Context Namespace
 
 O namespace `sys.*` é reservado no Engine.
 
 - **Read-Only**: Templates podem ler (`{{ .sys.error }}`).
 - **Write-Protected**: `save_to` não pode escrever em `sys` (proteção contra injeção).
 
-#### 10.4. Global Signals (Interrupts)
+#### 10.5. Global Signals (Interrupts)
 
 O Trellis suporta a conversão de sinais do sistema operacional (ex: `Ctrl+C` / `SIGINT`) em transições de estado.
 
@@ -470,7 +494,7 @@ Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine trans
 
 > **Consistency Note**: Quando um sinal dispara uma transição, o evento `OnNodeLeave` é emitido para o nó interrompido, mantendo a consistência do ciclo de vida.
 
-#### 10.5. Future Signals (Contexts)
+#### 10.6. Future Signals (Contexts)
 
 O mecanismo de `on_signal` é a base para futuros recursos de interrupção:
 
@@ -480,7 +504,7 @@ O mecanismo de `on_signal` é a base para futuros recursos de interrupção:
 ```mermaid
 flowchart TD
     Start([User Input]) --> Wait{Waiting Input?}
-    Wait -- Ctrl+C --> Sig[SignalManager: Capture Signal]
+    Wait -- Ctrl+C / Timeout --> Sig[SignalManager: Capture Signal]
     Sig --> Engine[Engine.Signal]
     
     Engine --> Handled{Has on_signal?}
@@ -490,10 +514,11 @@ flowchart TD
     Transition --> Reset[SignalManager: Reset Context]
     Reset --> Resume([Resume Execution])
     
-    Handled -- No --> Exit{{Exit Process}}
+    Handled -- No --> Exit{{Fail Fast: Exit Process}}
     
     style Sig fill:#783578,stroke:#333
     style Reset fill:#4a4a7d,stroke:#333
+    style Exit fill:#f00,stroke:#333,color:#fff
 ```
 
 ### 10.6 Input Sanitization & Limits
@@ -513,9 +538,17 @@ See [Deployment Strategies](../docs/guides/deployment_strategies.md) for provisi
 Responsável por converter visualmente o grafo e estados.
 
 - **Trellis Graph**: Gera diagramas Mermaid.
-  - Start: `(( ))`
-  - Tool: `[[ ]]`
-  - Question: `[/ /]`
+  - **Start/Root** (`(( ))`): Nó inicial ou com ID "start".
+  - **Question/Input** (`[/ /]`): Nós que exigem interação do usuário.
+  - **Tool/Action** (`[[ ]]`): Nós que executam efeitos colaterais.
+  - **Default** (`[ ]`): Nós de texto simples ou lógica interna.
+  - **Timeouts** (`⏱️`): Anotação visual no label do nó.
+
+**Arestas e Transições:**
+
+- **Fluxo Normal** (`-->`): Transições padrão.
+- **Salto de Módulo** (`-.->`): Transições entre arquivos (`jump_to`).
+- **Sinais/Interrupções** (`-. ⚡ .->`): Transições disparadas por `on_signal`.
 
 #### 11.2. HTTP Server (Stateless)
 

@@ -31,25 +31,11 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 
 	// Options
 	var opts []trellis.Option
+
+	// Pass Logger to Engine (if using Debug)
 	if debug {
-		opts = append(opts, trellis.WithLifecycleHooks(domain.LifecycleHooks{
-			OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
-				logger.Debug("Enter Node", "node_id", e.NodeID, "type", e.NodeType)
-			},
-			OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
-				logger.Debug("Leave Node", "node_id", e.NodeID)
-			},
-			OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
-				logger.Debug("Tool Call", "tool_name", e.ToolName)
-			},
-			OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
-				if e.IsError {
-					logger.Debug("Tool Return (Error)", "tool_name", e.ToolName, "error", e.Output)
-				} else {
-					logger.Debug("Tool Return (Success)", "tool_name", e.ToolName)
-				}
-			},
-		}))
+		opts = append(opts, trellis.WithLogger(logger))
+		opts = append(opts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
 	}
 
 	// Initialize Engine
@@ -126,10 +112,11 @@ func RunWatch(repoPath string) {
 		// 3. Configure Runner with Interruptible Input
 		interruptReader := NewInterruptibleReader(os.Stdin, sessionCtx.Done())
 
+		th := runner.NewTextHandler(interruptReader, os.Stdout)
+		th.Renderer = tui.NewRenderer()
+
 		r := runner.NewRunner()
-		r.Input = interruptReader
-		r.Output = os.Stdout
-		r.Renderer = tui.NewRenderer()
+		r.Handler = th
 
 		// 4. Start Watcher Routine
 		go func() {
@@ -244,4 +231,25 @@ func (r *InterruptibleReader) Read(p []byte) (n int, err error) {
 	default:
 	}
 	return n, err
+}
+
+func createDebugHooks(logger *slog.Logger) domain.LifecycleHooks {
+	return domain.LifecycleHooks{
+		OnNodeEnter: func(ctx context.Context, e *domain.NodeEvent) {
+			logger.Debug("Enter Node", "node_id", e.NodeID, "type", e.NodeType)
+		},
+		OnNodeLeave: func(ctx context.Context, e *domain.NodeEvent) {
+			logger.Debug("Leave Node", "node_id", e.NodeID)
+		},
+		OnToolCall: func(ctx context.Context, e *domain.ToolEvent) {
+			logger.Debug("Tool Call", "tool_name", e.ToolName)
+		},
+		OnToolReturn: func(ctx context.Context, e *domain.ToolEvent) {
+			if e.IsError {
+				logger.Debug("Tool Return (Error)", "tool_name", e.ToolName, "error", e.Output)
+			} else {
+				logger.Debug("Tool Return (Success)", "tool_name", e.ToolName)
+			}
+		},
+	}
 }
