@@ -120,6 +120,39 @@ paths:
         "500":
           description: Internal server error
 
+  /signal:
+    post:
+      summary: Send a global signal to the state machine
+      operationId: Signal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - state
+                - signal
+              properties:
+                state:
+                  $ref: "#/components/schemas/State"
+                signal:
+                  type: string
+                  description: The name of the signal (e.g., "interrupt", "timeout")
+      responses:
+        "200":
+          description: New state (transitioned)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: Invalid input
+        "404":
+          description: Signal not handled (no transition)
+        "500":
+          description: Internal server error
+
 components:
   schemas:
     State:
