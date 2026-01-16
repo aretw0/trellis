@@ -350,9 +350,11 @@ O Trellis adota uma arquitetura plugável para interpolação de variáveis via 
 
 O Trellis força **Strict Mode** em todos os adaptadores para resolver o problema do `float64` em JSON. Números são decodificados como `json.Number` ou `int64` para garantir integridade de IDs e timestamps.
 
-#### 8.4. Data Contracts (Required Context)
+#### 8.4. Data Contracts (Validation & Defaults)
 
-Nós podem declarar dependências explícitas para **Fail Fast**:
+Nós servem como fronteiras de dados e podem impor contratos de execução:
+
+**Fail Fast (Required Context):**
 
 ```yaml
 required_context:
@@ -360,15 +362,26 @@ required_context:
   - api_key
 ```
 
-Se uma chave estiver faltando no Contexto, o Engine aborta a execução com `ContextValidationError` antes de processar o nó.
+Se uma chave estiver faltando, o Engine aborta a execução com `ContextValidationError`.
+
+**Valores Padrão (Mocking):**
+
+Nós (convencionalmente `start`) podem definir valores de fallback para simplificar o desenvolvimento local:
+
+```yaml
+default_context:
+  api_url: "http://localhost:8080"
+```
 
 #### 8.5. Initial Context Injection (Seed State)
 
-Para facilitar testes automatizados e integração com sistemas legados, o Trellis permite "semear" (seed) o estado inicial.
+Para facilitar testes automatizados e integração, o Trellis permite injetar o estado inicial.
 
 - **API**: `Engine.Start(ctx, initialData map[string]any)`
 - **CLI**: Flag `--context '{"user": "Alice"}'`
-- **Uso**: Os dados injetados estão disponíveis imediatamente para interpolação (`{{.user}}`) e lógica condicional no nó `start`.
+- **Configuração**: Use `trellis.WithEntryNode("custom_start")` para sobrescrever o ponto de entrada padrão ("start").
+- **Precedência**: `initialData` (Runtime) > `default_context` (File).
+- **Uso**: Dados injetados estão disponíveis imediatamente para interpolação (`{{.user}}`) no nó de entrada.
 
 ---
 
