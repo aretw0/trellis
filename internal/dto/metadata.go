@@ -23,6 +23,9 @@ type NodeMetadata struct {
 	// DefaultContext provides fallback values for context keys
 	DefaultContext map[string]any `json:"default_context" mapstructure:"default_context"`
 
+	// Timeout defines the maximum duration (e.g. "30s") to wait for input.
+	Timeout string `json:"timeout,omitempty" mapstructure:"timeout"`
+
 	// Interactive Input Config
 	InputType    string   `json:"input_type" mapstructure:"input_type"`
 	InputOptions []string `json:"input_options" mapstructure:"input_options"`

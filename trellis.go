@@ -3,6 +3,7 @@ package trellis
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/aretw0/loam"
@@ -21,6 +22,7 @@ type Engine struct {
 	evaluator    runtime.ConditionEvaluator
 	interpolator runtime.Interpolator
 	hooks        domain.LifecycleHooks
+	logger       *slog.Logger
 }
 
 // Option defines a functional option for configuring the Engine.
@@ -51,6 +53,13 @@ func WithConditionEvaluator(eval runtime.ConditionEvaluator) Option {
 func WithInterpolator(interp runtime.Interpolator) Option {
 	return func(e *Engine) {
 		e.interpolator = interp
+	}
+}
+
+// WithLogger sets a custom structured logger for the engine.
+func WithLogger(logger *slog.Logger) Option {
+	return func(e *Engine) {
+		e.logger = logger
 	}
 }
 
@@ -100,6 +109,7 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 		eng.evaluator,
 		eng.interpolator,
 		runtime.WithLifecycleHooks(eng.hooks),
+		runtime.WithLogger(eng.logger),
 	)
 
 	return eng, nil

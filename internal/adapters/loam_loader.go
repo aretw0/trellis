@@ -143,6 +143,9 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 	if doc.Data.Metadata != nil {
 		data["metadata"] = doc.Data.Metadata
 	}
+	if doc.Data.Timeout != "" {
+		data["timeout"] = doc.Data.Timeout
+	}
 
 	bytes, err := json.Marshal(data)
 	if err != nil {

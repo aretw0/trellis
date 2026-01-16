@@ -58,4 +58,7 @@ type Node struct {
 
 	// Tools defined within this node (e.g. for LLM context)
 	Tools []Tool `json:"tools,omitempty" yaml:"tools,omitempty"`
+
+	// Timeout defines the maximum duration (e.g. "30s") to wait for input.
+	Timeout string `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 }

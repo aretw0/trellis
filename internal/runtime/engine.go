@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -23,6 +25,7 @@ type Engine struct {
 	interpolator Interpolator
 	hooks        domain.LifecycleHooks
 	entryNodeID  string
+	logger       *slog.Logger
 }
 
 // EngineOption allows configuring the engine via functional options.
@@ -39,6 +42,13 @@ func WithLifecycleHooks(hooks domain.LifecycleHooks) EngineOption {
 func WithEntryNode(nodeID string) EngineOption {
 	return func(e *Engine) {
 		e.entryNodeID = nodeID
+	}
+}
+
+// WithLogger configures the structured logger for the engine.
+func WithLogger(logger *slog.Logger) EngineOption {
+	return func(e *Engine) {
+		e.logger = logger
 	}
 }
 
@@ -120,7 +130,8 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpola
 		parser:       compiler.NewParser(),
 		evaluator:    evaluator,
 		interpolator: interpolator,
-		entryNodeID:  "start", // Default convention
+		entryNodeID:  "start",                                        // Default convention
+		logger:       slog.New(slog.NewJSONHandler(io.Discard, nil)), // Default No-Op
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -227,12 +238,27 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			inputType = domain.InputText
 		}
 
+		// Parse Timeout
+		var timeoutDuration time.Duration
+		if node.Timeout != "" {
+			if d, err := time.ParseDuration(node.Timeout); err == nil {
+				timeoutDuration = d
+			} else {
+				e.logger.Warn("Failed to parse node timeout",
+					"node_id", node.ID,
+					"timeout", node.Timeout,
+					"error", err,
+				)
+			}
+		}
+
 		actions = append(actions, domain.ActionRequest{
 			Type: domain.ActionRequestInput,
 			Payload: domain.InputRequest{
 				Type:    inputType,
 				Options: node.InputOptions,
 				Default: node.InputDefault,
+				Timeout: timeoutDuration,
 			},
 		})
 	}
@@ -284,7 +310,14 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		})
 	}
 
-	isTerminal := len(node.Transitions) == 0
+	// A node is terminal if it has NO transitions (input, signal, or timeout).
+	// If a Node has a Timeout, it will transition on timeout event.
+	// If a Node has OnSignal, it can transition on external signal.
+	hasStandardTransitions := len(node.Transitions) > 0
+	hasSignalTransitions := len(node.OnSignal) > 0
+	hasTimeout := node.Timeout != ""
+
+	isTerminal := !hasStandardTransitions && !hasSignalTransitions && !hasTimeout
 	return actions, isTerminal, nil
 }
 

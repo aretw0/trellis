@@ -1,5 +1,9 @@
 package domain
 
+import (
+	"time"
+)
+
 // ActionRequest represents a side-effect that the engine requests the host to perform.
 type ActionRequest struct {
 	Type    string // e.g., "CLI_PRINT", "HTTP_GET"
@@ -36,9 +40,10 @@ const (
 
 // InputRequest describes the constraints and type of input needed.
 type InputRequest struct {
-	Type    InputType `json:"type"`
-	Options []string  `json:"options,omitempty"`
-	Default string    `json:"default,omitempty"`
+	Type    InputType     `json:"type"`
+	Options []string      `json:"options,omitempty"`
+	Default string        `json:"default,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"` // Parsed duration (e.g. 5s)
 }
 
 // ActionResponse represents the result of an ActionRequest.
