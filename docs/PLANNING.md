@@ -167,9 +167,9 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - Permite corrigir typos e lógica sem reiniciar o fluxo do zero.
   - *Risk Check*: Se o nó atual for deletado, fallback para erro ou inicio.
 - [ ] **CLI Observability Strategy (DX)**:
-  - [ ] **Unified Logging**: Harmonizar output para Normal/Watch/Debug (Prefixos, Espaçamento).
-  - [ ] **Session UX**: Feedback explícito para eventos de Sessão (Start, Rehydrate, Reload).
-  - [ ] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
+  - [x] **Unified Logging**: Harmonizar output para Normal/Watch/Debug (Prefixos, Espaçamento).
+  - [x] **Session UX**: Feedback explícito para eventos de Sessão (Start, Rehydrate, Reload).
+  - [x] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 

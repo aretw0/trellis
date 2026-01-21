@@ -32,9 +32,13 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	// Setup Persistence
 	store, sessionManager := setupPersistence(sessionID)
 
+	// Setup signal handling
+	// Use the unified SignalContext helper
+	sigCtx := NewSignalContext(context.Background())
+	defer sigCtx.Cancel()
+
 	// Hydrate State
-	ctx := context.Background()
-	state, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, initialContext, sessionManager)
+	state, loaded, err := hydrateAndValidateState(sigCtx, engine, sessionID, initialContext, sessionManager)
 	if err != nil {
 		return fmt.Errorf("failed to init session: %w", err)
 	}
@@ -42,19 +46,24 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	logSessionStatus(logger, sessionID, state.CurrentNodeID, loaded, jsonMode || headless)
 
 	// Setup Runner
-	runnerOpts := createRunnerOptions(logger, headless, sessionID, store, jsonMode)
+	runnerOpts := createRunnerOptions(logger, headless, sessionID, store, jsonMode, nil)
 	r := runner.NewRunner(runnerOpts...)
 
 	// Execute
-	finalState, runErr := r.Run(ctx, engine, state)
+	finalState, runErr := r.Run(sigCtx, engine, state)
 
 	// Log Completion
-	// Use finalState ID if available, otherwise fallback to initial state (for early errors)
 	completionNodeID := state.CurrentNodeID
 	if finalState != nil {
 		completionNodeID = finalState.CurrentNodeID
 	}
-	logCompletion(completionNodeID, sessionID, runErr, jsonMode || headless)
+
+	// If context was canceled (signal received), ensure runErr reflects it if it doesn't already
+	if sigCtx.Err() != nil && runErr == nil {
+		runErr = sigCtx.Err()
+	}
+
+	logCompletion(completionNodeID, runErr, debug, true, jsonMode || headless, sigCtx.Signal())
 
 	return handleExecutionError(runErr)
 }

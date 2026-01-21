@@ -279,7 +279,21 @@ func (r *Runner) handleInput(
 		signals.CheckRace()
 
 		if ctx.Err() != nil {
-			r.Logger.Debug("Runner input: Context cancelled", "err", ctx.Err())
+			if ctx.Err() == context.Canceled {
+				// Check if this cancellation came from the SignalManager (SIGINT) or external (Reload)
+				if signals.Context().Err() != nil {
+					r.Logger.Debug("Runner input: Interrupted (Clean Exit)")
+				} else {
+					// This means ctx was cancelled by the parent (e.g. Watcher reload), not by SIGINT.
+					// We should not treat this as a signal that needs 'on_signal' handling.
+					r.Logger.Debug("Runner input: Context Cancelled (Reload/Stop)")
+					return nil, nil, fmt.Errorf("interrupted")
+				}
+			} else if ctx.Err() == context.DeadlineExceeded {
+				r.Logger.Debug("Runner input: Context Expired (Timeout)")
+			} else {
+				r.Logger.Debug("Runner input: Context Error", "err", ctx.Err())
+			}
 
 			// Determine cause: Global Interrupt vs Local Timeout
 			signalName := "interrupt"
@@ -296,16 +310,19 @@ func (r *Runner) handleInput(
 				return nil, nextState, nil
 			}
 
-			if signalName == "timeout" {
-				// If unhandled timeout, we might just loop? Or error?
-				// For now, if unhandled timeout, we return error to stop execution
+			// Default Behavior: If no custom handler is defined for the signal, we break execution gracefully.
+			// For known signals like 'interrupt' or 'timeout', we log a helpful hint.
+			switch signalName {
+			case "interrupt":
+				r.Logger.Debug("Runner input: Stopping (Default Exit)", "signal", signalName, "help", "Define 'on_signal: interrupt' to override")
+				return nil, nil, fmt.Errorf("interrupted")
+			case "timeout":
+				r.Logger.Debug("Runner input: Stopping (Default Exit)", "signal", signalName, "help", "Define 'on_signal: timeout' to override")
 				return nil, nil, fmt.Errorf("timeout exceeded and no 'on_signal.timeout' handler defined")
+			default:
+				r.Logger.Debug("Runner input: Stopping (Unhandled Signal)", "signal", signalName)
+				return nil, nil, fmt.Errorf("interrupted")
 			}
-
-			// Reduce noise: If it's a generic interrupt/reload and no handler logic exists,
-			// just stop execution without scary logs.
-			r.Logger.Debug("Runner input: Stopping (Context cancelled)", "signal", signalName)
-			return nil, nil, fmt.Errorf("interrupted")
 		}
 
 		if err == io.EOF {

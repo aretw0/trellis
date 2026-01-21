@@ -25,7 +25,7 @@ func PrintBanner(version string) {
 	fmt.Println(s5)
 	fmt.Println(s6)
 	if version != "" {
-		v := termenv.String(fmt.Sprintf("         v%s", version)).Foreground(p.Color("#818cf8"))
+		v := termenv.String(fmt.Sprintf("           v%s", version)).Foreground(p.Color("#818cf8"))
 		fmt.Println(v)
 	}
 	fmt.Println()

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -27,31 +26,22 @@ var runCmd = &cobra.Command{
 		sessionID, _ := cmd.Flags().GetString("session")
 		fresh, _ := cmd.Flags().GetBool("fresh")
 
-		if fresh {
-			cli.ResetSession(sessionID)
+		opts := cli.RunOptions{
+			RepoPath:  repoPath,
+			Headless:  headless,
+			Watch:     watchMode,
+			JSON:      jsonMode,
+			Debug:     debug,
+			Context:   contextStr,
+			SessionID: sessionID,
+			Fresh:     fresh,
 		}
 
-		var initialContext map[string]any
-		if contextStr != "" {
-			if err := json.Unmarshal([]byte(contextStr), &initialContext); err != nil {
-				fmt.Printf("Error parsing --context JSON: %v\n", err)
-				os.Exit(1)
-			}
-		}
-
-		if watchMode && headless {
-			fmt.Println("Error: --watch and --headless cannot be used together.")
+		if err := cli.Execute(opts); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			// Ensure we exit 1 on actual errors, but handle clean interruptions gracefully
+			// Note: cli.Execute already filters standard interruptions (returning nil)
 			os.Exit(1)
-		}
-
-		if watchMode {
-			cli.RunWatch(repoPath, sessionID, debug)
-		} else {
-			err := cli.RunSession(repoPath, headless, jsonMode, debug, initialContext, sessionID)
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
 		}
 	},
 }

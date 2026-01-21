@@ -277,14 +277,13 @@ func (l *LoamLoader) Watch(ctx context.Context) (<-chan string, error) {
 			select {
 			case <-ctx.Done():
 				return
-			case _, ok := <-events:
+			case evt, ok := <-events:
 				if !ok {
 					return
 				}
-				// For now, we just signal a generic "reload" event.
-				// In the future, we could inspect the event to see exactly what changed.
+				// Pass the changed ID up the chain
 				select {
-				case ch <- "reload":
+				case ch <- evt.ID:
 				default:
 					// Drop event if channel is full (debounce)
 				}

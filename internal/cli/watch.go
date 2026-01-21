@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/aretw0/trellis"
@@ -18,7 +16,8 @@ import (
 )
 
 // RunWatch executes Trellis in development mode, reloading on file changes.
-func RunWatch(repoPath string, sessionID string, debug bool) {
+// RunWatch executes Trellis in development mode, reloading on file changes.
+func RunWatch(repoPath string, sessionID string, debug bool, fresh bool) {
 	logger := createLogger(debug)
 	tui.PrintBanner(trellis.Version)
 
@@ -29,10 +28,15 @@ func RunWatch(repoPath string, sessionID string, debug bool) {
 		sessionID = fmt.Sprintf("watch-%x", hash[:4])
 	}
 
-	logger.Info("Starting Watcher", "path", repoPath, "session_id", sessionID)
+	if fresh {
+		ResetSession(sessionID)
+	}
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	logger.Info("Starting Watcher", "path", repoPath, "session_id", sessionID)
+	printSystemMessage("Watcher at '%s' session.", sessionID)
+
+	sigCtx := NewSignalContext(context.Background())
+	defer sigCtx.Cancel()
 
 	// Reuse the same IO handler to avoid multiple Stdin Pumps (ghost readers)
 	// We use the interruptible reader to stop blocking on Stdin during reload
@@ -40,20 +44,21 @@ func RunWatch(repoPath string, sessionID string, debug bool) {
 	ioHandler.Renderer = tui.NewRenderer()
 
 	for {
-		if !runWatchIteration(repoPath, sessionID, debug, sigCh, ioHandler) {
+		if !runWatchIteration(sigCtx, repoPath, sessionID, debug, ioHandler) {
 			break
 		}
 		logger.Info("Watcher restarting")
 	}
 
-	// Graceful exit message for the outer loop
-	fmt.Println(">>> Watcher stopped. Goodbye!")
+	// Graceful exit message for the outer loop (Interrupted message handled by logCompletion)
 	// Ensure we exit cleanly
 	os.Exit(0)
 }
 
-func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan os.Signal, ioHandler runner.IOHandler) bool {
-	ctx, cancel := context.WithCancel(context.Background())
+func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID string, debug bool, ioHandler runner.IOHandler) bool {
+	// Create a child context that can be cancelled by reload (without cancelling the parent signal context)
+	// But catching parent signals
+	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 
 	logger := createLogger(debug)
@@ -68,7 +73,13 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	engine, err := trellis.New(repoPath, engineOpts...)
 	if err != nil {
 		logger.Error("Engine initialization failed", "err", err)
-		return waitBackoff(sigCh, 2*time.Second)
+		// We can't reuse waitBackoff easily with context, so manual check
+		select {
+		case <-parentCtx.Done():
+			return false
+		case <-time.After(2 * time.Second):
+			return true
+		}
 	}
 
 	// 2. Setup Persistence and Session Management
@@ -77,7 +88,14 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	state, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, nil, sessionManager)
 	if err != nil {
 		logger.Error("State rehydration failed", "err", err)
-		return waitForFix(ctx, engine, sigCh)
+		// Wait for fix
+		watchCh, _ := engine.Watch(ctx)
+		select {
+		case <-parentCtx.Done():
+			return false
+		case _, ok := <-watchCh:
+			return ok
+		}
 	}
 
 	if loaded && sessionID != "" {
@@ -87,7 +105,7 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	// 3. Setup Watcher & Runner
 	watchCh, _ := engine.Watch(ctx)
 
-	rOpts := createRunnerOptions(logger, false, sessionID, store, false)
+	rOpts := createRunnerOptions(logger, false, sessionID, store, false, &ioHandler)
 	// Use the shared handler
 	rOpts = append(rOpts, runner.WithInputHandler(ioHandler))
 
@@ -102,9 +120,13 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 		select {
 		case <-ctx.Done():
 			return
-		case _, ok := <-watchCh:
+		case event, ok := <-watchCh:
 			if ok {
-				logger.Info("Change detected, triggering reload")
+				logger.Info("Change detected, triggering reload", "event", event)
+				if !debug {
+					fmt.Printf("\n")
+				}
+				printSystemMessage("Change detected in '%s'.", event)
 				// Delay slightly to ensure file system is stable
 				time.Sleep(100 * time.Millisecond)
 				reloadCh <- struct{}{}
@@ -116,13 +138,7 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	// 5. Run
 	if loaded {
 		logger.Debug("Resuming node execution", "node_id", state.CurrentNodeID)
-		if debug {
-			fmt.Printf(">>> Resuming at node '%s'...\n", state.CurrentNodeID)
-		}
-	}
-
-	if debug {
-		fmt.Printf("--- Hot Reload Active (Node: %s) ---\n", state.CurrentNodeID)
+		printSystemMessage("Resuming at '%s' node...", state.CurrentNodeID)
 	}
 
 	// Use a dedicated context for this run iteration that can be cancelled by reloads
@@ -142,42 +158,22 @@ func runWatchIteration(repoPath string, sessionID string, debug bool, sigCh chan
 	}()
 
 	select {
-	case <-sigCh:
+	case <-parentCtx.Done():
 		runCancel() // Stop the runner
 		<-doneCh    // Wait for it to exit
-		logger.Info("Stopping watcher (signal received)")
+		logCompletion(state.CurrentNodeID, context.Canceled, debug, true, false, parentCtx.Signal())
+		logger.Info("Stopping watcher (signal received)", "signal", parentCtx.Signal())
 		return false
 	case <-reloadCh:
 		runCancel() // Stop the runner
 		<-doneCh    // Wait for it to exit
 		return true // Continue to next iteration
 	case res := <-doneCh:
-		return handleRunCompletion(runCtx, res.state, res.err, watchCh, sigCh, logger)
+		return handleRunCompletion(runCtx, res.state, res.err, watchCh, parentCtx, logger, debug)
 	}
 }
 
-func waitBackoff(sigCh chan os.Signal, d time.Duration) bool {
-	select {
-	case <-sigCh:
-		// Let the outer loop handle the message
-		return false
-	case <-time.After(d):
-		return true
-	}
-}
-
-func waitForFix(ctx context.Context, engine *trellis.Engine, sigCh chan os.Signal) bool {
-	watchCh, _ := engine.Watch(ctx)
-	select {
-	case <-sigCh:
-		// Let the outer loop handle the message
-		return false
-	case _, ok := <-watchCh:
-		return ok
-	}
-}
-
-func handleRunCompletion(ctx context.Context, finalState *domain.State, err error, watchCh <-chan string, sigCh chan os.Signal, logger *slog.Logger) bool {
+func handleRunCompletion(ctx context.Context, finalState *domain.State, err error, watchCh <-chan string, parentCtx *SignalContext, logger *slog.Logger, debug bool) bool {
 	nodeID := ""
 	if finalState != nil {
 		nodeID = finalState.CurrentNodeID
@@ -199,11 +195,13 @@ func handleRunCompletion(ctx context.Context, finalState *domain.State, err erro
 
 	if watchCh != nil {
 		if err == nil {
-			fmt.Printf("\n>>> Flow finished at node '%s'\n", nodeID)
+			logCompletion(nodeID, nil, debug, false, false, nil)
+			printSystemMessage("Waiting for changes...")
 		}
 		logger.Info("Flow finished, waiting for changes")
 		select {
-		case <-sigCh:
+		case <-parentCtx.Done():
+			logCompletion(nodeID, context.Canceled, debug, false, false, parentCtx.Signal())
 			logger.Info("Stopping watcher (signal received)")
 			return false
 		case <-ctx.Done():
