@@ -216,28 +216,31 @@ sequenceDiagram
 
 #### 6.1. Hot Reload Lifecycle (v0.6)
 
-No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado.
+No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado usando um `SignalContext` hierárquico.
 
 ```mermaid
 sequenceDiagram
     participant W as Watcher (fsnotify)
     participant O as Orchestrator (internal/cli)
+    participant S as SignalContext
     participant R as Runner (pkg/runner)
-    participant H as Handler (Stdin/Out)
 
-    Note over W, H: Ciclo de Hot Reload (Context-Aware)
+    Note over W, R: Ciclo de Hot Reload (Signal-Aware)
     W->>O: Evento: file.md alterado
-    O->>O: Cancela iterationCtx
-    par Runner Shutdown
-        O->>R: ctx.Done() propagado
-        R->>H: Input/Output cancelado
-        R-->>O: Run() retorna ctx.Err()
-    and Wait for Fix
-        Note right of O: Garante término do processo anterior
+    O->>S: Cancel(Reload)
+    S->>R: ctx.Done() propagado
+    
+    par Graceful Shutdown
+        R->>R: Interrompe IO (Stdin Block)
+        R-->>O: Retorna ctx.Err() (Reload)
+    and UI Update
+        O->>O: Log "Change detected in file.md"
     end
-    O->>O: Aguarda término/estabilização (100ms)
+    
+    O->>O: Aguarda estabilização (100ms)
+    O->>S: NewSignalContext()
     O->>R: Nova Iteração: Run(newCtx, engine, state)
-    R->>H: Renderiza Nodo Atual (sem input pendente)
+    R->>R: Resume at 'CurrentNode'
 ```
 
 **Estratégias de Recuperação (Guardrails):**
@@ -405,9 +408,10 @@ Trellis supports two primary modes of operation:
 
 - **Strict JSON Lines (JSONL)**: All inputs to the `JSONHandler` must be single-line JSON strings.
 - **Async/Non-Blocking**: The handler reads from Stdin in a background goroutine, allowing cancellation (timeout/interrupt).
-- **Signal Mapping**: The Runner monitors the `context.Done()` channel. If the context is cancelled during input, it maps:
-  - `context.DeadlineExceeded` -> `"timeout"`
-  - `context.Canceled` -> `"interrupt"`
+- **Signal Mapping (Context-Aware)**: The Runner monitors:
+  - `signals.Context().Done()`: Explicit User Signal (SIGINT). Maps to `"interrupt"`.
+  - `ctx.Done()` (Parent): External Orchestrator (Watch Reload). Treated as Clean Exit (no signal mapping).
+  - `inputCtx.Done()` (Deadline): Maps to `"timeout"`.
 
 #### 8.3. Semântica de Texto e Bloqueio
 
