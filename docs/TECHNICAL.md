@@ -39,6 +39,24 @@ Interface experimental para "Durable Execution" (Sleep/Resume).
 - `StateStore.Save(ctx, sessionID, state)`: Persiste o snapshot da execução.
 - `StateStore.Load(ctx, sessionID)`: Hidrata uma sessão anterior.
 
+#### 2.2.2. Session Manager (Orchestrator)
+
+The `pkg/session` package acts as the orchestrator for state durability. It wraps the `StateStore` to add concurrency control (locking) and lifecycle management (atomic "Load or Create").
+
+```mermaid
+sequenceDiagram
+    participant CLI
+    participant SessionManager
+    participant Lock
+    participant Store
+    
+    CLI->>SessionManager: LoadOrStart(ID)
+    SessionManager->>Lock: Lock(ID)
+    SessionManager->>Store: Load(ID)
+    Store-->>SessionManager: State
+    SessionManager->>Lock: Unlock(ID)
+```
+
 #### 2.3. Diagrama de Arquitetura
 
 ```mermaid
@@ -56,6 +74,7 @@ graph TD
     Host -->|Uses| Store[StateStore Interface]
     Store -.->|Adapter| FileStore[FileStore - Local JSON]
     Store -.->|Adapter| Redis[Redis - Cloud]
+    Store -.->|Adapter| Memory[In-Memory - Ephemeral]
 ```
 
 ### 3. Estrutura de Diretórios
@@ -74,7 +93,8 @@ trellis/
 │   ├── domain/        # Core Domain (Node, State)
 │   ├── ports/         # Interfaces (Driver & Driven)
 │   ├── registry/      # Registro de Ferramentas
-│   └── runner/        # Loop de Execução e Handlers
+│   ├── runner/        # Loop de Execução e Handlers
+│   └── session/       # Gerenciamento de Sessão e Locking
 └── go.mod
 ```
 
@@ -139,11 +159,25 @@ sequenceDiagram
 - **Validation Failure**: Pausa se novos `required_context` surgirem sem dados na sessão.
 - **Type Mismatch**: Reseta o status de `WaitingForTool` se o nó mudar de tipo.
 
-### 5. Estratégia de Testes
+### 5. Design Constraints & Known Limitations (v0.6)
+
+While ensuring "Durable Execution", some trade-offs were made for simplicity in v0.6:
+
+1. **Session Concurrency (Lock Leaking)**:
+    - The `SessionManager` uses a `sync.Map` of Mutexes. Currently, these locks are not garbage collected after session deletion. This is acceptable for CLI/Dev use but requires an LRU/GC for long-running high-traffic servers.
+
+2. **Redis Adapter Performance**:
+    - The `List()` method uses `SCAN`, which is O(N). For production with millions of keys, a separate `SET` of active session IDs should be maintained.
+    - *TTL*: Sessions currently store indefinitely (Expiration=0).
+
+3. **FileStore Atomicity**:
+    - Writes are currently direct. Power loss during save could corrupt the JSON. Future versions will implement `Write -> Sync -> Rename` pattern.
+
+### 6. Estratégia de Testes
 
 Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pirâmide de testes rígida:
 
-#### 5.1. Níveis de Teste
+#### 6.1. Níveis de Teste
 
 1. **Core/Logic (Unit)**:
     - **Alvo**: `pkg/domain`, `internal/runtime`.
@@ -171,7 +205,7 @@ Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pi
 
 Esta seção detalha o funcionamento interno do engine, ciclo de vida e tratamento de dados.
 
-### 6. Ciclo de Vida do Engine (Lifecycle)
+### 7. Ciclo de Vida do Engine (Lifecycle)
 
 O Engine segue um ciclo de vida estrito de **Resolve-Execute-Update** para garantir previsibilidade.
 
@@ -214,7 +248,7 @@ sequenceDiagram
     - **Resolve**: Avalia as condições de transição baseadas no novo contexto.
     - **Transition**: Retorna o novo estado apontando para o próximo nó.
 
-#### 6.1. Hot Reload Lifecycle (v0.6)
+#### 7.1. Hot Reload Lifecycle (v0.6)
 
 No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado usando um `SignalContext` hierárquico.
 
@@ -249,11 +283,11 @@ sequenceDiagram
 2. **Erro de Sintaxe**: Se o arquivo alterado contiver erro de sintaxe, o Runner aguarda a próxima correção sem derrubar o processo e registra o erro via `logger.Error`.
 3. **Session Scoping**: No modo `watch`, se nenhum ID de sessão for fornecido, um ID determinístico baseado no hash do caminho do repositório (`watch-<hash>`) é gerado para evitar colisões entre projetos.
 
-### 7. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
+### 8. Protocolo de Efeitos Colaterais (Side-Effect Protocol)
 
 O protocolo de side-effects permite que o Trellis solicite a execução de código externo (ferramentas) de forma determinística e segura.
 
-#### 7.1. Filosofia: "Syscalls" para a IA
+#### 8.1. Filosofia: "Syscalls" para a IA
 
 O Trellis trata chamadas de ferramenta como "Chamadas de Sistema" (Syscalls). O Engine não executa a ferramenta; ele **pausa** e solicita ao Host que a execute.
 
@@ -262,7 +296,7 @@ O Trellis trata chamadas de ferramenta como "Chamadas de Sistema" (Syscalls). O 
 3. **Dispatch**: O Host (CLI, Servidor HTTP, MCP) recebe a solicitação e executa a lógica (ex: chamar API, rodar script).
 4. **Resumo (Resume)**: O Host chama `Navigate` passando o `ToolResult`. O Engine retoma a execução verificando transições baseadas nesse resultado.
 
-#### 7.2. Ciclo de Vida da Chamada de Ferramenta
+#### 8.2. Ciclo de Vida da Chamada de Ferramenta
 
 ```mermaid
 sequenceDiagram
@@ -285,7 +319,7 @@ sequenceDiagram
     Engine->>Host: NewState (Node B)
 ```
 
-#### 7.3. Universal Dispatcher
+#### 8.3. Universal Dispatcher
 
 Graças a este desacoplamento, a mesma definição de grafo pode usar ferramentas implementadas de formas diferentes dependendo do adaptador:
 
@@ -293,7 +327,7 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
 
-#### 7.4. Defining Tools in Loam
+#### 8.4. Defining Tools in Loam
 
 You can define available tools directly in the Node's frontmatter. This allows the Engine to be aware of the tool's schema (name, description, parameters) without needing hardcoded Go structs.
 
@@ -310,7 +344,7 @@ tools:
 The weather is...
 ```
 
-#### 7.5. Reusable Tool Libraries (Polymorphic Design)
+#### 8.5. Reusable Tool Libraries (Polymorphic Design)
 
 To support modularity, the `tools` key in Frontmatter is polymorphic. It accepts both inline definitions and string references to other files.
 
@@ -354,13 +388,13 @@ flowchart TD
 2. **Cycle Detection**: Recursive imports are guarded against infinite loops (`visited` set).
 3. **Shadowing Policy**: Local definitions always override imported ones.
 
-### 8. Runner & IO Architecture
+### 9. Runner & IO Architecture
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.
 
 It delegates signal handling to a dedicated **SignalManager** (`pkg/runner/signal_manager.go`) which ensures race-free context cancellation and signal resetting.
 
-#### 8.1. Session Cycle
+#### 9.1. Session Cycle
 
 ```mermaid
 sequenceDiagram
@@ -397,7 +431,7 @@ sequenceDiagram
     Note over CLI: handleExecutionError()
 ```
 
-#### 8.2. Stateless & Async IO
+#### 9.2. Stateless & Async IO
 
 Trellis supports two primary modes of operation:
 
@@ -413,7 +447,7 @@ Trellis supports two primary modes of operation:
   - `ctx.Done()` (Parent): External Orchestrator (Watch Reload). Treated as Clean Exit (no signal mapping).
   - `inputCtx.Done()` (Deadline): Maps to `"timeout"`.
 
-#### 8.3. Semântica de Texto e Bloqueio
+#### 9.3. Semântica de Texto e Bloqueio
 
 O comportamento de nós de texto segue a semântica de State Machine pura:
 
@@ -424,7 +458,7 @@ O comportamento de nós de texto segue a semântica de State Machine pura:
     - `wait: true`: Força pausa para input (ex: "Pressione Enter") em *ambos* os modos.
     - `type: question`: Pausa explícita aguardando resposta (hard step).
 
-#### 8.4. Diagrama de Decisão (Input Logic)
+#### 9.4. Diagrama de Decisão (Input Logic)
 
 ```mermaid
 flowchart TD
@@ -447,7 +481,7 @@ flowchart TD
     Result -- Active --> Next([Next State - Loop])
 ```
 
-#### 8.5. Pattern: Stdin Pump (IO Safety)
+#### 9.5. Pattern: Stdin Pump (IO Safety)
 
 Input handling in Go, especially with `os.Stdin`, is blocking by nature. To support **Timeouts** (cancelable reads) without blocking the main event loop or leaking "ghost readers" (race conditions where a stale goroutine eats input intended for the next step), `TextHandler` implements the **Stdin Pump** pattern.
 
@@ -470,7 +504,7 @@ flowchart LR
 
 > **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
-#### 8.6. Architectural Insight: Engine-bound vs Runner-bound
+#### 9.6. Architectural Insight: Engine-bound vs Runner-bound
 
 Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside:
 
@@ -486,13 +520,13 @@ Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside
 
 Essa separação garante que o Core permaneça uma Máquina de Estados Pura e Determinística, enquanto o Runner assume a responsabilidade pela "sujeira" (Timeouts, Discos, Sinais de SO).
 
-#### 8.7. Estratégia de Persistência (Scope)
+#### 9.7. Estratégia de Persistência (Scope)
 
 - **Workspace-first**: As sessões são armazenadas em `.trellis/sessions/` no diretório de trabalho atual.
 - **Motivação**: Isolar sessões por projeto (como `.git` ou `.terraform`), facilitando o desenvolvimento e evitando colisões globais em ambientes multi-projeto.
 - **Formato**: Arquivos JSON simples para facilitar inspeção e debugging manual ("Loam-ish").
 
-#### 8.8. Session Management CLI (Chaos Control)
+#### 9.8. Session Management CLI (Chaos Control)
 
 Para gerenciar o ciclo de vida dessas sessões persistentes, o Trellis expõe comandos administrativos ("Chaos Control"):
 
@@ -502,9 +536,9 @@ Para gerenciar o ciclo de vida dessas sessões persistentes, o Trellis expõe co
 
 Essa camada é crucial para operações de longa duração, onde "desligar e ligar de novo" (resetar o processo) não é suficiente para limpar o estado.
 
-### 9. Fluxo de Dados e Serialização
+#### 10. Fluxo de Dados e Serialização
 
-#### 9.1. Data Binding (SaveTo)
+#### 10.1. Data Binding (SaveTo)
 
 O Trellis adota a propriedade `save_to` para indicar a *intenção* de persistir a resposta de um nó no contexto da sessão.
 
@@ -527,11 +561,11 @@ O Trellis adota uma arquitetura plugável para interpolação de variáveis via 
 - **Default Strategy**: Go Templates (`{{ .UserName }}`).
 - **Legacy Strategy**: `strings.ReplaceAll` (`{{ Key }}`).
 
-#### 9.3. Global Strict Serialization
+#### 10.3. Global Strict Serialization
 
 O Trellis força **Strict Mode** em todos os adaptadores para resolver o problema do `float64` em JSON. Números são decodificados como `json.Number` ou `int64` para garantir integridade de IDs e timestamps.
 
-#### 9.4. Data Contracts (Validation & Defaults)
+#### 10.4. Data Contracts (Validation & Defaults)
 
 **Standard Serialization (Snake Case):**
 
@@ -560,7 +594,7 @@ default_context:
   api_url: "http://localhost:8080"
 ```
 
-#### 9.5. Initial Context Injection (Seed State)
+#### 10.5. Initial Context Injection (Seed State)
 
 Para facilitar testes automatizados e integração, o Trellis permite injetar o estado inicial.
 
@@ -576,30 +610,30 @@ Para facilitar testes automatizados e integração, o Trellis permite injetar o 
 
 Recursos avançados para escalabilidade, segurança e integração.
 
-### 10. Escalabilidade: Sub-Grafos e Namespaces
+### 11. Escalabilidade: Sub-Grafos e Namespaces
 
 Para escalar fluxos complexos, o Trellis suporta **Sub-Grafos** via organização de diretórios.
 
-#### 10.1. Semântica `jump_to` vs `to`
+#### 11.1. Semântica `jump_to` vs `to`
 
 - **`to`**: Transição local (mesmo arquivo/contexto).
 - **`jump_to`**: Transição para um **Sub-Grafo** ou Módulo externo (mudança de contexto).
 
-#### 10.2. IDs Implícitos e Normalização
+#### 11.2. IDs Implícitos e Normalização
 
 - **Implicit IDs**: Arquivos em subdiretórios herdam o caminho como ID (ex: `modules/checkout/start`).
 - **Normalization**: O Adapter normaliza todos os IDs para usar `/` (forward slash).
 
-#### 10.3. Syntactic Sugar: Options
+#### 11.3. Syntactic Sugar: Options
 
 Atalho para menus de escolha simples.
 
 - **Options**: Correspondência exata de texto. Avaliadas PRIMEIRO.
 - **Transitions**: Lógica genérica. Avaliadas DEPOIS.
 
-### 11. Segurança e Policies
+### 12. Segurança e Policies
 
-#### 11.1. Interceptors (Safety Middleware)
+#### 12.1. Interceptors (Safety Middleware)
 
 Para mitigar riscos de execução arbitrária, o Runner aceita interceptadores:
 
@@ -610,7 +644,7 @@ type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error
 - **ConfirmationMiddleware**: Solicita confirmação explícita (`[y/N]`). O trecho `metadata.confirm_msg` no nó pode personalizar o alerta.
 - **AutoApproveMiddleware**: Para modo Headless/Automação.
 
-#### 11.2. Error Handling (on_error)
+#### 12.2. Error Handling (on_error)
 
 Mecanismo robusto para recuperação de falhas em ferramentas.
 
@@ -620,7 +654,7 @@ Mecanismo robusto para recuperação de falhas em ferramentas.
   - Se houver `on_error`: Transita para o nó de recuperação.
   - Se não houver handler, o erro sobe (Panic/Fatal).
 
-#### 11.3. Controle de Execução (Signals & Timeouts)
+#### 12.3. Controle de Execução (Signals & Timeouts)
 
 Mecanismos para controle de fluxo assíncrono e limites de execução.
 
@@ -653,14 +687,14 @@ flowchart TD
     style Recovery fill:#6f6,stroke:#333,color:#000
 ```
 
-#### 11.4. System Context Namespace
+#### 12.4. System Context Namespace
 
 O namespace `sys.*` é reservado no Engine.
 
 - **Read-Only**: Templates podem ler (`{{ .sys.error }}`).
 - **Write-Protected**: `save_to` não pode escrever em `sys` (proteção contra injeção).
 
-#### 11.5. Global Signals (Interrupts)
+#### 12.5. Global Signals (Interrupts)
 
 O Trellis suporta a conversão de sinais do sistema operacional (ex: `Ctrl+C` / `SIGINT`) em transições de estado.
 
@@ -678,7 +712,7 @@ Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine trans
 
 > **Consistency Note**: Quando um sinal dispara uma transição, o evento `OnNodeLeave` é emitido para o nó interrompido, mantendo a consistência do ciclo de vida.
 
-#### 11.6. Extensibility: Signals & Contexts
+#### 12.6. Extensibility: Signals & Contexts
 
 O mecanismo de `on_signal` é a base para extensibilidade do fluxo via eventos:
 
@@ -707,7 +741,7 @@ flowchart TD
     style Exit fill:#f00,stroke:#333,color:#fff
 ```
 
-#### 11.7. Input Sanitization & Limits
+#### 12.7. Input Sanitization & Limits
 
 To ensure robust operation in production (especially in shared-memory environments like Kubernetes Pods), Trellis enforces limits on user input at the Runner layer. This applies globally to **all adapters** (CLI, HTTP, MCP).
 
@@ -717,9 +751,9 @@ To ensure robust operation in production (especially in shared-memory environmen
 
 See [Deployment Strategies](../docs/guides/deployment_strategies.md) for provisioning advice.
 
-### 12. Adapters & Interfaces
+### 13. Adapters & Interfaces
 
-#### 12.1. Camada de Apresentação
+#### 13.1. Camada de Apresentação
 
 Responsável por converter visualmente o grafo e estados.
 
@@ -736,7 +770,7 @@ Responsável por converter visualmente o grafo e estados.
 - **Salto de Módulo** (`-.->`): Transições entre arquivos (`jump_to`).
 - **Sinais/Interrupções** (`-. ⚡ .->`): Transições disparadas por `on_signal`.
 
-#### 12.2. HTTP Server (Stateless)
+#### 13.2. HTTP Server (Stateless)
 
 Adaptador REST API (`internal/adapters/http`).
 
@@ -762,14 +796,14 @@ sequenceDiagram
     Client->>Server: GET /render (Busca estado atualizado)
 ```
 
-#### 12.3. MCP Adapter
+#### 13.3. MCP Adapter
 
 Expõe o Trellis como um servidor MCP (Model Context Protocol).
 
 - **Tools Expostas**: `navigate`, `render_state`.
 - **Resources**: `trellis://graph`.
 
-### 13. Observability
+### 14. Observability
 
 Trellis fornece **Lifecycle Hooks** para instrumentação externa.
 
@@ -780,7 +814,7 @@ Trellis fornece **Lifecycle Hooks** para instrumentação externa.
   - `type`: Event type (enter, leave, tool_call).
 - **Integração**: Pode ser usado com `log/slog` e `Prometheus` sem acoplar essas dependências ao Core (ex: `examples/structured-logging`).
 
-#### 13.1 Diagrama de Eventos (Lifecycle Hooks)
+#### 14.1 Diagrama de Eventos (Lifecycle Hooks)
 
 O diagrama abaixo ilustra onde cada evento é emitido durante o ciclo `Navigate`:
 

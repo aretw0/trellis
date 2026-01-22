@@ -170,6 +170,11 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **Unified Logging**: Harmonizar output para Normal/Watch/Debug (Prefixos, Espaçamento).
   - [x] **Session UX**: Feedback explícito para eventos de Sessão (Start, Rehydrate, Reload).
   - [x] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
+  - [ ] **Technical Debt (Backlog)**:
+    - [ ] `pkg/session`: Fix Lock Leaking (LRU/GC) for High-Traffic scenarios.
+    - [ ] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
+    - [ ] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
+    - [ ] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
