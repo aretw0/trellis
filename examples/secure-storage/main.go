@@ -60,10 +60,10 @@ func main() {
 	// 7. Run
 	r := runner.NewRunner(
 		runner.WithStore(sessionMgr),
+		runner.WithSessionID(sessionID),
 		runner.WithLogger(logger),
 		runner.WithInputHandler(runner.NewTextHandler(os.Stdin, os.Stdout)),
 	)
-	r.SessionID = sessionID // Important: Set SessionID on runner for persistence
 
 	// Initialize context with sensitive data
 	initialState := map[string]any{

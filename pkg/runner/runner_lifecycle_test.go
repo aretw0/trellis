@@ -39,7 +39,7 @@ func (m *LifecycleMockHandler) SystemOutput(ctx context.Context, msg string) err
 	return args.Error(0)
 }
 
-func TestRunner_Lifecycle_Interactive_WaitsOnTerminal(t *testing.T) {
+func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 	// A single terminal node
 	termNode := domain.Node{
 		ID:      "end",
@@ -54,8 +54,8 @@ func TestRunner_Lifecycle_Interactive_WaitsOnTerminal(t *testing.T) {
 	// Output called for printing "Goodbye"
 	mockHandler.On("Output", mock.Anything, mock.Anything).Return(false, nil)
 
-	// Input MUST be called for terminal node in interactive mode
-	mockHandler.On("Input", mock.Anything).Return("\n", nil)
+	// UPDATE: Input should NO LONGER be called for terminal nodes (Non-Blocking)
+	// We do not set expectation for Input.
 
 	r := runner.NewRunner()
 	r.Handler = mockHandler

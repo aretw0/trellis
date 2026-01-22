@@ -26,11 +26,13 @@ func main() {
 		domain.Node{
 			ID:      "yes",
 			Type:    "text",
+			Wait:    true,
 			Content: []byte("## Great!\n\nThat means `glamour` is working."),
 		},
 		domain.Node{
 			ID:      "no",
 			Type:    "text",
+			Wait:    true,
 			Content: []byte("## Oops.\n\nSomething is wrong with the renderer."),
 		},
 	)

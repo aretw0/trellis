@@ -81,7 +81,7 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		defer currentCancel()
 
 		// A. Render
-		actions, _, err := engine.Render(currentCtx, state)
+		actions, isTerminal, err := engine.Render(currentCtx, state)
 		if err != nil {
 			return state, fmt.Errorf("render error: %w", err)
 		}
@@ -100,11 +100,27 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 			lastRenderedID = state.CurrentNodeID
 		}
 
+		// If terminal, we are done. No navigation needed.
+		if isTerminal {
+			// Ensure we save the final state status implied by terminal?
+			// Usually Render doesn't change state. The state is already marked?
+			// Actually Engine.Render returns isTerminal if there are NO transitions.
+			// We should probably mark state as terminated if not already?
+			// For now, just exit the loop.
+			return state, nil
+		}
+
 		// C. Input / Tool Execution
 		var nextInput any
 		var nextState *domain.State
 
-		if state.Status == domain.StatusWaitingForTool {
+		// If no input requested by actions (needsInput=false) and not waiting for tool,
+		// we treat this as an auto-transition (pass-through).
+		// We skip the Handler.Input blocking call entirely.
+		if !needsInput && state.Status != domain.StatusWaitingForTool {
+			// Auto-transition with empty input
+			nextInput = ""
+		} else if state.Status == domain.StatusWaitingForTool {
 			nextInput, err = r.handleTool(currentCtx, actions, state, handler, interceptor)
 		} else {
 			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, signals, engine, state)
@@ -264,10 +280,10 @@ func (r *Runner) handleInput(
 	engine *trellis.Engine,
 	currentState *domain.State,
 ) (any, *domain.State, error) {
-	if !needsInput && r.Headless {
-		// No input needed (auto-transition?), but usually this implies a Wait or immediate move.
-		// If headless and no input needed, we might Loop forever if logic is broken.
-		// For now, pass empty string.
+	// If we got here, we are in Interactive Mode BUT needsInput is false?
+	// This shouldn't happen if logic above handles auto-transition.
+	// But in case handleInput IS called with needsInput=false:
+	if !needsInput {
 		return "", nil, nil
 	}
 
