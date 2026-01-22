@@ -823,6 +823,34 @@ Expõe o Trellis como um servidor MCP (Model Context Protocol).
 
 - **Tools Expostas**: `navigate`, `render_state`.
 
+#### 13.4. Redis Persistence Model
+
+To support scalable persistent sessions, the Redis adapter implements a specialized indexing strategy.
+
+- **Storage**: Sessions are stored as JSON blobs in strict keys (`trellis:session:<id>`) with an optional TTL.
+- **Indexing**: A `ZSET` (`trellis:session:index`) tracks active sessions using the expiration timestamp as the score.
+- **Lazy Cleanup**: The `List()` operation performs maintenance. It removes expired entries from the index (*ZREMRANGEBYSCORE*) before returning valid sessions.
+
+> **Trade-off**: This design keeps the adapter stateless (no background workers required), aligning with Serverless architectures. However, it means `List()` incurs a write cost. For high-throughput environments requiring read-only listing, this behavior can be disabled in favor of an external garbage collector (Future Work).
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant Adapter
+    participant Redis(ZSET)
+    participant Redis(Key)
+
+    App->>Adapter: Save(session)
+    Adapter->>Redis(Key): SET session JSON (TTL)
+    Adapter->>Redis(ZSET): ZADD index (Score=Now+TTL)
+    
+    App->>Adapter: List()
+    Adapter->>Redis(ZSET): ZREMRANGE (Score < Now)
+    Adapter->>Redis(ZSET): ZRANGE (All)
+    Redis(ZSET)-->>Adapter: [session_ids]
+    Adapter-->>App: [session_ids]
+```
+
 ### 14. Segurança & Privacidade (Privacy Hooks)
 
 O Trellis oferece suporte camadas de middleware para garantir conformidade com políticas de segurança (Encryption at Rest) e privacidade (PII Sanitization).
