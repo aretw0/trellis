@@ -51,7 +51,7 @@ func main() {
 
 	// Setup Dependencies
 	wd, _ := os.Getwd()
-	flowDir := filepath.Join(wd, "examples", "saga")
+	flowDir := filepath.Join(wd, "examples", "manual-saga")
 
 	// 1. Initialize Engine
 	// Define hooks for observability
