@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/ports"
 )
 
 // MockStore is an in-memory implementation of StateStore for testing purposes.
@@ -42,49 +43,18 @@ func (m *MockStore) Delete(ctx context.Context, sessionID string) error {
 	return nil
 }
 
+func (m *MockStore) List(ctx context.Context) ([]string, error) {
+	var sessions []string
+	for id := range m.data {
+		sessions = append(sessions, id)
+	}
+	return sessions, nil
+}
+
 func TestStateStore_Contract(t *testing.T) {
 	// This test verifies that the MockStore complies with the StateStore logic.
-	// It serves as a contract test for future implementations (Adapters).
+	// It serves as a verification that our Contract Test itself is valid against a reference implementation.
 
-	ctx := context.Background()
 	store := NewMockStore()
-	sessionID := "test-session"
-
-	// 1. Load non-existent session
-	_, err := store.Load(ctx, sessionID)
-	if err != domain.ErrSessionNotFound {
-		t.Errorf("Expected ErrSessionNotFound, got %v", err)
-	}
-
-	// 2. Save session
-	state := domain.NewState("start")
-	state.Context["foo"] = "bar"
-	err = store.Save(ctx, sessionID, state)
-	if err != nil {
-		t.Fatalf("Failed to save state: %v", err)
-	}
-
-	// 3. Load session
-	loaded, err := store.Load(ctx, sessionID)
-	if err != nil {
-		t.Fatalf("Failed to load state: %v", err)
-	}
-	if loaded.CurrentNodeID != state.CurrentNodeID {
-		t.Errorf("Expected NodeID %s, got %s", state.CurrentNodeID, loaded.CurrentNodeID)
-	}
-	if loaded.Context["foo"] != "bar" {
-		t.Errorf("Expected Context['foo'] = 'bar', got %v", loaded.Context["foo"])
-	}
-
-	// 4. Delete session
-	err = store.Delete(ctx, sessionID)
-	if err != nil {
-		t.Fatalf("Failed to delete session: %v", err)
-	}
-
-	// 5. Load deleted session
-	_, err = store.Load(ctx, sessionID)
-	if err != domain.ErrSessionNotFound {
-		t.Errorf("Expected ErrSessionNotFound after delete, got %v", err)
-	}
+	ports.RunStateStoreContract(t, store)
 }
