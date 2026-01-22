@@ -22,7 +22,7 @@ func main() {
 
 	// 2. Setup File Store (The "Insecure" Backend)
 	wd, _ := os.Getwd()
-	flowDir := filepath.Join(wd, "examples", "secure-storage")
+	flowDir := filepath.Join(wd, "examples", "manual-security")
 	fileStore := adapters.NewFileStore(flowDir)
 
 	// 3. Setup Encryption Middleware
