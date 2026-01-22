@@ -34,39 +34,15 @@ func main() {
 	})
 
 	// 4. Setup PII Middleware
-	// We want to hide "api_key" and "pass" in the storage, even if encryption wasn't there (defense in depth)
-	// But note: Encryption hides EVERYTHING. PII Middleware masks keys inside the state BEFORE encryption.
-	// So if you look at the trace file, it will be encrypted blob.
-	// If you decrypt it, the PII fields will be "***".
 	piiMW := middleware.NewPIIMiddleware([]string{"api_key", "password"})
 
-	// Chain: Store <- Encryption <- PII <- SessionManager
-	// The Manager calls Save() on PII, which calls Save() on Encryption, which calls Save() on FileStore.
-	// Wait, PII masks the state. Encryption Encrypts the state.
-	// We want PII Masking to happen FIRST?
-	// If Encryption protects everything, PII masking is redundant for security of the file,
-	// BUT useful if we want to ensure that even if the key leaks, the PII is gone?
-	// Or maybe for logging?
-	// Let's chain: Encryption(PII(Store))?
-	// secureStore = Encryption(PII(FileStore))
-	// Save(state) -> Encryption.Save(state) -> encrypts -> PII.Save(encryptedState)?
-	// NO. Encrypted state has NO keys except "__encrypted__".
-	//
-	// Correct Chain:
-	// We want to Mask PII -> Encrypt -> Store
-	//
-	// Middleware wrapping:
-	// Store = Encryption(Store)
-	// Store = PII(Store) // This wraps Encryption!
-	//
-	// Call Chain:
-	// PII.Save(state) -> Masks State -> calls Next.Save(maskedState)
-	// Next is Encryption.Save(maskedState) -> Encrypts Masked State -> calls Next.Save(envelope)
-	// Next is FileStore.Save(envelope) -> Writes to disk.
-
+	// Chain: Encryption(PII(Store))
+	// 1. PII Middleware: Masks sensitive data (deep copy).
+	// 2. Encryption Middleware: Encrypts the masked state + Envelope.
+	// 3. FileStore: Writes to disk.
 	var secureStore ports.StateStore = fileStore
 	secureStore = encryptionMW(secureStore)
-	secureStore = piiMW(secureStore)
+	secureStore = piiMW(secureStore) // PII wraps Encryption (Logic: PII runs first on Save)
 
 	// 5. Setup Manager
 	sessionMgr := session.NewManager(secureStore)

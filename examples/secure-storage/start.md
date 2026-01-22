@@ -7,6 +7,7 @@ transitions:
 # 🔐 Secure Storage Demo
 
 I have injected sensitive data into the context:
+
 - API Key: {{ api_key }}
 - Password: {{ password }}
 
