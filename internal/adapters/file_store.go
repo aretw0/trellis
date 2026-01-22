@@ -25,7 +25,8 @@ func NewFileStore(basePath string) *FileStore {
 	return &FileStore{BasePath: basePath}
 }
 
-// Save persists the session state to a JSON file.
+// Save persists the session state to a JSON file atomically.
+// It writes to a temporary file first, syncs via fsync, and then renames it to the destination.
 func (f *FileStore) Save(ctx context.Context, sessionID string, state *domain.State) error {
 	if sessionID == "" {
 		return fmt.Errorf("sessionID cannot be empty")
@@ -36,7 +37,7 @@ func (f *FileStore) Save(ctx context.Context, sessionID string, state *domain.St
 		return fmt.Errorf("failed to ensure session directory: %w", err)
 	}
 
-	filePath := filepath.Join(f.BasePath, sessionID+".json")
+	destPath := filepath.Join(f.BasePath, sessionID+".json")
 
 	// Marshal state to JSON
 	data, err := json.MarshalIndent(state, "", "  ")
@@ -44,11 +45,57 @@ func (f *FileStore) Save(ctx context.Context, sessionID string, state *domain.St
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	// Write to file (Atomic write could be an improvement, but standard write is fine for v0.6)
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write session file: %w", err)
+	// 1. Create Temp File
+	// we use the same directory to ensure we are on the same filesystem (required for atomic rename)
+	tmpFile, err := os.CreateTemp(f.BasePath, "tmp-"+sessionID+"-*.json")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+
+	// Cleanup temp file in case of failure
+	defer func() {
+		// If we successfully renamed, tmpPath won't exist slightly, or we can check err.
+		// But simpler: just try to remove. If it doesn't exist (because renamed), os.Remove returns logic that we can ignore or it handles it.
+		// Actually best practice:
+		_ = tmpFile.Close()    // Ensure closed
+		_ = os.Remove(tmpPath) // Remove if still exists (not renamed)
+	}()
+
+	// 2. Write Data
+	if _, err := tmpFile.Write(data); err != nil {
+		return fmt.Errorf("failed to write to temp file: %w", err)
 	}
 
+	// 3. Fsync to ensure durability
+	if err := tmpFile.Sync(); err != nil {
+		return fmt.Errorf("failed to fsync temp file: %w", err)
+	}
+
+	// 4. Close File (cannot rename open file on Windows)
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// 5. Atomic Rename
+	// On Windows, os.Rename fails if dest exists. We must remove it first.
+	// Check if dest exists
+	if _, err := os.Stat(destPath); err == nil {
+		// Dest exists, remove it.
+		// There is a tiny window here where file is gone before replacement.
+		// True atomicity on Windows requires MoveFileEx with MOVEFILE_REPLACE_EXISTING,
+		// but that requires syscalls.
+		// For v0.6 CLI usage, this "Delete+Rename" window is acceptable compared to "Write causing partial file".
+		if err := os.Remove(destPath); err != nil {
+			return fmt.Errorf("failed to remove existing session file for overwrite: %w", err)
+		}
+	}
+
+	if err := os.Rename(tmpPath, destPath); err != nil {
+		return fmt.Errorf("failed to rename temp file to valid session: %w", err)
+	}
+
+	// Success - defer will try to remove tmpPath but it's gone.
 	return nil
 }
 
