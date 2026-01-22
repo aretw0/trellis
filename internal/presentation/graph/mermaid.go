@@ -84,8 +84,9 @@ func GenerateMermaid(nodes []domain.Node, overlay *GraphOverlay) string {
 	// Apply Overlay Styles
 	if overlay != nil {
 		sb.WriteString("\n    %% Overlay Styles\n")
-		sb.WriteString("    classDef visited fill:#e1f5fe,stroke:#01579b,stroke-width:2px;\n")
-		sb.WriteString("    classDef current fill:#ffeb3b,stroke:#fbc02d,stroke-width:4px;\n")
+		// Force black text (color:#000) for high-contrast on light backgrounds, regardless of theme (Light/Dark)
+		sb.WriteString("    classDef visited fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000;\n")
+		sb.WriteString("    classDef current fill:#ffeb3b,stroke:#fbc02d,stroke-width:4px,color:#000;\n")
 
 		// Deduplicate visited nodes (using safeIDs)
 		visitedSet := make(map[string]bool)
