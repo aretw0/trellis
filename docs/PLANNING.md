@@ -115,6 +115,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [x] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context, Deep Interpolation), **Execute** (Side-Effect), **Update** (Write Context).
 - [x] **Type Erasure Fix**: Permitir que `save_to` armazene objetos complexos (`any`) de resultados de Tools, não apenas strings.
 - [x] **Syntactic Sugar: Options**: Suporte a `options` como alias para `transitions` com `condition` implícita (Precedência: Options > Transitions).
+- [ ] **Syntactic Sugar: Root `to`**: Permitir `to: "next_node"` na raiz quando houver apenas uma transição incondicional (Menos verbosidade).
 - [x] **Manual Migration**: Atualizar grafos de exemplo (`examples/`) para usar `wait: true` ou `type: prompt` onde necessário. (Análise: ~14 arquivos, inviável automação).
 
 ### 🛡️ v0.5.1: Robustness & Observation (The "Production" Patch)
@@ -183,6 +184,7 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [ ] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
 - [ ] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
+- [ ] **Process Adapter (Scriptable Tools)**: Adaptador genérico para executar scripts locais (`.sh`, `.js`, `.py`) ou Binários (Lambdas) como Ferramentas, sem recompilar o Runner. "Unix Philosophy".
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
@@ -193,6 +195,7 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 
 - [ ] **Module Encapsulation**: Escopo privado e contratos de entrada/saída para criar bibliotecas de nós reutilizáveis.
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
+- [ ] **Developer Kit (SDK)**: `trellis new flow` generators e scaffolding para facilitar o início.
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.

@@ -7,12 +7,14 @@ transitions:
 
 # ✈️ Travel Booker
 
-Starting recursive booking flow (SAGA Pattern).
+Starting automated booking sequence (SAGA Pattern).
 
-Next steps:
+This flow will attempt to:
 
-1. Book Flight
-2. Book Hotel
-3. Book Car
+- Book a Flight
+- Book a Hotel
+- Book a Car (Simulated Failure)
 
-(Note: Car booking is simulated to FAIL to trigger compensation).
+Upon failure, the system will automatically rollback the previous steps.
+
+Press Enter to begin.
