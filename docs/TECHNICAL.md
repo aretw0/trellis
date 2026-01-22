@@ -767,6 +767,30 @@ Responsável por converter visualmente o grafo e estados.
 - **Salto de Módulo** (`-.->`): Transições entre arquivos (`jump_to`).
 - **Sinais/Interrupções** (`-. ⚡ .->`): Transições disparadas por `on_signal`.
 
+#### 13.1.1. Visual Debug Strategies (Visualizing State)
+
+A flag `--session <id>` permite sobrepor o estado de uma sessão ao grafo estático.
+
+**Implementação Atual (v0.6 - "Heatmap"):**
+
+- **Modelo**: Conjunto de Nós Visitados (Set).
+- **Estilo**: Nós visitados ficam azuis; nó atual fica amarelo.
+- **Limitação (Caveat)**: Não representa a **ordem** nem a **frequência** de visita.
+  - Se o fluxo fez `A -> B -> A -> C`, o grafo mostra `A`, `B` e `C` pintados.
+  - Não é possível distinguir se o usuário veio de `B` ou `Start`.
+  - Loops aparecem achatados.
+
+**Evolução Futura (Vision):**
+
+Para debugging forense de falhas complexas (Saga/Loops), o modelo visual precisará evoluir:
+
+1. **Numbered Path (Badges)**: Adicionar badges (ex: `🔴 #1, #3`) aos nós para indicar a ordem da sequência de passos.
+2. **Edge Highlighting**: Pintar as **arestas** percorridas. Desafio técnico: Mermaid não facilita ID em arestas.
+3. **Sequence Diagram Export**: Para fluxos lineares longos, um Diagrama de Sequência (`sequenceDiagram`) pode ser mais legível que um Flowchart, mostrando temporalidade no eixo Y.
+4. **Interactive Scrubbing**: Ferramenta Web (HTML/JS) que permite "tocar" o histórico (Previous/Next), iluminando o caminho passo-a-passo.
+
+> **Decisão Sóbria**: Mantivemos a v0.6 simples (Heatmap) pois resolve 80% dos casos ("Onde parei?" e "Por onde passei?") sem complexidade de renderização dinâmica. É uma ferramenta de **Orientação**, não de **Perícia**.
+
 #### 13.2. HTTP Server (Stateless)
 
 Adaptador REST API (`internal/adapters/http`).
