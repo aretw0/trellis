@@ -175,8 +175,8 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
   - [ ] **Technical Debt (Backlog)**:
     - [ ] `pkg/session`: Fix Lock Leaking (LRU/GC) for High-Traffic scenarios.
-    - [ ] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
-    - [ ] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
+    - [x] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
+    - [x] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
     - [x] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
     - [x] `pkg/runner`: Fix Non-Blocking text logic & Lifecycle consistency for terminal nodes.
     - [ ] `pkg/persistence`: Refine internal usage of Middleware. (See v0.8 Declarative Config).

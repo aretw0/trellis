@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aretw0/trellis/pkg/domain"
 	backend "github.com/redis/go-redis/v9"
@@ -13,35 +14,67 @@ import (
 type Store struct {
 	client *backend.Client
 	prefix string
+	ttl    time.Duration
 }
 
-// New creates a new Redis store.
-// address: "localhost:6379"
-// password: "" (no password set)
-// db: 0 (default DB)
-func New(address, password string, db int) *Store {
+type Option func(*Store)
+
+// WithTTL sets the expiration for sessions.
+func WithTTL(ttl time.Duration) Option {
+	return func(s *Store) {
+		s.ttl = ttl
+	}
+}
+
+// WithPrefix sets the key prefix for sessions.
+func WithPrefix(prefix string) Option {
+	return func(s *Store) {
+		s.prefix = prefix
+	}
+}
+
+// New creates a new Redis store with options.
+func New(address, password string, db int, opts ...Option) *Store {
 	rdb := backend.NewClient(&backend.Options{
 		Addr:     address,
 		Password: password,
 		DB:       db,
 	})
 
-	return &Store{
+	store := &Store{
 		client: rdb,
 		prefix: "trellis:session:",
+		ttl:    0, // No expiration by default
 	}
+
+	for _, opt := range opts {
+		opt(store)
+	}
+
+	return store
 }
 
 // NewFromClient creates a new Redis store from an existing client.
-func NewFromClient(client *backend.Client) *Store {
-	return &Store{
+func NewFromClient(client *backend.Client, opts ...Option) *Store {
+	store := &Store{
 		client: client,
 		prefix: "trellis:session:",
+		ttl:    0,
 	}
+
+	for _, opt := range opts {
+		opt(store)
+	}
+
+	return store
 }
 
 func (s *Store) key(sessionID string) string {
 	return s.prefix + sessionID
+}
+
+func (s *Store) indexKey() string {
+	return s.prefix + "index"
 }
 
 // Save persists the state to Redis.
@@ -51,12 +84,30 @@ func (s *Store) Save(ctx context.Context, sessionID string, state *domain.State)
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	// We use 0 for no expiration, but in production we might want a default TTL.
-	// For now, let's keep it indefinite as per "Durable Execution".
-	err = s.client.Set(ctx, s.key(sessionID), data, 0).Err()
+	pipe := s.client.Pipeline()
+
+	// 1. Save JSON with TTL
+	// Use 0 for no expiration if ttl is not set.
+	pipe.Set(ctx, s.key(sessionID), data, s.ttl)
+
+	// 2. Add to Index (ZSET)
+	// Score = Now + TTL. If TTL = 0, Score = +Inf (approx).
+	score := float64(time.Now().Add(s.ttl).Unix())
+	if s.ttl == 0 {
+		score = 4102444800 // 2100-01-01 (Far enough for now)
+	}
+
+	pipe.ZAdd(ctx, s.indexKey(), backend.Z{
+		Score:  score,
+		Member: sessionID,
+	})
+
+	// Execute pipeline
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to save to redis: %w", err)
 	}
+
 	return nil
 }
 
@@ -80,33 +131,33 @@ func (s *Store) Load(ctx context.Context, sessionID string) (*domain.State, erro
 
 // Delete removes the session.
 func (s *Store) Delete(ctx context.Context, sessionID string) error {
-	// Del returns number of keys removed. If 0, it means key didn't exist.
-	// But our interface isn't strict about "delete non-existent", usually Delete is idempotent.
-	// However, usually we don't return error if not found for delete.
+	pipe := s.client.Pipeline()
 
-	// Check store_test behavior:
-	// "Load after Delete should return ErrSessionNotFound"
+	pipe.Del(ctx, s.key(sessionID))
+	pipe.ZRem(ctx, s.indexKey(), sessionID)
 
-	err := s.client.Del(ctx, s.key(sessionID)).Err()
+	_, err := pipe.Exec(ctx)
 	return err
 }
 
 // List returns active sessions by scanning keys.
-// Warning: SCAN can be slow on huge datasets.
+// Updated to use ZSET lazy cleanup.
 func (s *Store) List(ctx context.Context) ([]string, error) {
-	var sessions []string
-	iter := s.client.Scan(ctx, 0, s.prefix+"*", 0).Iterator()
+	// Lazy Cleanup: Remove expired keys from Index
+	now := float64(time.Now().Unix())
 
-	for iter.Next(ctx) {
-		// Key is "trellis:session:xyz", extract "xyz"
-		key := iter.Val()
-		if len(key) > len(s.prefix) {
-			sessions = append(sessions, key[len(s.prefix):])
-		}
+	// If TTL > 0, we can rely on cleanup.
+	// If everything is infinite, this removes nothing.
+	// ZREMRANGEBYSCORE key -inf (now)
+	err := s.client.ZRemRangeByScore(ctx, s.indexKey(), "-inf", fmt.Sprintf("%f", now)).Err()
+	if err != nil {
+		return nil, fmt.Errorf("failed to prune expired sessions: %w", err)
 	}
 
-	if err := iter.Err(); err != nil {
-		return nil, fmt.Errorf("failed to scan redis keys: %w", err)
+	// Get remaining sessions
+	sessions, err := s.client.ZRange(ctx, s.indexKey(), 0, -1).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sessions: %w", err)
 	}
 
 	return sessions, nil
