@@ -178,6 +178,9 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
     - [ ] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
     - [ ] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
     - [x] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
+    - [x] `pkg/runner`: Fix Non-Blocking text logic & Lifecycle consistency for terminal nodes.
+    - [ ] `pkg/persistence`: Refine internal usage of Middleware. (See v0.8 Declarative Config).
+    - [ ] `pkg/engine`: Validate Saga constraints in manual flows. (See v0.7 Native Saga).
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
@@ -223,5 +226,7 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - **2026-01-16**: *Roadmap Pivot*. v0.6 redefinida de "DX/Ergonomics" para "Integration & Persistence". Reconhecimento de que a gestão de estado persistente e concorrência é o "Elo Perdido" para adoção em ChatOps reais, priorizando-o sobre features de luxo (LSP/DSL).
 - **2026-01-16**: *Future Phases*. Roadmap v0.7 e v0.8 reestruturados para separar preocupações de Runtime/Escala (v0.7 - Network) das preocupações de Ferramental/Ecossistema (v0.8 - Modularity).
 - **2026-01-16**: *Runner Refactor Decision*. Decidido refatorar o `Runner` para usar **Functional Options Pattern**. Motivo: A injeção de `Store` e `SessionID` via argumentos/propriedades tornou a API frágil e inconsistente ("bêbada"). A configuração deve ser imutável no momento da construção.
+- **2026-01-22**: *Runner Loop Simplification*. Removida otimização prematura ("Short Circuit") para nós terminais. Decisão: O `Runner` deve sempre delegar ao `Engine.Navigate` para garantir que eventos de ciclo de vida (`OnNodeLeave`) sejam disparados consistentemente, mesmo na saída.
+- **2026-01-22**: *Explicit Naming Strategy*. Adotada convenção "Manual X" (`manual-saga`, `manual-security`) para exemplos que demonstram wiring explícito de features que futuramente serão nativas/automáticas. Isso preserva o espaço semântico e educa o usuário sobre a diferença entre "Padrão Nativo" e "Implementação via Código".
 
 ---

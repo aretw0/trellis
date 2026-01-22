@@ -54,9 +54,10 @@ func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 	mockHandler.On("Output", mock.Anything, mock.Anything).Return(false, nil)
 	// Expect NO Input call
 
-	r := runner.NewRunner()
-	r.Handler = mockHandler
-	r.Headless = false
+	r := runner.NewRunner(
+		runner.WithInputHandler(mockHandler),
+		runner.WithHeadless(false),
+	)
 
 	initialState := &domain.State{CurrentNodeID: "end_skip"}
 	r.Run(context.Background(), engine, initialState)
@@ -81,9 +82,10 @@ func TestRunner_Lifecycle_Interactive_WaitExplicit(t *testing.T) {
 	// Input MUST be called
 	mockHandler.On("Input", mock.Anything).Return("\n", nil)
 
-	r := runner.NewRunner()
-	r.Handler = mockHandler
-	r.Headless = false
+	r := runner.NewRunner(
+		runner.WithInputHandler(mockHandler),
+		runner.WithHeadless(false),
+	)
 
 	initialState := &domain.State{CurrentNodeID: "end_wait"}
 
@@ -122,9 +124,10 @@ func TestRunner_Lifecycle_Headless_SkipWaitOnTerminal(t *testing.T) {
 	// Input should NOT be called
 	// We do not set expectation for Input. strict mock will fail if called.
 
-	r := runner.NewRunner()
-	r.Handler = mockHandler
-	r.Headless = true // Headless
+	r := runner.NewRunner(
+		runner.WithInputHandler(mockHandler),
+		runner.WithHeadless(true), // Headless
+	)
 
 	initialState := &domain.State{CurrentNodeID: "end"}
 
