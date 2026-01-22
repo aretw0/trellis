@@ -450,7 +450,7 @@ O comportamento de nós de texto segue a semântica de State Machine pura:
 
 1. **Nodes de Texto (`type: text`)**: São, por padrão, **Non-Blocking (Pass-through)** para o Engine.
     - Se houver uma transição válida incondicional, transita *imediatamente*.
-    - **Nota de UX**: No modo **Interativo (CLI)**, o Runner força uma pausa após renderizar o texto para permitir leitura. No modo **Headless**, a transição é imediata.
+    - **Nota de UX**: A transição é imediata (Pass-through) em todos os modos. Se você deseja que o usuário leia o texto antes de continuar (pressione Enter), deve definir explicitamente `wait: true`.
 2. **Pausas Explícitas**:
     - `wait: true`: Força pausa para input (ex: "Pressione Enter") em *ambos* os modos.
     - `type: question`: Pausa explícita aguardando resposta (hard step).
