@@ -170,9 +170,6 @@ While ensuring "Durable Execution", some trade-offs were made for simplicity in 
     - The `List()` method uses `SCAN`, which is O(N). For production with millions of keys, a separate `SET` of active session IDs should be maintained.
     - *TTL*: Sessions currently store indefinitely (Expiration=0).
 
-3. **FileStore Atomicity**:
-    - Writes are currently direct. Power loss during save could corrupt the JSON. Future versions will implement `Write -> Sync -> Rename` pattern.
-
 ### 6. Estratégia de Testes
 
 Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pirâmide de testes rígida:

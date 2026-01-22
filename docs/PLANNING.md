@@ -174,7 +174,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
     - [ ] `pkg/session`: Fix Lock Leaking (LRU/GC) for High-Traffic scenarios.
     - [ ] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
     - [ ] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
-    - [ ] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
+    - [x] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
