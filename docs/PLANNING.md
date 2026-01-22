@@ -158,7 +158,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 - [x] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) manuais.
   - [x] Example: `examples/manual-saga`
   - [x] Guide: `docs/guides/manual_saga_pattern.md`
-- [ ] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
+- [x] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
 - [x] **Persistency Management (Chaos Control)**:
   - [x] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `inspect` (Inspecionar State JSON).
   - [ ] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).

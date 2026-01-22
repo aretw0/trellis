@@ -798,6 +798,38 @@ sequenceDiagram
 Expõe o Trellis como um servidor MCP (Model Context Protocol).
 
 - **Tools Expostas**: `navigate`, `render_state`.
+
+### 14. Segurança & Privacidade (Privacy Hooks)
+
+O Trellis oferece suporte camadas de middleware para garantir conformidade com políticas de segurança (Encryption at Rest) e privacidade (PII Sanitization).
+
+#### 14.1. Envelope Encryption (At Rest)
+
+Para proteger o estado da sessão (que pode conter chaves de API e dados do usuário) em armazenamento não confiável (como disco ou REDIS compartilhado), utilizamos o **Envelope Pattern**.
+
+O middleware criptografa todo o estado da sessão e o armazena dentro de um "Estado Envelope" opaco.
+
+```mermaid
+graph LR
+    Engine[Engine State] -->|Plain JSON| Middleware[Encryption Middleware]
+    Middleware -->|AES-GCM (Key A)| Cipher[Ciphertext Blob]
+    Cipher -->|Wrap| Envelope[Envelope State]
+    Envelope -->|Save| Store[Storage Adapter]
+    
+    subgraph "Envelope State"
+        Ctx["__encrypted__: <base64>"]
+    end
+```
+
+- **Key Rotation**: O middleware suporta rotação de chaves sem downtime. Ao carregar, ele tenta a chave ativa; se falhar, tenta chaves de fallback sequencialmente. Ao salvar, sempre re-encripta com a chave ativa mais recente.
+
+#### 14.2. PII Sanitization (Compliance)
+
+Um middleware separado permite a sanitização de dados sensíveis (Personally Identifiable Information) antes da persistência.
+
+- **Deep Masking**: Percorre recursivamente o mapa de contexto e substitui valores de chaves sensíveis (ex: `password`, `ssn`, `api_key`) por `***`.
+- **Imutabilidade em Memória**: A sanitização ocorre em uma **cópia profunda** (Deep Copy) do estado antes de salvar. O estado em memória usado pelo Engine permanece intacto para execução contínua.
+- **Caveat**: Se o processo falhar e for reiniciado, os dados persistidos estarão mascarados (`***`), o que pode impedir a retomada se o fluxo depender desses dados. Use este middleware para Compliance de Logs ou quando a durabilidade do dado sensível não for crítica.
 - **Resources**: `trellis://graph`.
 
 ### 14. Observability
