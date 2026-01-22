@@ -533,6 +533,8 @@ Para gerenciar o ciclo de vida dessas sessões persistentes, o Trellis expõe co
 
 Essa camada é crucial para operações de longa duração, onde "desligar e ligar de novo" (resetar o processo) não é suficiente para limpar o estado.
 
+> **Maintenance Note**: O FileStore não implementa *Auto-Pruning* (limpeza automática) de sessões antigas. Cabe ao administrador ou desenvolvedor executar `trellis session rm` periodicamente ou configurar scripts externos de limpeza (cron) se o diretório de sessões crescer excessivamente.
+
 #### 10. Fluxo de Dados e Serialização
 
 #### 10.1. Data Binding (SaveTo)

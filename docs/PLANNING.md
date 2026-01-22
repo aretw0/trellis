@@ -149,9 +149,9 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 
 - [x] **State Persistence Layer**: Definir interface `StateStore` (Load/Save/Delete) desacoplada do Core.
   - *Filosofia*: Snapshotting de Estado para permitir "Sleep & Resume" (Persistência, não Event Sourcing por enquanto).
-- [ ] **Adapters de Persistência**:
+- [x] **Adapters de Persistência**:
   - [x] **FileStore**: Persistência em JSON local. Permite "CLI Resumable" e debugging fácil.
-  - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
+  - [x] **Redis/Memory**: Interfaces de referência para alta performance.
 - [x] **Runner Refactor**: Migrar `Runner` para Functional Options Pattern (remover `sessionID` de `Run`).
   - [x] **Session CLI**: Comandos para listar/inspecionar sessões (`trellis session ls`).
 - [x] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
@@ -162,7 +162,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 - [x] **Persistency Management (Chaos Control)**:
   - [x] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `inspect` (Inspecionar State JSON).
   - [x] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
-  - [ ] **Auto-Pruning**: Implementar TTL ou política de limpeza para sessões antigas (FileStore).
+  - [x] **Auto-Pruning**: (Deferred to v0.7+) Documentado que a limpeza é responsabilidade do Admin (`trellis session rm`) para FileStore. Redis usa TTL nativo.
 - [x] **Stateful Hot Reload (Live Coding)**:
   - [x] Permitir `--watch` e `--session` simultâneos.
   - [x] Ao recarregar o grafo, o Runner reidrata o estado da sessão existente, mantendo o histórico e variáveis.
