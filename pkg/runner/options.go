@@ -51,3 +51,10 @@ func WithRenderer(renderer ContentRenderer) Option {
 		r.Renderer = renderer
 	}
 }
+
+// WithInterceptor configures the tool execution middleware.
+func WithInterceptor(interceptor ToolInterceptor) Option {
+	return func(r *Runner) {
+		r.Interceptor = interceptor
+	}
+}

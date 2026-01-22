@@ -83,9 +83,10 @@ func TestRunner_HandleTool(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			handler := new(MockSignalHandler)
-			runner := NewRunner()
-			runner.Handler = handler
-			runner.Headless = true
+			runner := NewRunner(
+				WithInputHandler(handler),
+				WithHeadless(true),
+			)
 
 			loader := new(MockLoader)
 			loader.On("GetNode", "current").Return([]byte(tt.nodeJSON), nil)

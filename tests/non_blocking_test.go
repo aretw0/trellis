@@ -43,12 +43,12 @@ func TestNonBlockingText(t *testing.T) {
 	}
 
 	// 2. Setup Runner with Mock IO
-	r := &runner.Runner{
-		Handler: &MockHandler{
+	r := runner.NewRunner(
+		runner.WithInputHandler(&MockHandler{
 			Inputs: []string{"yes"}, // Only one input needed for the 'end' node
 			T:      t,
-		},
-	}
+		}),
+	)
 
 	// 3. Run
 	// If 'start' was blocking, it would consume "yes" prematurely or fail if no input provided for it.

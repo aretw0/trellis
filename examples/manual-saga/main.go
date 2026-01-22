@@ -84,9 +84,11 @@ func main() {
 	registerMockTools(reg)
 
 	// 4. Setup Handler with Registry
-	// We use standard TextHandler but inject our tool registry.
-	handler := runner.NewTextHandler(os.Stdin, os.Stdout)
-	handler.Registry = reg
+	handler := runner.NewTextHandler(
+		os.Stdin,
+		os.Stdout,
+		runner.WithTextHandlerRegistry(reg),
+	)
 
 	// 5. Initialize Runner
 	r := runner.NewRunner(

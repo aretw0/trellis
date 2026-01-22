@@ -41,9 +41,10 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 	inputBuf := bytes.NewBufferString("\n\n") // Enter for start
 	outputBuf := &bytes.Buffer{}
 
-	r := NewRunner()
-	r.Handler = NewTextHandler(inputBuf, outputBuf)
-	r.Interceptor = AutoApproveMiddleware()
+	r := NewRunner(
+		WithInputHandler(NewTextHandler(inputBuf, outputBuf)),
+		WithInterceptor(AutoApproveMiddleware()),
+	)
 
 	// 3. Run in a goroutine to prevent deadlock
 	inputBuf.WriteString("exit\n") // Ensure we exit at the end
@@ -88,9 +89,10 @@ func TestRunner_Run_Headless(t *testing.T) {
 	inBuf := bytes.NewBufferString("\"exit\"\n")
 	outBuf := &bytes.Buffer{}
 
-	r := NewRunner()
-	r.Handler = NewJSONHandler(inBuf, outBuf)
-	r.Headless = true
+	r := NewRunner(
+		WithInputHandler(NewJSONHandler(inBuf, outBuf)),
+		WithHeadless(true),
+	)
 
 	// 3. Run
 	done := make(chan error)

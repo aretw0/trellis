@@ -108,9 +108,10 @@ func TestRunner_HandleInput_Signal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			handler := new(MockSignalHandler)
-			runner := NewRunner()
-			runner.Handler = handler
-			runner.Headless = false
+			runner := NewRunner(
+				WithInputHandler(handler),
+				WithHeadless(false),
+			)
 
 			loader := new(MockLoader)
 			loader.On("GetNode", "start").Return([]byte(tt.nodeJSON), nil)

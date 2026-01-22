@@ -29,18 +29,41 @@ type inputResult struct {
 	err  error
 }
 
+// TextHandlerOption defines configuration for TextHandler.
+type TextHandlerOption func(*TextHandler)
+
+// WithTextHandlerRegistry configures the tool registry.
+func WithTextHandlerRegistry(reg *registry.Registry) TextHandlerOption {
+	return func(h *TextHandler) {
+		h.Registry = reg
+	}
+}
+
+// WithTextHandlerRenderer configures the content renderer.
+func WithTextHandlerRenderer(renderer ContentRenderer) TextHandlerOption {
+	return func(h *TextHandler) {
+		h.Renderer = renderer
+	}
+}
+
 // NewTextHandler creates a handler for standard text IO.
-func NewTextHandler(r io.Reader, w io.Writer) *TextHandler {
+func NewTextHandler(r io.Reader, w io.Writer, opts ...TextHandlerOption) *TextHandler {
 	if r == nil {
 		r = os.Stdin
 	}
 	if w == nil {
 		w = os.Stdout
 	}
-	return &TextHandler{
+	h := &TextHandler{
 		Reader: bufio.NewReader(r),
 		Writer: w,
 	}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
 }
 
 func (h *TextHandler) initPump() {

@@ -25,9 +25,19 @@ type JSONHandler struct {
 	errCh   chan error
 }
 
+// JSONHandlerOption defines configuration for JSONHandler.
+type JSONHandlerOption func(*JSONHandler)
+
+// WithJSONHandlerRegistry configures the tool registry.
+func WithJSONHandlerRegistry(reg *registry.Registry) JSONHandlerOption {
+	return func(h *JSONHandler) {
+		h.Registry = reg
+	}
+}
+
 // NewJSONHandler creates a handler for JSON IO.
 // It starts a background goroutine to read from r.
-func NewJSONHandler(r io.Reader, w io.Writer) *JSONHandler {
+func NewJSONHandler(r io.Reader, w io.Writer, opts ...JSONHandlerOption) *JSONHandler {
 	if r == nil {
 		r = os.Stdin
 	}
@@ -40,6 +50,10 @@ func NewJSONHandler(r io.Reader, w io.Writer) *JSONHandler {
 		Encoder: json.NewEncoder(w),
 		linesCh: make(chan string),
 		errCh:   make(chan error),
+	}
+
+	for _, opt := range opts {
+		opt(h)
 	}
 
 	// Start background reader

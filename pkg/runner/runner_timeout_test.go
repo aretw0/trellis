@@ -79,9 +79,10 @@ func TestRunner_Timeout(t *testing.T) {
 	// Output should be called for "timeout_node" (after transition)
 	mockHandler.On("Output", mock.Anything, mock.Anything).Return(false, nil) // Terminal-ish
 
-	r := runner.NewRunner()
-	r.Handler = mockHandler
-	r.Headless = true // Prevent blocking on final node
+	r := runner.NewRunner(
+		runner.WithInputHandler(mockHandler),
+		runner.WithHeadless(true), // Prevent blocking on final node
+	)
 
 	_, err := r.Run(context.Background(), engine, nil)
 	assert.NoError(t, err)
