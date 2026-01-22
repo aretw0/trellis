@@ -81,7 +81,7 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		defer currentCancel()
 
 		// A. Render
-		actions, isTerminal, err := engine.Render(currentCtx, state)
+		actions, _, err := engine.Render(currentCtx, state)
 		if err != nil {
 			return state, fmt.Errorf("render error: %w", err)
 		}
@@ -98,16 +98,6 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 
 		if state.CurrentNodeID != lastRenderedID {
 			lastRenderedID = state.CurrentNodeID
-		}
-
-		// If terminal AND no input needed, we are done. No navigation needed.
-		if isTerminal && !needsInput {
-			// Ensure we save the final state status implied by terminal?
-			// Usually Render doesn't change state. The state is already marked?
-			// Actually Engine.Render returns isTerminal if there are NO transitions.
-			// We should probably mark state as terminated if not already?
-			// For now, just exit the loop.
-			return state, nil
 		}
 
 		// C. Input / Tool Execution
@@ -145,16 +135,10 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 
 		// 4. Navigate Phase (Controller)
 		// nextInput is valid here.
-		// If current node is terminal (no transitions), we can't navigate. But we might have just waited for input.
-		if isTerminal {
-			// We are done. Break logic handles it below.
-			state.Status = domain.StatusTerminated
-			state.Terminated = true
-		} else {
-			nextState, err = engine.Navigate(currentCtx, state, nextInput)
-			if err != nil {
-				return state, fmt.Errorf("navigation error: %w", err)
-			}
+		// Always call Navigate to ensure lifecycle hooks (Leave) are triggered and state is updated.
+		nextState, err = engine.Navigate(currentCtx, state, nextInput)
+		if err != nil {
+			return state, fmt.Errorf("navigation error: %w", err)
 		}
 
 		// 5. Commit Phase (Persistence)
@@ -162,7 +146,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 			return nextState, fmt.Errorf("critical persistence error: %w", err)
 		}
 
-		if nextState == nil && isTerminal {
+		if nextState == nil {
+			// Should not happen if Navigate returns correctly
 			break
 		}
 
