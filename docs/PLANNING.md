@@ -166,7 +166,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **Reload Guardrails**: Recuperação automática de Missing Node e Type Mismatch.
   - Permite corrigir typos e lógica sem reiniciar o fluxo do zero.
   - *Risk Check*: Se o nó atual for deletado, fallback para erro ou inicio.
-- [ ] **CLI Observability Strategy (DX)**:
+- [x] **CLI Observability Strategy (DX)**:
   - [x] **Unified Logging**: Harmonizar output para Normal/Watch/Debug (Prefixos, Espaçamento).
   - [x] **Session UX**: Feedback explícito para eventos de Sessão (Start, Rehydrate, Reload).
   - [x] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
