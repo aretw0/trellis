@@ -161,7 +161,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 - [x] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
 - [x] **Persistency Management (Chaos Control)**:
   - [x] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `inspect` (Inspecionar State JSON).
-  - [ ] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
+  - [x] **Visual Debug**: `trellis graph --session <id>` para visualizar o "Caminho Percorrido" (Breadcrumbs) no diagrama (Overlay).
   - [ ] **Auto-Pruning**: Implementar TTL ou política de limpeza para sessões antigas (FileStore).
 - [x] **Stateful Hot Reload (Live Coding)**:
   - [x] Permitir `--watch` e `--session` simultâneos.
