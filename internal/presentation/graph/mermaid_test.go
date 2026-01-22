@@ -72,7 +72,7 @@ func TestGenerateMermaid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := graph.GenerateMermaid(tt.nodes)
+			got := graph.GenerateMermaid(tt.nodes, nil)
 			for _, want := range tt.contains {
 				if !strings.Contains(got, want) {
 					t.Errorf("GenerateMermaid() = \n%v\nWant substring: %v", got, want)
