@@ -100,8 +100,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 			lastRenderedID = state.CurrentNodeID
 		}
 
-		// If terminal, we are done. No navigation needed.
-		if isTerminal {
+		// If terminal AND no input needed, we are done. No navigation needed.
+		if isTerminal && !needsInput {
 			// Ensure we save the final state status implied by terminal?
 			// Usually Render doesn't change state. The state is already marked?
 			// Actually Engine.Render returns isTerminal if there are NO transitions.
@@ -144,15 +144,26 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		}
 
 		// 4. Navigate Phase (Controller)
-		// nextInput is valid here
-		nextState, err = engine.Navigate(currentCtx, state, nextInput)
-		if err != nil {
-			return state, fmt.Errorf("navigation error: %w", err)
+		// nextInput is valid here.
+		// If current node is terminal (no transitions), we can't navigate. But we might have just waited for input.
+		if isTerminal {
+			// We are done. Break logic handles it below.
+			state.Status = domain.StatusTerminated
+			state.Terminated = true
+		} else {
+			nextState, err = engine.Navigate(currentCtx, state, nextInput)
+			if err != nil {
+				return state, fmt.Errorf("navigation error: %w", err)
+			}
 		}
 
 		// 5. Commit Phase (Persistence)
 		if err := r.saveState(currentCtx, r.SessionID, nextState); err != nil {
 			return nextState, fmt.Errorf("critical persistence error: %w", err)
+		}
+
+		if nextState == nil && isTerminal {
+			break
 		}
 
 		if nextState.Terminated || nextState.Status == domain.StatusTerminated {

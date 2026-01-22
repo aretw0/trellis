@@ -40,9 +40,9 @@ func (m *LifecycleMockHandler) SystemOutput(ctx context.Context, msg string) err
 }
 
 func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
-	// A single terminal node
+	// 1. Case: Terminal Node, No Wait (Should Skip)
 	termNode := domain.Node{
-		ID:      "end",
+		ID:      "end_skip",
 		Type:    domain.NodeTypeText,
 		Content: []byte("Goodbye"),
 	}
@@ -51,21 +51,43 @@ func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	mockHandler := new(LifecycleMockHandler)
-	// Output called for printing "Goodbye"
 	mockHandler.On("Output", mock.Anything, mock.Anything).Return(false, nil)
-
-	// UPDATE: Input should NO LONGER be called for terminal nodes (Non-Blocking)
-	// We do not set expectation for Input.
+	// Expect NO Input call
 
 	r := runner.NewRunner()
 	r.Handler = mockHandler
-	r.Headless = false // Interactive
+	r.Headless = false
 
-	// Start at "end"
-	initialState := &domain.State{CurrentNodeID: "end"}
+	initialState := &domain.State{CurrentNodeID: "end_skip"}
+	r.Run(context.Background(), engine, initialState)
+	mockHandler.AssertExpectations(t)
+}
 
-	// Execute
-	// Use a timeout to ensure it doesn't hang if logic is broken
+func TestRunner_Lifecycle_Interactive_WaitExplicit(t *testing.T) {
+	// 2. Case: Terminal Node, Wait: True (Should Block)
+	termNode := domain.Node{
+		ID:      "end_wait",
+		Type:    domain.NodeTypeText,
+		Wait:    true,
+		Content: []byte("Press Enter to Exit"),
+	}
+
+	loader, _ := inmemory.NewFromNodes(termNode)
+	engine, _ := trellis.New("", trellis.WithLoader(loader))
+
+	mockHandler := new(LifecycleMockHandler)
+	// Output returns needsInput=true because Wait=true
+	mockHandler.On("Output", mock.Anything, mock.Anything).Return(true, nil)
+	// Input MUST be called
+	mockHandler.On("Input", mock.Anything).Return("\n", nil)
+
+	r := runner.NewRunner()
+	r.Handler = mockHandler
+	r.Headless = false
+
+	initialState := &domain.State{CurrentNodeID: "end_wait"}
+
+	// Use async/timeout to ensure it doesn't block forever if broken
 	done := make(chan error)
 	go func() {
 		_, err := r.Run(context.Background(), engine, initialState)
@@ -76,7 +98,7 @@ func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 	case err := <-done:
 		assert.NoError(t, err)
 	case <-time.After(1 * time.Second):
-		t.Fatal("Runner hung")
+		t.Fatal("Runner hung or failed to process wait")
 	}
 
 	mockHandler.AssertExpectations(t)
