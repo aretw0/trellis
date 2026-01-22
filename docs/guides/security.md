@@ -10,7 +10,7 @@ Trellis uses an **Envelope Pattern** with **AES-GCM**. The entire session state 
 
 ### Configuration
 
-To enable encryption, wrap your `StateStore` with the `EncryptionMiddleware`.
+To enable encryption, wrap your `StateStore` with the `EncryptionMiddleware`. (See [`examples/manual-security`](../../examples/manual-security) for a full runnable example).
 
 ```go
 import (

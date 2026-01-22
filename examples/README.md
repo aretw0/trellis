@@ -33,9 +33,21 @@ Shows how to enforce data contracts using `required_context`. If a required key 
 **Concepts:** `on_error`, `metadata.confirm_msg`, `Implicit IDs`
 Demonstrates robust tool usage, including Safety Middleware (confirmation prompts) and Error Handling (`on_error` transitions).
 
+## 3. Infrastructure & Patterns
+
+### [Manual Security (Encryption & PII)](./manual-security)
+
+**Concepts:** `Middleware`, `Encryption`, `PII Masking`
+Showcases how to securely wrap the state store with encryption and PII sanitization middleware. This is a manual infrastructure setup (wrapping the runner) rather than a built-in feature.
+
+### [Manual Saga (Transaction Rollback)](./manual-saga)
+
+**Concepts:** `Saga Pattern`, `on_error`, `Rollback`
+Demonstrates how to implement distributed transactions with compensating actions (Rollback) using standard Trellis primitives.
+
 ---
 
-## 3. Advanced Control
+## 4. Advanced Control
 
 ### [Global Signals (Interrupts)](./interrupt-demo)
 
@@ -49,7 +61,7 @@ Demonstrates how to inject initial data into the flow via the CLI flag `--contex
 
 ---
 
-## 4. Production & Observability
+## 5. Production & Observability
 
 ### [Signals Demo (Interrupts & Timeouts)](./signals-demo)
 
@@ -68,7 +80,7 @@ Demonstrates how to use the `--debug` flag to visualize state transitions and ev
 
 ---
 
-## 5. Internals
+## 6. Internals
 
 ### [Low Level API (Advanced)](./low-level-api)
 
