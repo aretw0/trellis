@@ -153,8 +153,8 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [ ] **Redis/Memory**: Interfaces de referência para alta performance.
 - [x] **Runner Refactor**: Migrar `Runner` para Functional Options Pattern (remover `sessionID` de `Run`).
   - [x] **Session CLI**: Comandos para listar/inspecionar sessões (`trellis session ls`).
-- [ ] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
-- [ ] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
+- [x] **Session Manager Pattern**: Implementação de referência para lidar com Concorrência (Locking) e ciclo de vida de sessão.
+- [x] **SAGA Support (Compensation)**: Padrões e exemplos de como implementar transações compensatórias (`undo_action`) usando sub-grafos e `on_error`.
 - [ ] **Security Hooks**: Middlewares de persistência para Criptografia (Encryption at Rest) e Anonimização de PII no Contexto antes de salvar.
 - [x] **Persistency Management (Chaos Control)**:
   - [x] **CLI**: `trellis session ls` (Listar), `rm` (Remover), `inspect` (Inspecionar State JSON).
