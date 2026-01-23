@@ -473,11 +473,13 @@ This ensures **Locality of Behavior**: the code that reverses an action sits rig
 
 #### 8.7.2. Rollback Lifecycle
 
-When a tool fails with `on_error: rollback`, the Engine enters **Rollback Mode**:
+When a tool fails with `on_error: rollback`, **OR** when a node explicitly transitions to `to: rollback`, the Engine enters **Rollback Mode**:
 
 1. **Unwind**: The Engine pops the history stack one by one.
 2. **Compensate**: If a popped node has an `undo` definition, the Engine executes it.
 3. **Continue**: The rollback continues until the history is empty or a savepoint is reached (Start).
+
+> **Lifecycle Guarantee**: The Engine guarantees that `OnNodeLeave` is emitted for the node initiating the rollback (whether via error or explicit transition) *before* the rollback sequence begins, ensuring consistent observability.
 
 ```mermaid
 sequenceDiagram

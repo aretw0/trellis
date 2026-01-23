@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -54,7 +53,7 @@ func main() {
 		},
 		"reject_request": func(args map[string]any) (any, error) {
 			logger.Info("🚫 ACT: Rejecting Request... Triggering Rollback")
-			return nil, errors.New("manager rejected")
+			return "rejected", nil
 		},
 	}
 

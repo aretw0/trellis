@@ -2,7 +2,6 @@
 type: tool
 do:
   name: reject_request
-# Trigger the rollback flow
-on_error: rollback
+to: rollback
 ---
 Rejecting request...

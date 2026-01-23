@@ -26,9 +26,13 @@ save_to: flight_id
 on_error: rollback_manager
 ```
 
-### 2. Handle Errors (The Rollback Trigger)
+### 2. Triggering the Rollback
 
-When a critical step fails, trigger the rollback sequence.
+You can initiate the saga compensation flow in two ways: system errors or explicit business logic.
+
+#### 2.1 On Error (System Failure)
+
+When a critical step fails (e.g., API timeout, database error), trigger the rollback sequence via `on_error`.
 
 ```yaml
 # book_car.md
@@ -37,6 +41,19 @@ tool_call:
   name: book_car
 # If this fails, go to rollback
 on_error: rollback_manager
+```
+
+#### 2.2 Programmatic (Logic-Based)
+
+Sometimes a "rejection" is a valid business result, not a system error. You can trigger the rollback sequence explicitly using a transition to the reserved keyword `rollback`.
+
+```yaml
+# review_request.md
+type: tool
+do: ...
+transitions:
+  - if: input == "rejected"
+    to: rollback
 ```
 
 ### 3. Implement the Rollback Manager (Manual Chain)
@@ -49,6 +66,7 @@ graph TD
     Flight --> Hotel
     Hotel --> Car
     Car -- Error --> Rollback
+    Car -- "Rejected" --> Rollback
     Rollback --> CancelHotel
     CancelHotel --> CancelFlight
     CancelFlight --> End

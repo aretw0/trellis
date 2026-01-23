@@ -171,16 +171,8 @@ func (e *Engine) Start(ctx context.Context, sessionID string, initialContext map
 	}
 
 	// Trigger OnNodeEnter for the start node
-	if e.hooks.OnNodeEnter != nil && startNode != nil {
-		e.hooks.OnNodeEnter(ctx, &domain.NodeEvent{
-			EventBase: domain.EventBase{
-				Timestamp: time.Now(),
-				Type:      domain.EventNodeEnter,
-				// StateID:   "", // State has no ID
-			},
-			NodeID:   e.entryNodeID,
-			NodeType: startNode.Type,
-		})
+	if startNode != nil {
+		e.emitNodeEnter(ctx, startNode, e.entryNodeID)
 	}
 
 	return state, nil
@@ -332,6 +324,9 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			Type:    domain.ActionCallTool,
 			Payload: call,
 		})
+
+		// Emit Tool Call Event (Fix: Was missing)
+		e.emitToolCall(ctx, currentState.CurrentNodeID, call)
 	} else if node.Type == domain.NodeTypeTool && currentState.Status != domain.StatusRollingBack {
 		// Fallback if ToolCall is missing in struct but Type is Tool (and not rolling back)
 		return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
@@ -446,18 +441,7 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 		// Handle Tool Error (Phase 0: Safety Check)
 		if result.IsError {
 			// Emit Tool Return (Error)
-			if e.hooks.OnToolReturn != nil {
-				e.hooks.OnToolReturn(ctx, &domain.ToolEvent{
-					EventBase: domain.EventBase{
-						Timestamp: time.Now(),
-						Type:      domain.EventToolReturn,
-					},
-					NodeID:   currentState.CurrentNodeID,
-					ToolName: result.ID,
-					Output:   result.Result,
-					IsError:  true,
-				})
-			}
+			e.emitToolReturn(ctx, currentState.CurrentNodeID, result.ID, result.Result, true)
 
 			// Load current node to check for OnError handler
 			raw, err := e.loader.GetNode(currentState.CurrentNodeID)
@@ -471,6 +455,7 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 
 			if node.OnError != "" {
 				if node.OnError == "rollback" {
+					e.emitNodeLeave(ctx, node)
 					return e.startRollback(ctx, currentState)
 				}
 				// Transition to Error Handler
@@ -505,18 +490,7 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 
 		// Resume execution:
 		// Emit Tool Return (Success)
-		if e.hooks.OnToolReturn != nil {
-			e.hooks.OnToolReturn(ctx, &domain.ToolEvent{
-				EventBase: domain.EventBase{
-					Timestamp: time.Now(),
-					Type:      domain.EventToolReturn,
-				},
-				NodeID:   currentState.CurrentNodeID,
-				ToolName: result.ID,
-				Output:   result.Result,
-				IsError:  false,
-			})
-		}
+		e.emitToolReturn(ctx, currentState.CurrentNodeID, result.ID, result.Result, false)
 
 		// We pass the raw result to navigateInternal.
 		// 1. applyInput: Captures the result (any) into Context if SaveTo is set.
@@ -551,16 +525,7 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 	}
 
 	// Emit Leave Event for interrupted node (before context reset or exit)
-	if e.hooks.OnNodeLeave != nil {
-		e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
-			EventBase: domain.EventBase{
-				Timestamp: time.Now(),
-				Type:      domain.EventNodeLeave,
-			},
-			NodeID:   node.ID,
-			NodeType: node.Type,
-		})
-	}
+	e.emitNodeLeave(ctx, node)
 
 	targetNodeID, ok := node.OnSignal[signalName]
 	if !ok {
@@ -617,6 +582,12 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, err
 	}
 
+	// If we hit the reserved "rollback" target, initiate the saga compensation.
+	if strings.EqualFold(nextNodeID, "rollback") {
+		e.emitNodeLeave(ctx, node)
+		return e.startRollback(ctx, nextState)
+	}
+
 	// If no transitions are found, the state becomes Terminal.
 	// The runner should detect this and stop the loop.
 	if len(node.Transitions) == 0 {
@@ -624,30 +595,12 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		nextState.Terminated = true // Deprecated
 
 		// Emit Leave Event for terminal node
-		if e.hooks.OnNodeLeave != nil {
-			e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
-				EventBase: domain.EventBase{
-					Timestamp: time.Now(),
-					Type:      domain.EventNodeLeave,
-				},
-				NodeID:   node.ID,
-				NodeType: node.Type,
-			})
-		}
+		e.emitNodeLeave(ctx, node)
 	}
 
 	if nextNodeID != "" {
 		// Emit Leave Event for previous node
-		if e.hooks.OnNodeLeave != nil {
-			e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
-				EventBase: domain.EventBase{
-					Timestamp: time.Now(),
-					Type:      domain.EventNodeLeave,
-				},
-				NodeID:   node.ID,
-				NodeType: node.Type,
-			})
-		}
+		e.emitNodeLeave(ctx, node)
 		return e.transitionTo(nextState, nextNodeID)
 	}
 
@@ -728,16 +681,7 @@ func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*doma
 	}
 
 	// Emit Enter Event
-	if e.hooks.OnNodeEnter != nil {
-		e.hooks.OnNodeEnter(context.Background(), &domain.NodeEvent{
-			EventBase: domain.EventBase{
-				Timestamp: time.Now(),
-				Type:      domain.EventNodeEnter,
-			},
-			NodeID:   nextNodeID,
-			NodeType: nextNode.Type,
-		})
-	}
+	e.emitNodeEnter(context.Background(), nextNode, nextNodeID)
 
 	return nextState, nil
 }
@@ -778,4 +722,60 @@ func (e *UnhandledToolError) Error() string {
 		"Tool '%s' (Node '%s') failed with: '%v'. Execution halted because no 'on_error' handler is defined. Fix: Add 'on_error: <node_id>' to node '%s'.",
 		e.ToolName, e.NodeID, e.Cause, e.NodeID,
 	)
+}
+
+// emitNodeLeave emits the OnNodeLeave event if hooks are configured.
+func (e *Engine) emitNodeLeave(ctx context.Context, node *domain.Node) {
+	if e.hooks.OnNodeLeave != nil {
+		e.hooks.OnNodeLeave(ctx, &domain.NodeEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventNodeLeave,
+			},
+			NodeID:   node.ID,
+			NodeType: node.Type,
+		})
+	}
+}
+
+func (e *Engine) emitNodeEnter(ctx context.Context, node *domain.Node, nodeID string) {
+	if e.hooks.OnNodeEnter != nil {
+		e.hooks.OnNodeEnter(ctx, &domain.NodeEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventNodeEnter,
+			},
+			NodeID:   nodeID,
+			NodeType: node.Type,
+		})
+	}
+}
+
+func (e *Engine) emitToolCall(ctx context.Context, nodeID string, call domain.ToolCall) {
+	if e.hooks.OnToolCall != nil {
+		e.hooks.OnToolCall(ctx, &domain.ToolEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventToolCall,
+			},
+			NodeID:   nodeID,
+			ToolName: call.Name, // Using Name as generic identifier, or ID? Event struct says ToolName.
+			Input:    call.Args,
+		})
+	}
+}
+
+func (e *Engine) emitToolReturn(ctx context.Context, nodeID string, toolName string, output any, isError bool) {
+	if e.hooks.OnToolReturn != nil {
+		e.hooks.OnToolReturn(ctx, &domain.ToolEvent{
+			EventBase: domain.EventBase{
+				Timestamp: time.Now(),
+				Type:      domain.EventToolReturn,
+			},
+			NodeID:   nodeID,
+			ToolName: toolName,
+			Output:   output,
+			IsError:  isError,
+		})
+	}
 }
