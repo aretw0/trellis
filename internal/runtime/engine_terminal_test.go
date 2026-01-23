@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/aretw0/trellis/pkg/domain"
@@ -59,13 +60,13 @@ func TestEngine_Render_IsTerminal(t *testing.T) {
 		},
 		{
 			name: "Signal Transition Only",
-			nodeContent: `{
+			nodeContent: fmt.Sprintf(`{
 				"id": "step_signal",
 				"type": "text",
 				"on_signal": {
-					"interrupt": "exit"
+					"%s": "exit"
 				}
-			}`,
+			}`, domain.SignalInterrupt),
 			expectTerminal: false,
 		},
 	}

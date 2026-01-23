@@ -58,7 +58,7 @@ func TestRunner_Timeout(t *testing.T) {
 		InputType: "text",
 		Timeout:   "10ms", // Very short timeout
 		OnSignal: map[string]string{
-			"timeout": "timeout_node",
+			domain.SignalTimeout: "timeout_node",
 		},
 		Transitions: []domain.Transition{
 			{ToNodeID: "next"},

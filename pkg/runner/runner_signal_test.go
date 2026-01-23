@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -64,13 +65,13 @@ func TestRunner_HandleInput_Signal(t *testing.T) {
 	}{
 		{
 			name: "Timeout Handled Successfully",
-			nodeJSON: `{
+			nodeJSON: fmt.Sprintf(`{
 				"id": "start",
 				"type": "text",
 				"on_signal": {
-					"timeout": "timeout_node"
+					"%s": "timeout_node"
 				}
-			}`,
+			}`, domain.SignalTimeout),
 			targetNodeID: "timeout_node",
 			targetNodeJSON: `{
 				"id": "timeout_node",

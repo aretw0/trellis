@@ -308,9 +308,9 @@ func (r *Runner) handleInput(
 			}
 
 			// Determine cause: Global Interrupt vs Local Timeout
-			signalName := "interrupt"
+			signalName := domain.SignalInterrupt
 			if ctx.Err() == context.DeadlineExceeded {
-				signalName = "timeout"
+				signalName = domain.SignalTimeout
 			}
 
 			// Attempt Signal Transition
@@ -325,10 +325,10 @@ func (r *Runner) handleInput(
 			// Default Behavior: If no custom handler is defined for the signal, we break execution gracefully.
 			// For known signals like 'interrupt' or 'timeout', we log a helpful hint.
 			switch signalName {
-			case "interrupt":
+			case domain.SignalInterrupt:
 				r.Logger.Debug("Runner input: Stopping (Default Exit)", "signal", signalName, "help", "Define 'on_signal: interrupt' to override")
 				return nil, nil, fmt.Errorf("interrupted")
-			case "timeout":
+			case domain.SignalTimeout:
 				r.Logger.Debug("Runner input: Stopping (Default Exit)", "signal", signalName, "help", "Define 'on_signal: timeout' to override")
 				return nil, nil, fmt.Errorf("timeout exceeded and no 'on_signal.timeout' handler defined")
 			default:
