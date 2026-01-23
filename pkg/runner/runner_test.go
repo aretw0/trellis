@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
 func TestRunner_Run_BasicFlow(t *testing.T) {
 	// 1. Setup Engine with Memory Loader
-	loader, err := inmemory.NewFromNodes(
+	loader, err := memory.NewFromNodes(
 		domain.Node{
 			ID:      "start",
 			Type:    domain.NodeTypeText,
@@ -76,7 +76,7 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 
 func TestRunner_Run_Headless(t *testing.T) {
 	// 1. Setup Engine
-	loader, _ := inmemory.NewFromNodes(
+	loader, _ := memory.NewFromNodes(
 		domain.Node{
 			ID:      "start",
 			Type:    domain.NodeTypeText,

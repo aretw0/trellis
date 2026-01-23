@@ -14,8 +14,8 @@ type Store struct {
 	mu   sync.RWMutex
 }
 
-// New creates a new in-memory store.
-func New() *Store {
+// NewStore creates a new in-memory store.
+func NewStore() *Store {
 	return &Store{
 		data: make(map[string]*domain.State),
 	}

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +47,7 @@ func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 		Content: []byte("Goodbye"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(termNode)
+	loader, _ := memory.NewFromNodes(termNode)
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	mockHandler := new(LifecycleMockHandler)
@@ -73,7 +73,7 @@ func TestRunner_Lifecycle_Interactive_WaitExplicit(t *testing.T) {
 		Content: []byte("Press Enter to Exit"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(termNode)
+	loader, _ := memory.NewFromNodes(termNode)
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	mockHandler := new(LifecycleMockHandler)
@@ -114,7 +114,7 @@ func TestRunner_Lifecycle_Headless_SkipWaitOnTerminal(t *testing.T) {
 		Content: []byte("Goodbye"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(termNode)
+	loader, _ := memory.NewFromNodes(termNode)
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	mockHandler := new(LifecycleMockHandler)

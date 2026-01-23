@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 	"github.com/stretchr/testify/assert"
@@ -70,7 +70,7 @@ func TestRunner_Timeout(t *testing.T) {
 		Content: []byte("Timeout Occurred"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(startNode, timeoutNode)
+	loader, _ := memory.NewFromNodes(startNode, timeoutNode)
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	mockHandler := new(MockHandler)

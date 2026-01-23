@@ -13,10 +13,10 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/adapters/file"
-	"github.com/aretw0/trellis/internal/adapters/memory"
 	"github.com/aretw0/trellis/internal/adapters/redis"
 	"github.com/aretw0/trellis/internal/logging"
 	"github.com/aretw0/trellis/internal/presentation/tui"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
@@ -260,7 +260,7 @@ func setupPersistence(opts RunOptions, logger *slog.Logger) (ports.StateStore, *
 			store = file.New("") // Uses default .trellis/sessions
 		} else {
 			// Ephemeral session: Use In-Memory store to prevent Panics when Session Manager tries to Load/Save
-			store = memory.New()
+			store = memory.NewStore()
 		}
 	}
 

@@ -1,4 +1,4 @@
-package inmemory
+package memory
 
 import (
 	"encoding/json"
@@ -13,8 +13,8 @@ type Loader struct {
 	nodes map[string][]byte
 }
 
-// New creates a new MemoryLoader with the provided raw data (JSON strings).
-func New(data map[string]string) *Loader {
+// NewLoader creates a new MemoryLoader with the provided raw data (JSON strings).
+func NewLoader(data map[string]string) *Loader {
 	nodes := make(map[string][]byte)
 	for k, v := range data {
 		nodes[k] = []byte(v)

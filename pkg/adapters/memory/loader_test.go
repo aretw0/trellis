@@ -1,9 +1,9 @@
-package inmemory_test
+package memory_test
 
 import (
 	"testing"
 
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	contract "github.com/aretw0/trellis/pkg/ports/tests"
 )
 
@@ -22,7 +22,7 @@ func TestInMemoryLoader_Contract(t *testing.T) {
 		bytesData[k] = []byte(v)
 	}
 
-	loader := inmemory.New(data)
+	loader := memory.NewLoader(data)
 
 	contract.GraphLoaderContractTest(t, loader, bytesData)
 }

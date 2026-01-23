@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Create Memory Loader
-	loader, err := inmemory.NewFromNodes(startNode, endNode)
+	loader, err := memory.NewFromNodes(startNode, endNode)
 	if err != nil {
 		log.Fatal(err)
 	}

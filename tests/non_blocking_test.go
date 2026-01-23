@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 )
@@ -31,7 +31,7 @@ func TestNonBlockingText(t *testing.T) {
 		Content: []byte("Finished?"),
 	}
 
-	loader, err := inmemory.NewFromNodes(nodeStart, nodeEnd)
+	loader, err := memory.NewFromNodes(nodeStart, nodeEnd)
 	if err != nil {
 		t.Fatalf("Failed to create loader: %v", err)
 	}
