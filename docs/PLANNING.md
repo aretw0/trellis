@@ -188,8 +188,8 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 
 - [x] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
 - [x] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
-- [ ] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo_action`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
-  - *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
+- [x] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
+  - [x] *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 - [ ] **Process Adapter (Scriptable Tools)**: Adaptador genérico para executar scripts locais (`.sh`, `.js`, `.py`) ou Binários (Lambdas) como Ferramentas, sem recompilar o Runner. "Unix Philosophy".
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
