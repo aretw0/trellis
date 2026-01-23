@@ -173,7 +173,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **Unified Logging**: Harmonizar output para Normal/Watch/Debug (Prefixos, Espaçamento).
   - [x] **Session UX**: Feedback explícito para eventos de Sessão (Start, Rehydrate, Reload).
   - [x] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
-  - [ ] **Technical Debt (Backlog)**:
+  - [x] **Technical Debt (Backlog)**:
     - [x] `pkg/session`: Fix Lock Leaking (RefCounting) to prevent infinite growth.
     - [x] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
     - [x] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
@@ -186,7 +186,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 
 Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Systems).
 
-- [ ] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
+- [x] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
 - [ ] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
 - [ ] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo_action`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
   - *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
