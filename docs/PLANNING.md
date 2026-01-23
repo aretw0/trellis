@@ -143,7 +143,7 @@ Foco: Facilitar a vida de quem cria fluxos com Context Injection e melhor contro
 - [x] **Global Signal Contexts**: Expandir `on_signal` para suportar `timeout` (System Signals) e `webhook` (External Signals).
 - [x] **CLI DX**: Melhorias de output e logs para feedback mais limpo.
 
-### 🧩 v0.6: Integration & Persistence (The "Durable" Phase)
+### ✅ v0.6: Integration & Persistence (The "Durable" Phase)
 
 Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable Execution** (inspirado em Temporal), permitindo fluxos de longa duração e recuperação de falhas.
 
@@ -179,8 +179,8 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
     - [x] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
     - [x] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
     - [x] `pkg/runner`: Fix Non-Blocking text logic & Lifecycle consistency for terminal nodes.
-    - [ ] `pkg/persistence`: Refine internal usage of Middleware. (See v0.8 Declarative Config).
-    - [ ] `pkg/engine`: Validate Saga constraints in manual flows. (See v0.7 Native Saga).
+    - [x] `pkg/persistence`: Refine internal usage of Middleware. (See v0.8 Declarative Config).
+    - [x] `pkg/engine`: Validate Saga constraints in manual flows. (See v0.7 Native Saga).
 
 ### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
 
@@ -189,6 +189,7 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [ ] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
 - [ ] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
 - [ ] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo_action`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
+  - *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 - [ ] **Process Adapter (Scriptable Tools)**: Adaptador genérico para executar scripts locais (`.sh`, `.js`, `.py`) ou Binários (Lambdas) como Ferramentas, sem recompilar o Runner. "Unix Philosophy".
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
@@ -209,6 +210,7 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
 - [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração, eliminando a necessidade de código Go (`main.go`) para setups padrão.
+  - *Refinement*: Internal middleware usage should be fully driven by this config.
 
 ---
 

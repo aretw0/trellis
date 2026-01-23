@@ -658,7 +658,7 @@ Atalho para menus de escolha simples.
 
 #### 12.1. Interceptors (Safety Middleware)
 
-Para mitigar riscos de execução arbitrária, o Runner aceita interceptadores:
+Para mitigar riscos de execução arbitrária, o Runner aceita interceptadores. (Veja o [Security Guide](./guides/security.md) para Criptografia e PII).
 
 ```go
 type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error)
@@ -669,7 +669,7 @@ type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error
 
 #### 12.2. Error Handling (on_error)
 
-Mecanismo robusto para recuperação de falhas em ferramentas.
+Mecanismo robusto para recuperação de falhas em ferramentas. (Veja o [Manual SAGA Guide](./guides/manual_saga_pattern.md) para transações compensatórias).
 
 - Se `ToolResult.IsError` for true:
   - O Engine **PULA** o `save_to` (evita context poisoning).
