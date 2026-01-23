@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/file"
 	"github.com/aretw0/trellis/pkg/persistence/middleware"
 	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
@@ -23,7 +23,7 @@ func main() {
 	// 2. Setup File Store (The "Insecure" Backend)
 	wd, _ := os.Getwd()
 	flowDir := filepath.Join(wd, "examples", "manual-security")
-	fileStore := adapters.NewFileStore(flowDir)
+	fileStore := file.New(flowDir)
 
 	// 3. Setup Encryption Middleware
 	// In production, fetch this from ENV or KMS

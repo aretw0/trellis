@@ -1,4 +1,4 @@
-package adapters
+package loam
 
 import (
 	"encoding/json"
@@ -84,7 +84,7 @@ Cycle B`
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	t.Run("Resolves Deep Imports and Shadowing", func(t *testing.T) {
 		data, err := loader.GetNode("consumer")

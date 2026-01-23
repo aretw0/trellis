@@ -1,4 +1,4 @@
-package adapters
+package loam
 
 import (
 	"context"
@@ -18,8 +18,8 @@ type LoamLoader struct {
 	Repo *loam.TypedRepository[dto.NodeMetadata]
 }
 
-// NewLoamLoader creates a new Loam adapter.
-func NewLoamLoader(repo *loam.TypedRepository[dto.NodeMetadata]) *LoamLoader {
+// New creates a new Loam adapter.
+func New(repo *loam.TypedRepository[dto.NodeMetadata]) *LoamLoader {
 	return &LoamLoader{
 		Repo: repo,
 	}

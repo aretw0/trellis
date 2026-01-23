@@ -1,4 +1,4 @@
-package adapters
+package file
 
 import (
 	"context"
@@ -16,9 +16,9 @@ type FileStore struct {
 	BasePath string
 }
 
-// NewFileStore creates a new FileStore with the given base path.
+// New creates a new FileStore with the given base path.
 // If basePath is empty, it defaults to ".trellis/sessions".
-func NewFileStore(basePath string) *FileStore {
+func New(basePath string) *FileStore {
 	if basePath == "" {
 		basePath = filepath.Join(".trellis", "sessions")
 	}

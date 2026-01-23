@@ -1,4 +1,4 @@
-package adapters_test
+package file_test
 
 import (
 	"context"
@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/file"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 )
 
 // Ensure FileStore implements StateStore
-var _ ports.StateStore = (*adapters.FileStore)(nil)
+var _ ports.StateStore = (*file.FileStore)(nil)
 
 func TestFileStore_Contract(t *testing.T) {
 	// Setup temporary directory for testing
@@ -22,7 +22,7 @@ func TestFileStore_Contract(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir) // Cleanup
 
-	store := adapters.NewFileStore(tempDir)
+	store := file.New(tempDir)
 	ctx := context.Background()
 
 	t.Run("LoadNonExistentSession", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestFileStore_Contract(t *testing.T) {
 			t.Fatalf("failed to create temp dir: %v", err)
 		}
 		defer os.RemoveAll(listDir)
-		listStore := adapters.NewFileStore(listDir)
+		listStore := file.New(listDir)
 
 		// Create a few sessions
 		ids := []string{"s1", "s2", "s3"}

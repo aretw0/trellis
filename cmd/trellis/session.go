@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/file"
 	"github.com/spf13/cobra"
 )
 
@@ -96,7 +96,7 @@ func init() {
 	sessionCmd.AddCommand(sessionRmCmd)
 }
 
-func getStore(cmd *cobra.Command) *adapters.FileStore {
+func getStore(cmd *cobra.Command) *file.FileStore {
 	projectDir, _ := cmd.Flags().GetString("dir")
 	if projectDir == "" {
 		projectDir = "."
@@ -105,5 +105,5 @@ func getStore(cmd *cobra.Command) *adapters.FileStore {
 	// FileStore constructs based on basePath.
 	// We want to target <projectDir>/.trellis/sessions
 	storePath := filepath.Join(projectDir, ".trellis", "sessions")
-	return adapters.NewFileStore(storePath)
+	return file.New(storePath)
 }

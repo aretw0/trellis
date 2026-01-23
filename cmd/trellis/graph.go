@@ -11,7 +11,7 @@ import (
 	"github.com/aretw0/trellis/internal/presentation/graph"
 	"github.com/spf13/cobra"
 
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/file"
 )
 
 // graphCmd represents the graph command
@@ -45,7 +45,7 @@ var graphCmd = &cobra.Command{
 			// This matches the default in examples and session cmd
 			wd, _ := os.Getwd()
 			storePath := filepath.Join(wd, ".trellis", "sessions")
-			store := adapters.NewFileStore(storePath)
+			store := file.New(storePath)
 
 			state, err := store.Load(context.Background(), sessionID)
 			if err != nil {

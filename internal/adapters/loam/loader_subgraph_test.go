@@ -1,4 +1,4 @@
-package adapters
+package loam
 
 import (
 	"encoding/json"
@@ -42,7 +42,7 @@ Intro`), 0644)
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	t.Run("Discovery of Namespaced IDs", func(t *testing.T) {
 		ids, err := loader.ListNodes()

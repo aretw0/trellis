@@ -1,4 +1,4 @@
-package adapters
+package loam
 
 import (
 	"context"
@@ -68,7 +68,7 @@ Node B`,
 
 	// 3. Create Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	// 4. Run Contract
 	tests.GraphLoaderContractTest(t, loader, setupData)
@@ -102,7 +102,7 @@ ID is implied from filename`,
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	// Execute ListNodes
 	ids, err := loader.ListNodes()
@@ -125,7 +125,7 @@ func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	// Execute GetNode using the normalized name "node"
 	data, err := loader.GetNode("node")
@@ -157,7 +157,7 @@ tool_call:
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	// Execute GetNode
 	data, err := loader.GetNode("implicit_tool")
@@ -187,7 +187,7 @@ default_context:
 
 	// Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	// Execute GetNode
 	data, err := loader.GetNode("start")

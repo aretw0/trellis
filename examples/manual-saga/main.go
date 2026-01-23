@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/file"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/registry"
 	"github.com/aretw0/trellis/pkg/runner"
@@ -77,7 +77,7 @@ func main() {
 	}
 
 	// 2. Setup Persistence
-	store := adapters.NewFileStore(filepath.Join(".trellis", "sessions"))
+	store := file.New(filepath.Join(".trellis", "sessions"))
 
 	// 3. Setup Tools Registry
 	reg := registry.NewRegistry()

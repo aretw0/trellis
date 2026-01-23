@@ -1,4 +1,4 @@
-package adapters
+package loam
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ Waiting...`
 
 	// 3. Initialize Adapter
 	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
-	loader := NewLoamLoader(typedRepo)
+	loader := New(typedRepo)
 
 	// 4. Load the node
 	data, err := loader.GetNode("step_timeout")

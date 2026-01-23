@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/file"
 	"github.com/aretw0/trellis/internal/adapters/memory"
 	"github.com/aretw0/trellis/internal/adapters/redis"
 	"github.com/aretw0/trellis/internal/logging"
@@ -257,7 +257,7 @@ func setupPersistence(opts RunOptions, logger *slog.Logger) (ports.StateStore, *
 
 	if store == nil {
 		if opts.SessionID != "" {
-			store = adapters.NewFileStore("") // Uses default .trellis/sessions
+			store = file.New("") // Uses default .trellis/sessions
 		} else {
 			// Ephemeral session: Use In-Memory store to prevent Panics when Session Manager tries to Load/Save
 			store = memory.New()
@@ -279,7 +279,7 @@ func ResetSession(sessionID string) {
 	if sessionID == "" {
 		sessionID = "watch-dev"
 	}
-	store := adapters.NewFileStore("")
+	store := file.New("")
 	_ = store.Delete(context.Background(), sessionID)
 }
 
