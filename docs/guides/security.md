@@ -15,7 +15,7 @@ To enable encryption, wrap your `StateStore` with the `EncryptionMiddleware`. (S
 ```go
 import (
     "github.com/aretw0/trellis/pkg/persistence/middleware"
-    "github.com/aretw0/trellis/internal/adapters/file"
+    "github.com/aretw0/trellis/pkg/adapters/file"
 )
 
 func main() {

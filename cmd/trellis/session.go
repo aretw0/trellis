@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aretw0/trellis/internal/adapters/file"
+	"github.com/aretw0/trellis/pkg/adapters/file"
 	"github.com/spf13/cobra"
 )
 

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters/file"
+	"github.com/aretw0/trellis/pkg/adapters/file"
 	"github.com/aretw0/trellis/pkg/persistence/middleware"
 	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
