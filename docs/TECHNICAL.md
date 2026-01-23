@@ -97,13 +97,13 @@ graph TD
         Domain[Domain - Node, State]
     end
     Engine -->|Driven Port| Loader[GraphLoader Interface]
-    Loader -.->|Adapter| Loam[Loam - File System]
-    Loader -.->|Adapter| Memory[Memory - Ephemeral/Testing]
+    Loader -.->|Adapter| Loam[pkg/adapters/loam]
+    Loader -.->|Adapter| Memory[pkg/adapters/memory]
     
     Host -->|Uses| Store[StateStore Interface]
-    Store -.->|Adapter| file.Store[file.Store - Local JSON]
-    Store -.->|Adapter| Redis[Redis - Cloud]
-    Store -.->|Adapter| Memory
+    Store -.->|Adapter| File[pkg/adapters/file]
+    Store -.->|Adapter| Redis[pkg/adapters/redis]
+    Store -.->|Adapter| Memory[pkg/adapters/memory]
 ```
 
 ### 3. Estrutura de Diretórios

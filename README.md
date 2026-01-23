@@ -134,8 +134,8 @@ trellis/
 ├── cmd/           # Entrypoints (trellis CLI)
 ├── docs/          # Documentação do Projeto
 ├── examples/      # Demos e Receitas (Tours, Patterns)
-├── internal/      # Implementação Privada (Loam, Runtime)
-├── pkg/           # Contratos Públicos (Facade, Domain, Ports)
+├── internal/      # Implementação Privada (Runtime, TUI)
+├── pkg/           # Contratos Públicos (Facade, Domain, Ports, Adapters)
 └── tests/         # Testes de Integração (Certification Suite)
 ```
 
