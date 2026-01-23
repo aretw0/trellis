@@ -39,9 +39,31 @@ Interface experimental para "Durable Execution" (Sleep/Resume).
 - `StateStore.Save(ctx, sessionID, state)`: Persiste o snapshot da execução.
 - `StateStore.Load(ctx, sessionID)`: Hidrata uma sessão anterior.
 
-#### 2.2.2. Session Manager (Orchestrator)
+#### 2.2.2. Distributed Locker (Concurrency)
+
+Interface para controle de concorrência em ambiente distribuído (v0.7).
+
+- `DistributedLocker.Lock(ctx, key, ttl)`: Adquire lock distribuído (ex: Redis).
+
+#### 2.2.3. Session Manager (Orchestrator)
 
 The `pkg/session` package acts as the orchestrator for state durability. It wraps the `StateStore` to add concurrency control (locking) and lifecycle management (atomic "Load or Create").
+
+**Hybrid Locking Strategy (Process + Distributed):**
+
+To balance performance and safety, the Manager uses a **Two-Level Locking** strategy:
+
+1. **Local Mutex (`sync.Mutex`)**: Prevents race conditions between goroutines within the *same* process instance. Cheap and fast.
+2. **Distributed Lock (Redis)**: Prevents race conditions between different replicas (Pods). Expensive (Network RTT).
+
+The Distributed Lock is acquired *lazily* only inside critical sections (Load/Save), wrapped by the Local Mutex execution.
+
+**Deferred Unlock (Best Effort Release):**
+
+The engine ignores (but logs) errors during the lock release (Unlock) phase inside a `defer`.
+
+- **Reasoning**: If the business logic (Load/Save) succeeds but the network fails during Unlock, retuning an error would mask the success and confuse the caller.
+- **Safety**: The Distributed Lock has a TTL (Time-To-Live). If an explicit unlock fails, the lock will naturally expire, preserving system liveliness at the cost of slight contention delay.
 
 **Concurrency Strategy (Reference Counting)**:
 To prevent memory leaks in high-traffic scenarios, the Manager uses a **Reference Counting** mechanism for session locks. Locks are created on demand and automatically deleted when the reference count drops to zero.
