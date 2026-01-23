@@ -187,7 +187,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
 Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Systems).
 
 - [x] **Distributed Locking**: Implementação de referência de `SessionManager` usando Redis/Etcd para clusters.
-- [ ] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
+- [x] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
 - [ ] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo_action`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
   - *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
