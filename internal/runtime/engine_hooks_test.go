@@ -48,7 +48,7 @@ func TestEngine_LifecycleHooks(t *testing.T) {
 	ctx := context.Background()
 
 	// Verify OnNodeEnter for initial state (Now triggered by Start)
-	state, err := engine.Start(ctx, nil)
+	state, err := engine.Start(ctx, "test-session", nil)
 	if err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}

@@ -44,7 +44,7 @@ Hello, {{ .username }}!
 	}
 
 	// 4. Manually seed state with context
-	state := domain.NewState("welcome")
+	state := domain.NewState("test-session", "welcome")
 	state.Context["username"] = "Alice"
 
 	// 5. Run Render

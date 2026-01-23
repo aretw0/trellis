@@ -431,6 +431,30 @@ flowchart TD
 2. **Cycle Detection**: Recursive imports are guarded against infinite loops (`visited` set).
 3. **Shadowing Policy**: Local definitions always override imported ones.
 
+### 8.6. Idempotency & Deduplication (v0.7)
+
+Trellis ensures **at-most-once** execution for Side-Effects (Tool Calls) using deterministic keys.
+
+**The Contract:**
+
+1. **Determinism**: Re-running the same State + Node produces the exact same `IdempotencyKey`.
+2. **Scope**: Uniqueness is guaranteed by `SessionID + NodeID + StepIndex + ToolName`.
+
+**Sequence Diagram:**
+
+```mermaid
+sequenceDiagram
+    participant E as Engine
+    participant S as State
+    participant T as Tool (Side Effect)
+    
+    E->>E: Render(State)
+    E->>S: Get History Length (Simulation Step)
+    E->>E: Generate Hash(SessionID, NodeID, StepIndex, ToolName)
+    E->>T: Call(Args, Metadata["idempotency_key"])
+    Note over T: External System (e.g., API, DB)<br/>deduplicates using Key
+```
+
 ### 9. Runner & IO Architecture
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.

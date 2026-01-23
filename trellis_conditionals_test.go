@@ -49,7 +49,7 @@ Welcome.
 
 	// 5. Test Case 1: Wrong Password -> Should STAY at start
 	ctx = context.Background()
-	state, err := eng.Start(ctx, nil)
+	state, err := eng.Start(ctx, "test", nil)
 	if err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}

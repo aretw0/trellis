@@ -32,7 +32,7 @@ func TestContextInjection(t *testing.T) {
 
 	// 3. Start with Context
 	ctx := context.Background()
-	state, err := eng.Start(ctx, initialData)
+	state, err := eng.Start(ctx, "test-session", initialData)
 	if err != nil {
 		t.Fatalf("StartWithContext failed: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestContextInjection_Persistence(t *testing.T) {
 		"score": 100,
 	}
 
-	state, err := eng.Start(context.Background(), initialData)
+	state, err := eng.Start(context.Background(), "test-session", initialData)
 	if err != nil {
 		t.Fatalf("StartWithContext failed: %v", err)
 	}

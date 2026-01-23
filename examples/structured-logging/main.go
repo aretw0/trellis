@@ -90,7 +90,7 @@ func main() {
 		cancel()
 	}()
 
-	state, err := eng.Start(ctx, nil)
+	state, err := eng.Start(ctx, "logging-demo", nil)
 	if err != nil {
 		if err == context.Canceled {
 			logger.Info("start canceled")

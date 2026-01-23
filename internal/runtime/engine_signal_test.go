@@ -52,7 +52,7 @@ func TestEngine_Signal(t *testing.T) {
 
 	t.Run("Successfully Handles Interrupt Signal", func(t *testing.T) {
 		// Start
-		state, _ := engine.Start(context.Background(), nil)
+		state, _ := engine.Start(context.Background(), "signal-test", nil)
 		assert.Equal(t, "start", state.CurrentNodeID)
 
 		// Send Signal
@@ -63,7 +63,7 @@ func TestEngine_Signal(t *testing.T) {
 
 	t.Run("Returns Error For Unhandled Signal", func(t *testing.T) {
 		// Start
-		state, _ := engine.Start(context.Background(), nil)
+		state, _ := engine.Start(context.Background(), "signal-test", nil)
 
 		// Send Unknown Signal
 		_, err := engine.Signal(context.Background(), state, "unknown_signal")
@@ -72,7 +72,7 @@ func TestEngine_Signal(t *testing.T) {
 
 	t.Run("Ignores Signal If Not Configured", func(t *testing.T) {
 		// Move to 'next' node which has no handlers
-		state := domain.NewState("next")
+		state := domain.NewState("signal-test", "next")
 
 		// Send Signal
 		_, err := engine.Signal(context.Background(), state, "interrupt")

@@ -30,7 +30,7 @@ Hello World`)
 	}
 
 	ctx := context.Background()
-	state, err := engine.Start(ctx, nil)
+	state, err := engine.Start(ctx, "test", nil)
 	if err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}

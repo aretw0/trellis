@@ -58,7 +58,7 @@ func TestManager_Locking(t *testing.T) {
 	id := "race-test"
 
 	// Initial save
-	_ = manager.Save(ctx, id, domain.NewState("start"))
+	_ = manager.Save(ctx, id, domain.NewState(id, "start"))
 
 	var wg sync.WaitGroup
 	concurrentWrites := 10
@@ -75,7 +75,7 @@ func TestManager_Locking(t *testing.T) {
 			// Just call Save. The Manager must ensure this is safe.
 			// The SlowStore simulates IO delay.
 			// If locking works, these should happen sequentially (or at least safely).
-			err := manager.Save(ctx, id, domain.NewState("updated"))
+			err := manager.Save(ctx, id, domain.NewState(id, "updated"))
 			assert.NoError(t, err)
 		}(i)
 	}

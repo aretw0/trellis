@@ -22,7 +22,7 @@ func TestEngine_RequiredContext(t *testing.T) {
 		engine := runtime.NewEngine(loader, nil, nil)
 
 		// Start() gets invalid state (no context)
-		state := domain.NewState("start")
+		state := domain.NewState("test-session", "start")
 
 		// Render should fail
 		_, _, err := engine.Render(context.Background(), state)
@@ -43,7 +43,7 @@ func TestEngine_RequiredContext(t *testing.T) {
 		loader, _ := inmemory.NewFromNodes(startNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
-		state := domain.NewState("start")
+		state := domain.NewState("test-session", "start")
 		// Manually hydrate context to simulate pre-seeding (or CLI injection)
 		state.Context["api_key"] = "secret"
 
@@ -70,7 +70,7 @@ func TestEngine_RequiredContext(t *testing.T) {
 		loader, _ := inmemory.NewFromNodes(startNode, secureNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
-		state := domain.NewState("start")
+		state := domain.NewState("test-session", "start")
 
 		// Transition to Secure
 		nextState, err := engine.Navigate(context.Background(), state, nil)

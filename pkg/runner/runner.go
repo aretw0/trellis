@@ -199,7 +199,7 @@ func (r *Runner) resolveInitialState(ctx context.Context, engine *trellis.Engine
 	if initial != nil {
 		return initial, nil
 	}
-	state, err := engine.Start(ctx, nil)
+	state, err := engine.Start(ctx, "runner-ephemeral", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create initial state: %w", err)
 	}

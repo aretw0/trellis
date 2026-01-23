@@ -32,7 +32,7 @@ func (sm *SessionManager) LoadOrStart(
 ) (*domain.State, bool, error) {
 	if sessionID == "" {
 		// Ephemeral session (no ID), just start new
-		state, err := engine.Start(ctx, initialContext)
+		state, err := engine.Start(ctx, "ephemeral", initialContext)
 		return state, false, err
 	}
 
@@ -48,7 +48,7 @@ func (sm *SessionManager) LoadOrStart(
 	}
 
 	// Not found, Start New
-	state, err = engine.Start(ctx, initialContext)
+	state, err = engine.Start(ctx, sessionID, initialContext)
 	if err != nil {
 		return nil, false, err
 	}

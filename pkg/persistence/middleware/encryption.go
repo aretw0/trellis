@@ -59,7 +59,7 @@ func (m *encryptionMiddleware) Save(ctx context.Context, sessionID string, state
 
 	// 3. Create envelope
 	// We create an opaque envelope state that hides all execution details.
-	envelope := domain.NewState("encrypted")
+	envelope := domain.NewState(sessionID, "encrypted")
 	envelope.Status = state.Status // We might want to expose status for monitoring, but content is hidden.
 	envelope.Context = map[string]any{
 		"__encrypted__": base64.StdEncoding.EncodeToString(ciphertext),

@@ -27,7 +27,7 @@ func TestEncryptionMiddleware_Roundtrip(t *testing.T) {
 
 	ctx := context.Background()
 	sessionID := "test-session"
-	originalState := domain.NewState("start")
+	originalState := domain.NewState(sessionID, "start")
 	originalState.Context["secret"] = "my-secret-sauce"
 
 	// 1. Save
@@ -69,7 +69,7 @@ func TestEncryptionMiddleware_KeyRotation(t *testing.T) {
 
 	ctx := context.Background()
 	sessionID := "rotation-session"
-	originalState := domain.NewState("start")
+	originalState := domain.NewState(sessionID, "start")
 	originalState.Context["data"] = "encrypted-with-old-key"
 
 	// 1. Save with OLD key

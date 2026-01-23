@@ -122,7 +122,7 @@ func (m *Manager) LoadOrStart(ctx context.Context, sessionID string, startNode s
 		if startNode == "" {
 			startNode = "start"
 		}
-		state = domain.NewState(startNode)
+		state = domain.NewState(sessionID, startNode)
 
 		// Persist immediately to reserve the ID
 		if err := m.store.Save(ctx, sessionID, state); err != nil {

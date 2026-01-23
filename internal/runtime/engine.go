@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
@@ -139,9 +141,17 @@ func NewEngine(loader ports.GraphLoader, evaluator ConditionEvaluator, interpola
 	return e
 }
 
+func (e *Engine) generateIdempotencyKey(state *domain.State, nodeID string, toolName string) string {
+	// Key = SessionID + NodeID + HistoryLength (Step Index) + ToolName
+	stepIndex := len(state.History)
+	raw := fmt.Sprintf("%s:%s:%d:%s", state.SessionID, nodeID, stepIndex, toolName)
+	hash := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(hash[:])
+}
+
 // Start creates the initial state and triggers the OnNodeEnter hook.
-func (e *Engine) Start(ctx context.Context, initialContext map[string]any) (*domain.State, error) {
-	state := domain.NewState(e.entryNodeID)
+func (e *Engine) Start(ctx context.Context, sessionID string, initialContext map[string]any) (*domain.State, error) {
+	state := domain.NewState(sessionID, e.entryNodeID)
 	// Load start node to get defaults and metadata
 	var startNode *domain.Node
 	raw, err := e.loader.GetNode(e.entryNodeID)
@@ -278,6 +288,15 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 				call.Metadata[k] = v
 			}
 		}
+
+		if call.Metadata == nil {
+			call.Metadata = make(map[string]string)
+		}
+		// Generate Key
+		key := e.generateIdempotencyKey(currentState, node.ID, call.Name)
+		call.IdempotencyKey = key
+		// Also keep in metadata for backward compatibility or middleware access if needed
+		call.Metadata["idempotency_key"] = key
 
 		// Deep Interpolation for Tool Args
 		if e.interpolator != nil && len(call.Args) > 0 {

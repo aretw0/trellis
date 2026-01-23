@@ -18,7 +18,7 @@ func RunStateStoreContract(t *testing.T, store StateStore) {
 
 	t.Run("Save and Load", func(t *testing.T) {
 		// 1. Create a state
-		state := domain.NewState("start")
+		state := domain.NewState(sessionID, "start")
 		state.Context["foo"] = "bar"
 		state.Context["count"] = 42
 
@@ -44,7 +44,7 @@ func RunStateStoreContract(t *testing.T, store StateStore) {
 
 	t.Run("Delete", func(t *testing.T) {
 		// Setup
-		err := store.Save(ctx, sessionID, domain.NewState("start"))
+		err := store.Save(ctx, sessionID, domain.NewState(sessionID, "start"))
 		require.NoError(t, err)
 
 		// Delete
@@ -60,8 +60,8 @@ func RunStateStoreContract(t *testing.T, store StateStore) {
 		// Setup: Create 2 sessions
 		id1 := sessionID + "-1"
 		id2 := sessionID + "-2"
-		_ = store.Save(ctx, id1, domain.NewState("start"))
-		_ = store.Save(ctx, id2, domain.NewState("start"))
+		_ = store.Save(ctx, id1, domain.NewState(id1, "start"))
+		_ = store.Save(ctx, id2, domain.NewState(id2, "start"))
 
 		// Ensure cleanup
 		defer func() {

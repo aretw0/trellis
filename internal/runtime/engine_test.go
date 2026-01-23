@@ -39,7 +39,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Initial Render", func(t *testing.T) {
-		state := domain.NewState("start")
+		state := domain.NewState("test-session", "start")
 		// 1. Initial Render (Start)
 		actions, _, err := engine.Render(context.Background(), state)
 		if err != nil {
@@ -61,7 +61,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 	})
 
 	t.Run("Transition Matching", func(t *testing.T) {
-		state := domain.NewState("start")
+		state := domain.NewState("test-session", "start")
 		// Simulate input
 		// 1. Render (Start)
 		actions, _, err := engine.Render(context.Background(), state)
@@ -87,7 +87,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 	})
 
 	t.Run("No Transition Match", func(t *testing.T) {
-		state := domain.NewState("start")
+		state := domain.NewState("test-session", "start")
 		// Navigate (Input: "no")
 		nextState, err := engine.Navigate(context.Background(), state, "no")
 		if err != nil {
@@ -100,7 +100,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 	})
 
 	t.Run("Default Transition", func(t *testing.T) {
-		state := domain.NewState("middle")
+		state := domain.NewState("test-session", "middle")
 		// Navigate (Input: "")
 		nextState, err := engine.Navigate(context.Background(), state, "") // Empty input for auto transition
 		if err != nil {
@@ -130,7 +130,7 @@ func TestEngine_Render_Inputs(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// Render
-	state := domain.NewState("input")
+	state := domain.NewState("test-session", "input")
 	actions, _, err := engine.Render(context.Background(), state)
 	if err != nil {
 		t.Fatalf("Render failed: %v", err)
@@ -175,7 +175,7 @@ func TestEngine_Interpolation(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil) // Uses DefaultInterpolator (text/template)
 
 	t.Run("Standard Template", func(t *testing.T) {
-		state := domain.NewState("tmpl")
+		state := domain.NewState("test-session", "tmpl")
 		state.Context["Name"] = "Alice"
 		state.Context["VIP"] = true
 
@@ -192,7 +192,7 @@ func TestEngine_Interpolation(t *testing.T) {
 	})
 
 	t.Run("Missing Variable", func(t *testing.T) {
-		state := domain.NewState("tmpl")
+		state := domain.NewState("test-session", "tmpl")
 		state.Context["VIP"] = false
 		// Name is missing
 
@@ -223,7 +223,7 @@ func TestEngine_Interpolation(t *testing.T) {
 		loader, _ := inmemory.NewFromNodes(toolNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
-		state := domain.NewState("call_tool")
+		state := domain.NewState("test-session", "call_tool")
 		state.Context["user_id"] = "12345"
 
 		actions, _, err := engine.Render(context.Background(), state)
@@ -270,7 +270,7 @@ func TestEngine_ToolResultBinding(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// A. Start at step1
-	state := domain.NewState("step1")
+	state := domain.NewState("test-session", "step1")
 	// simulate ActionCallTool was emitted
 	state.Status = domain.StatusWaitingForTool
 	state.PendingToolCall = "t1"
@@ -330,7 +330,7 @@ func TestEngine_LegacyInterpolation(t *testing.T) {
 	// Inject LegacyInterpolator
 	engine := runtime.NewEngine(loader, nil, runtime.LegacyInterpolator)
 
-	state := domain.NewState("legacy")
+	state := domain.NewState("test-session", "legacy")
 	state.Context["Name"] = "Bob"
 
 	actions, _, err := engine.Render(context.Background(), state)
@@ -362,7 +362,7 @@ func TestEngine_DataBinding(t *testing.T) {
 	loader, _ := inmemory.NewFromNodes(node, greetNode)
 	engine := runtime.NewEngine(loader, nil, nil) // Default Interpolator
 
-	state := domain.NewState("ask_name")
+	state := domain.NewState("test-session", "ask_name")
 
 	// Navigate with Input "Alice"
 	nextState, err := engine.Navigate(context.Background(), state, "Alice")
@@ -415,7 +415,7 @@ func TestEngine_Namespacing(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Read System Context", func(t *testing.T) {
-		state := domain.NewState("node1")
+		state := domain.NewState("test-session", "node1")
 		state.SystemContext["message"] = "Secure"
 
 		actions, _, err := engine.Render(context.Background(), state)
@@ -428,7 +428,7 @@ func TestEngine_Namespacing(t *testing.T) {
 	})
 
 	t.Run("Block System Write", func(t *testing.T) {
-		state := domain.NewState("violation")
+		state := domain.NewState("test-session", "violation")
 		_, err := engine.Navigate(context.Background(), state, "malicious_input")
 		if err == nil {
 			t.Fatal("Expected error when saving to 'sys.*', got nil")

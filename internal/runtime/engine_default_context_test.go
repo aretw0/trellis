@@ -21,7 +21,7 @@ func TestEngine_Start_WithDefaultContext(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Applies Defaults When No Context Provided", func(t *testing.T) {
-		state, err := engine.Start(context.Background(), nil)
+		state, err := engine.Start(context.Background(), "test-session", nil)
 		assert.NoError(t, err)
 		assert.Equal(t, "dev", state.Context["env"])
 		assert.EqualValues(t, 3, state.Context["retries"])
@@ -31,7 +31,7 @@ func TestEngine_Start_WithDefaultContext(t *testing.T) {
 		initial := map[string]any{
 			"env": "prod",
 		}
-		state, err := engine.Start(context.Background(), initial)
+		state, err := engine.Start(context.Background(), "test-session", initial)
 		assert.NoError(t, err)
 		assert.Equal(t, "prod", state.Context["env"])
 		assert.EqualValues(t, 3, state.Context["retries"]) // Preserves non-overridden default

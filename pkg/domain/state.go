@@ -11,6 +11,9 @@ const (
 
 // State represents the current snapshot of the execution.
 type State struct {
+	// SessionID uniquely identifies the session this state belongs to.
+	SessionID string `json:"session_id"`
+
 	// CurrentNodeID is the identifier of the active node.
 	CurrentNodeID string `json:"current_node_id"`
 
@@ -36,8 +39,9 @@ type State struct {
 }
 
 // NewState creates a clean state starting at a specific node.
-func NewState(startNodeID string) *State {
+func NewState(sessionID, startNodeID string) *State {
 	return &State{
+		SessionID:     sessionID,
 		CurrentNodeID: startNodeID,
 		Status:        StatusActive,
 		Context:       make(map[string]any),

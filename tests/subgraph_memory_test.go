@@ -52,7 +52,7 @@ func TestEngine_Subgraphs(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// 1. Start at Root
-	state := domain.NewState(rootID)
+	state := domain.NewState("test-session", rootID)
 
 	// 2. Navigate to Subgraph
 	// Note: For Text nodes, Navigate("") with empty input triggers default transition

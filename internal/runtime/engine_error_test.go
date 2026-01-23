@@ -43,7 +43,7 @@ func TestEngine_OnError_Transition(t *testing.T) {
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// A. Start at step1
-	state := domain.NewState("step1")
+	state := domain.NewState("test-session", "step1")
 	state.Status = domain.StatusWaitingForTool
 	state.PendingToolCall = "t1"
 	// Set some context to verify it persists
@@ -99,7 +99,7 @@ func TestEngine_OnError_Missing_FailFast(t *testing.T) {
 	loader, _ := inmemory.NewFromNodes(toolNode, nextNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
-	state := domain.NewState("step1")
+	state := domain.NewState("test-session", "step1")
 	state.Status = domain.StatusWaitingForTool
 	state.PendingToolCall = "t1"
 

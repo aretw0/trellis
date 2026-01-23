@@ -45,7 +45,7 @@ func main() {
 
 	// 2. Create initial state
 	ctx := context.Background()
-	state, err := eng.Start(ctx, nil)
+	state, err := eng.Start(ctx, "demo", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

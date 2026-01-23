@@ -34,7 +34,7 @@ func TestFileStore_Contract(t *testing.T) {
 
 	t.Run("SaveAndLoadSession", func(t *testing.T) {
 		sessionID := "session-1"
-		state := domain.NewState("start")
+		state := domain.NewState(sessionID, "start")
 		state.Context["foo"] = "bar"
 		// Test serialization of complex types if supported
 		state.Context["count"] = 42
@@ -65,7 +65,7 @@ func TestFileStore_Contract(t *testing.T) {
 
 	t.Run("DeleteSession", func(t *testing.T) {
 		sessionID := "session-to-delete"
-		state := domain.NewState("start")
+		state := domain.NewState(sessionID, "start")
 
 		if err := store.Save(ctx, sessionID, state); err != nil {
 			t.Fatalf("Save failed: %v", err)
@@ -114,7 +114,7 @@ func TestFileStore_Contract(t *testing.T) {
 		// Create a few sessions
 		ids := []string{"s1", "s2", "s3"}
 		for _, id := range ids {
-			if err := listStore.Save(ctx, id, domain.NewState("start")); err != nil {
+			if err := listStore.Save(ctx, id, domain.NewState(id, "start")); err != nil {
 				t.Fatalf("Save failed: %v", err)
 			}
 		}

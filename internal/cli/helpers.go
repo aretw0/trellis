@@ -304,7 +304,7 @@ func hydrateAndValidateState(ctx context.Context, engine *trellis.Engine, sessio
 		}
 
 		// 2. Start New Session
-		s, err = engine.Start(ctx, initialContext)
+		s, err = engine.Start(ctx, sessionID, initialContext)
 		if err != nil {
 			return err
 		}

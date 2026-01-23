@@ -17,7 +17,7 @@ func TestPIIMiddleware_Masking(t *testing.T) {
 
 	ctx := context.Background()
 	sessionID := "pii-session"
-	state := domain.NewState("start")
+	state := domain.NewState(sessionID, "start")
 
 	// Populate with mixed data
 	state.Context["username"] = "jdoe"
