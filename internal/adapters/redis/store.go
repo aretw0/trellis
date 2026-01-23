@@ -167,3 +167,13 @@ func (s *Store) List(ctx context.Context) ([]string, error) {
 func (s *Store) Close() error {
 	return s.client.Close()
 }
+
+// Client returns the underlying Redis client.
+func (s *Store) Client() *backend.Client {
+	return s.client
+}
+
+// ParseURL parses a redis connection string.
+func ParseURL(url string) (*backend.Options, error) {
+	return backend.ParseURL(url)
+}
