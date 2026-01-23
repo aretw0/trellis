@@ -43,7 +43,12 @@ Showcases how to securely wrap the state store with encryption and PII sanitizat
 ### [Manual Saga (Transaction Rollback)](./manual-saga)
 
 **Concepts:** `Saga Pattern`, `on_error`, `Rollback`
-Demonstrates how to implement distributed transactions with compensating actions (Rollback) using standard Trellis primitives.
+Demonstrates how to implement distributed transactions with compensating actions (Rollback) using standard Trellis primitives (Manual Wiring).
+
+### [Native Saga (Automatic Rollback)](./native-saga)
+
+**Concepts:** `Native SAGA`, `do/undo`, `on_error: rollback`
+Demonstrates the **new** Native SAGA orchestration in Trellis v0.7. The engine automatically handles the stack unwinding and compensation execution when a failure occurs.
 
 ---
 

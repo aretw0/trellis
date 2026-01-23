@@ -761,7 +761,7 @@ type ToolInterceptor func(ctx, call) (allowed bool, result ToolResult, err error
 
 #### 12.2. Error Handling (on_error)
 
-Mecanismo robusto para recuperação de falhas em ferramentas. (Veja o [Manual SAGA Guide](./guides/manual_saga_pattern.md) para transações compensatórias).
+Mecanismo robusto para recuperação de falhas em ferramentas. (Veja o [Native SAGA Guide](./guides/native_saga.md) para orquestração automática e o [Manual SAGA Guide](./guides/manual_saga_pattern.md) para a abordagem manual).
 
 - Se `ToolResult.IsError` for true:
   - O Engine **PULA** o `save_to` (evita context poisoning).

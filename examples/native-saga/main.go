@@ -52,7 +52,7 @@ func main() {
 
 	// 4. Initialize Engine
 	wd, _ := os.Getwd()
-	repoPath := filepath.Join(wd, "examples", "saga-demo")
+	repoPath := filepath.Join(wd, "examples", "native-saga")
 	eng, err := trellis.New(repoPath,
 		trellis.WithLifecycleHooks(domain.LifecycleHooks{
 			OnToolCall: func(ctx context.Context, ev *domain.ToolEvent) {

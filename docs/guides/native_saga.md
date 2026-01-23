@@ -84,3 +84,11 @@ Your Undo tools should be **Idempotent**. The Engine guarantees `at-most-once` e
 The `undo` action has access to the **Full Session Context** at the time of the rollback. This includes data saved by the `do` action (via `save_to`).
 
 For example, if `reserve_hotel` saves `{ "id": "123" }` to `hotel_result`, your undo args can reference `{{ .hotel_result.id }}`.
+
+## Ready to Run?
+
+Check out the complete working example in [`examples/native-saga`](../../examples/native-saga).
+
+```bash
+go run ./examples/native-saga
+```

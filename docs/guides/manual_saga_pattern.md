@@ -2,7 +2,7 @@
 
 Distributed transactions are complex. In durable workflows, we often use the **SAGA Pattern** to guarantee consistency across external systems without distributed locks.
 
-> **Note**: This guide describes how to implement SAGA **manually** in Trellis v0.6 using `undo_action` metadata and custom wiring. Native SAGA orchestration (automatic rollback) is planned for future versions.
+> **Note**: This guide describes how to implement SAGA **manually** in Trellis v0.6. For the new **Automatic Rollback** feature (v0.7), see the [Native SAGA Guide](./native_saga.md) and the [`examples/native-saga`](../../examples/native-saga) demo.
 
 **The Concept:**
 For every "Do" action, define an "Undo" action. If any step fails, execute the "Undos" in reverse order for successfully completed steps.
