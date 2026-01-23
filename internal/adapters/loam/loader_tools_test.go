@@ -18,7 +18,7 @@ func writeFile(t *testing.T, dir, name, content string) {
 	require.NoError(t, err)
 }
 
-func TestLoamLoader_Tools_Polymorphic(t *testing.T) {
+func TestLoader_Tools_Polymorphic(t *testing.T) {
 	tmpDir, repo := testutils.SetupTestRepo(t)
 
 	// 1. Library File (to be imported)

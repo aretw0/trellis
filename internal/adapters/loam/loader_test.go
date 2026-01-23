@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoamLoader_Contract(t *testing.T) {
+func TestLoader_Contract(t *testing.T) {
 	// 1. Setup Loam (via testutils which ensures Strict Mode)
 	// dir, repo := testutils.SetupTestRepo(t)
 	// Actually we need the directory path only if we were writing files manually.
@@ -36,7 +36,7 @@ func TestLoamLoader_Contract(t *testing.T) {
 	}
 
 	// We need to save these as Loam documents first
-	// Note: LoamLoader.GetNode returns JSON compatible with domain.Node.
+	// Note: Loader.GetNode returns JSON compatible with domain.Node.
 	// But to populate Loam, we write Markdown/YAML.
 
 	docA := core.Document{
@@ -74,7 +74,7 @@ Node B`,
 	tests.GraphLoaderContractTest(t, loader, setupData)
 }
 
-func TestLoamLoader_ListNodes_NormalizesIDs(t *testing.T) {
+func TestLoader_ListNodes_NormalizesIDs(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
 
@@ -115,7 +115,7 @@ ID is implied from filename`,
 	assert.Len(t, ids, 3)
 }
 
-func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
+func TestLoader_GetNode_NormalizesID(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
 
@@ -139,7 +139,7 @@ func TestLoamLoader_GetNode_NormalizesID(t *testing.T) {
 	assert.NotContains(t, string(data), `"id":"node.json"`)
 }
 
-func TestLoamLoader_ToolCall_DefaultsID(t *testing.T) {
+func TestLoader_ToolCall_DefaultsID(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
 
@@ -169,7 +169,7 @@ tool_call:
 	assert.Contains(t, jsonStr, `"id":"my_awesome_tool"`)
 }
 
-func TestLoamLoader_DefaultContext(t *testing.T) {
+func TestLoader_DefaultContext(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
 

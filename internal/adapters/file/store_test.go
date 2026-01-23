@@ -11,10 +11,10 @@ import (
 	"github.com/aretw0/trellis/pkg/ports"
 )
 
-// Ensure FileStore implements StateStore
-var _ ports.StateStore = (*file.FileStore)(nil)
+// Ensure Store implements StateStore
+var _ ports.StateStore = (*file.Store)(nil)
 
-func TestFileStore_Contract(t *testing.T) {
+func TestStore_Contract(t *testing.T) {
 	// Setup temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "trellis_store_test")
 	if err != nil {

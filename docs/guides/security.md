@@ -15,12 +15,12 @@ To enable encryption, wrap your `StateStore` with the `EncryptionMiddleware`. (S
 ```go
 import (
     "github.com/aretw0/trellis/pkg/persistence/middleware"
-    "github.com/aretw0/trellis/internal/adapters"
+    "github.com/aretw0/trellis/internal/adapters/file"
 )
 
 func main() {
-    // 1. Initialize your base store (e.g., FileStore or Redis)
-    baseStore := adapters.NewFileStore("./sessions")
+    // 1. Initialize your base store (e.g., file.Store or Redis)
+    baseStore := file.NewStore("./sessions")
 
     // 2. Define your Encryption Config (Keys should come from KMS/Env)
     config := middleware.EncryptionConfig{

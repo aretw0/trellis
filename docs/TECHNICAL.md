@@ -98,12 +98,12 @@ graph TD
     end
     Engine -->|Driven Port| Loader[GraphLoader Interface]
     Loader -.->|Adapter| Loam[Loam - File System]
-    Loader -.->|Adapter| Mem[InMemory - Testing]
+    Loader -.->|Adapter| Memory[Memory - Ephemeral/Testing]
     
     Host -->|Uses| Store[StateStore Interface]
-    Store -.->|Adapter| FileStore[FileStore - Local JSON]
+    Store -.->|Adapter| file.Store[file.Store - Local JSON]
     Store -.->|Adapter| Redis[Redis - Cloud]
-    Store -.->|Adapter| Memory[In-Memory - Ephemeral]
+    Store -.->|Adapter| Memory
 ```
 
 ### 3. Estrutura de Diretórios
@@ -118,7 +118,7 @@ trellis/
 │   ├── runtime/       # Engine de execução
 │   └── validator/     # Lógica de validação
 ├── pkg/               # Contratos Públicos (Safe to import)
-│   ├── adapters/      # Adaptadores de Infraestrutura (Inmemory)
+│   ├── adapters/      # Adaptadores Compartilhados (Memory)
 │   ├── domain/        # Core Domain (Node, State)
 │   ├── ports/         # Interfaces (Driver & Driven)
 │   ├── registry/      # Registro de Ferramentas
@@ -152,7 +152,7 @@ O compilador deve ser implacável.
 O Trellis segue a filosofia **Convention over Configuration** para o início do fluxo.
 
 - **ID Obrigatório**: O fluxo SEMPRE começa no nó com ID `start`.
-- **Resolução de Arquivo**: Por padrão, o `LoamLoader` busca por um arquivo chamado `start.md` (ou `start.json`) na raiz do diretório.
+- **Resolução de Arquivo**: Por padrão, o `loam.Loader` busca por um arquivo chamado `start.md` (ou `start.json`) na raiz do diretório.
 - **Sub-Grafos**: Ao pular para um sub-módulo (`jump_to: modules/auth`), o engine busca por `modules/auth/start.md`.
 
 > **Nota**: Embora seja possível injetar um `State` inicial diferente via código (`engine.Navigate(ctx, customState, input)`), a CLI e os Runners padrão assumem `start` como entrypoint.
@@ -211,7 +211,7 @@ The Redis Adapter avoids background workers ("Serverless-friendliness"):
 - **Implication**: If `List()` is rarely called, the ZSET index may contain "Zombie Entries" (IDs whose actual keys have expired) until the next listing.
 - **Cost**: `List()` incurs a write penalty (`ZREMRANGEBYSCORE`).
 
-#### 5.3. FileStore Pruning (Manual Maintenance)
+#### 5.3. file.Store Pruning (Manual Maintenance)
 
 - **Constraint**: The local file store never deletes old `.json` sessions automatically.
 - **Mitigation**: Rely on manual hygiene (`trellis session rm`) or external OS-level cron jobs. No auto-pruning logic exists to keep the binary simple.
@@ -229,9 +229,9 @@ Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pi
     - **Strict Serialization**: Inclui testes de regressão (`tests/serialization_test.go`) para garantir consistência de `json.Number` e tipos.
 
 2. **Adapters (Contract Tests)**:
-    - **Alvo**: `LoamLoader` vs `MemoryLoader`.
-    - **Estilo**: Interface Compliance Tests.
-    - **Objetivo**: O mesmo suite de testes deve rodar contra ambas as implementações para garantir que o comportamento seja idêntico. Se o `MemoryLoader` funciona, o `LoamLoader` deve funcionar igual.
+    - **Alvo**: `loam.Loader` vs `memory.Loader`.
+    - **Estilo**: Interface Compliance Tests (Contract Tests).
+    - **Objetivo**: Garantir que diferentes implementações da mesma porta (`GraphLoader` ou `StateStore`) se comportem de forma idêntica. Se o `memory.Loader` funciona, o `loam.Loader` (que lê arquivos reais) deve passar no mesmo suite de testes.
 
 3. **Integration (E2E)**:
     - **Alvo**: `cmd/trellis` (Blackbox).
@@ -400,7 +400,7 @@ tools:
 
 ##### Resolution Strategy
 
-The `LoamLoader` implements a recursive resolution strategy with **Shadowing** (Last-Write-Wins).
+The `loam.Loader` implements a recursive resolution strategy with **Shadowing** (Last-Write-Wins).
 
 ```mermaid
 flowchart TD
@@ -603,7 +603,7 @@ Para gerenciar o ciclo de vida dessas sessões persistentes, o Trellis expõe co
 
 Essa camada é crucial para operações de longa duração, onde "desligar e ligar de novo" (resetar o processo) não é suficiente para limpar o estado.
 
-> **Maintenance Note**: O FileStore não implementa *Auto-Pruning* (limpeza automática) de sessões antigas. Cabe ao administrador ou desenvolvedor executar `trellis session rm` periodicamente ou configurar scripts externos de limpeza (cron) se o diretório de sessões crescer excessivamente.
+> **Maintenance Note**: O file.Store não implementa *Auto-Pruning* (limpeza automática) de sessões antigas. Cabe ao administrador ou desenvolvedor executar `trellis session rm` periodicamente ou configurar scripts externos de limpeza (cron) se o diretório de sessões crescer excessivamente.
 
 #### 10. Fluxo de Dados e Serialização
 

@@ -55,4 +55,4 @@ go run ./cmd/trellis run ./examples/tour
 - **Decoupled Core:** The engine's core logic (`pkg/`) is pure and has no knowledge of the outside world. Adapters in `internal/` connect it to external systems (like the Loam file loader). When modifying, respect this separation.
 - **CLI as Primary Interface:** The `trellis` CLI is the main entry point for most tasks. Enhancements should be exposed as CLI commands where appropriate.
 - **Convention over Configuration:** The engine relies on file naming conventions (e.g., `start.md`) and simple formats. Adhere to these conventions when creating new flows.
-- **Test-First for Adapters:** When modifying adapters (like `LoamLoader`), always modify or add the corresponding contract test first to ensure behavior consistency across all implementations.
+- **Test-First for Adapters:** When modifying adapters (like `loam.Loader`), always modify or add the corresponding contract test first to ensure behavior consistency across all implementations.

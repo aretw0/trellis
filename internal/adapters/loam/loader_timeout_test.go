@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoamLoader_TimeoutMapping(t *testing.T) {
+func TestLoader_TimeoutMapping(t *testing.T) {
 	// 1. Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
 

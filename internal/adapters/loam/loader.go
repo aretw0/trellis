@@ -13,21 +13,21 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// LoamLoader adapts the Loam library to the Trellis GraphLoader interface.
-type LoamLoader struct {
+// Loader adapts the Loam library to the Trellis GraphLoader interface.
+type Loader struct {
 	Repo *loam.TypedRepository[dto.NodeMetadata]
 }
 
 // New creates a new Loam adapter.
-func New(repo *loam.TypedRepository[dto.NodeMetadata]) *LoamLoader {
-	return &LoamLoader{
+func New(repo *loam.TypedRepository[dto.NodeMetadata]) *Loader {
+	return &Loader{
 		Repo: repo,
 	}
 }
 
 // GetNode retrieves a node from the Loam repository using the direct Service API.
 // Note: Loam Service.GetDocument is a direct convenience lookup.
-func (l *LoamLoader) GetNode(id string) ([]byte, error) {
+func (l *Loader) GetNode(id string) ([]byte, error) {
 	ctx := context.Background()
 
 	// Loam Normalized Retrieval.
@@ -156,7 +156,7 @@ func (l *LoamLoader) GetNode(id string) ([]byte, error) {
 }
 
 // resolveTools recursively resolves polymorphic tool definitions (inline maps or import strings).
-func (l *LoamLoader) resolveTools(ctx context.Context, toolsRaw []any, visited map[string]bool) ([]domain.Tool, error) {
+func (l *Loader) resolveTools(ctx context.Context, toolsRaw []any, visited map[string]bool) ([]domain.Tool, error) {
 	if visited == nil {
 		visited = make(map[string]bool)
 	}
@@ -233,7 +233,7 @@ func (l *LoamLoader) resolveTools(ctx context.Context, toolsRaw []any, visited m
 }
 
 // ListNodes lists all nodes in the repository.
-func (l *LoamLoader) ListNodes() ([]string, error) {
+func (l *Loader) ListNodes() ([]string, error) {
 	ctx := context.Background()
 	docs, err := l.Repo.List(ctx)
 	if err != nil {
@@ -261,7 +261,7 @@ func trimExtension(id string) string {
 }
 
 // Watch implements ports.Watchable.
-func (l *LoamLoader) Watch(ctx context.Context) (<-chan string, error) {
+func (l *Loader) Watch(ctx context.Context) (<-chan string, error) {
 	// Watch for all relevant files (recursive) using doublestar pattern supported by Loam/Doublestar
 	// This avoids manual filtering loop.
 	events, err := l.Repo.Watch(ctx, "**/*.{md,json,yaml,yml}")

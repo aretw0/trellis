@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoamLoader_Subgraph(t *testing.T) {
+func TestLoader_Subgraph(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
 

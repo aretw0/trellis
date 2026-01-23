@@ -10,34 +10,34 @@ import (
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
-// FileStore implements ports.StateStore using the local filesystem.
+// Store implements ports.StateStore using the local filesystem.
 // It stores sessions as JSON files in a configured directory.
-type FileStore struct {
+type Store struct {
 	BasePath string
 }
 
-// New creates a new FileStore with the given base path.
+// New creates a new Store with the given base path.
 // If basePath is empty, it defaults to ".trellis/sessions".
-func New(basePath string) *FileStore {
+func New(basePath string) *Store {
 	if basePath == "" {
 		basePath = filepath.Join(".trellis", "sessions")
 	}
-	return &FileStore{BasePath: basePath}
+	return &Store{BasePath: basePath}
 }
 
 // Save persists the session state to a JSON file atomically.
 // It writes to a temporary file first, syncs via fsync, and then renames it to the destination.
-func (f *FileStore) Save(ctx context.Context, sessionID string, state *domain.State) error {
+func (s *Store) Save(ctx context.Context, sessionID string, state *domain.State) error {
 	if sessionID == "" {
 		return fmt.Errorf("sessionID cannot be empty")
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(f.BasePath, 0755); err != nil {
+	if err := os.MkdirAll(s.BasePath, 0755); err != nil {
 		return fmt.Errorf("failed to ensure session directory: %w", err)
 	}
 
-	destPath := filepath.Join(f.BasePath, sessionID+".json")
+	destPath := filepath.Join(s.BasePath, sessionID+".json")
 
 	// Marshal state to JSON
 	data, err := json.MarshalIndent(state, "", "  ")
@@ -47,7 +47,7 @@ func (f *FileStore) Save(ctx context.Context, sessionID string, state *domain.St
 
 	// 1. Create Temp File
 	// we use the same directory to ensure we are on the same filesystem (required for atomic rename)
-	tmpFile, err := os.CreateTemp(f.BasePath, "tmp-"+sessionID+"-*.json")
+	tmpFile, err := os.CreateTemp(s.BasePath, "tmp-"+sessionID+"-*.json")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -100,12 +100,12 @@ func (f *FileStore) Save(ctx context.Context, sessionID string, state *domain.St
 }
 
 // Load retrieves the session state from a JSON file.
-func (f *FileStore) Load(ctx context.Context, sessionID string) (*domain.State, error) {
+func (s *Store) Load(ctx context.Context, sessionID string) (*domain.State, error) {
 	if sessionID == "" {
 		return nil, fmt.Errorf("sessionID cannot be empty")
 	}
 
-	filePath := filepath.Join(f.BasePath, sessionID+".json")
+	filePath := filepath.Join(s.BasePath, sessionID+".json")
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -124,12 +124,12 @@ func (f *FileStore) Load(ctx context.Context, sessionID string) (*domain.State, 
 }
 
 // Delete removes the session file.
-func (f *FileStore) Delete(ctx context.Context, sessionID string) error {
+func (s *Store) Delete(ctx context.Context, sessionID string) error {
 	if sessionID == "" {
 		return fmt.Errorf("sessionID cannot be empty")
 	}
 
-	filePath := filepath.Join(f.BasePath, sessionID+".json")
+	filePath := filepath.Join(s.BasePath, sessionID+".json")
 
 	err := os.Remove(filePath)
 	if err != nil && !os.IsNotExist(err) {
@@ -140,8 +140,8 @@ func (f *FileStore) Delete(ctx context.Context, sessionID string) error {
 }
 
 // List returns all active session IDs.
-func (f *FileStore) List(ctx context.Context) ([]string, error) {
-	entries, err := os.ReadDir(f.BasePath)
+func (s *Store) List(ctx context.Context) ([]string, error) {
+	entries, err := os.ReadDir(s.BasePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []string{}, nil
