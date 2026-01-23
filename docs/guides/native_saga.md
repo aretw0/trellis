@@ -87,8 +87,8 @@ For example, if `reserve_hotel` saves `{ "id": "123" }` to `hotel_result`, your 
 
 ## Ready to Run?
 
-Check out the complete working example in [`examples/native-saga`](../../examples/native-saga).
+Check out the complete working example in [`examples/compensation-native`](../../examples/compensation-native).
 
 ```bash
-go run ./examples/native-saga
+go run ./examples/compensation-native
 ```

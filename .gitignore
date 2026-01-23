@@ -2,5 +2,6 @@
 .loam/
 .trellis/
 .gemini/
+.sessions/
 gha-creds-*.json
 secure-*.json

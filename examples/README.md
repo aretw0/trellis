@@ -40,15 +40,20 @@ Demonstrates robust tool usage, including Safety Middleware (confirmation prompt
 **Concepts:** `Middleware`, `Encryption`, `PII Masking`
 Showcases how to securely wrap the state store with encryption and PII sanitization middleware. This is a manual infrastructure setup (wrapping the runner) rather than a built-in feature.
 
-### [Manual Saga (Transaction Rollback)](./manual-saga)
+### [Compensation Manual (Transaction Rollback)](./compensation-manual)
 
 **Concepts:** `Saga Pattern`, `on_error`, `Rollback`
 Demonstrates how to implement distributed transactions with compensating actions (Rollback) using standard Trellis primitives (Manual Wiring).
 
-### [Native Saga (Automatic Rollback)](./native-saga)
+### [Compensation Native (Automatic Rollback)](./compensation-native)
 
 **Concepts:** `Native SAGA`, `do/undo`, `on_error: rollback`
 Demonstrates the **new** Native SAGA orchestration in Trellis v0.7. The engine automatically handles the stack unwinding and compensation execution when a failure occurs.
+
+### [Compensation Durable (Long Running)](./compensation-durable)
+
+**Concepts:** `Durable Execution`, `Persistence`, `Signals`
+Demonstrates a **Long Running SAGA**. The flow pauses for an external signal (Manager Approval), is interrupted (process exit), resumed from disk, and then rolled back upon Rejection.
 
 ---
 
