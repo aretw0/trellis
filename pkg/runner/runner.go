@@ -107,10 +107,10 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		// If no input requested by actions (needsInput=false) and not waiting for tool,
 		// we treat this as an auto-transition (pass-through).
 		// We skip the Handler.Input blocking call entirely.
-		if !needsInput && state.Status != domain.StatusWaitingForTool {
+		if !needsInput && state.Status != domain.StatusWaitingForTool && state.Status != domain.StatusRollingBack {
 			// Auto-transition with empty input
 			nextInput = ""
-		} else if state.Status == domain.StatusWaitingForTool {
+		} else if state.Status == domain.StatusWaitingForTool || state.Status == domain.StatusRollingBack {
 			nextInput, err = r.handleTool(currentCtx, actions, state, handler, interceptor)
 		} else {
 			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, signals, engine, state)
