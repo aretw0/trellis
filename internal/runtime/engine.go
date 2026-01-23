@@ -296,7 +296,7 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		key := e.generateIdempotencyKey(currentState, node.ID, call.Name)
 		call.IdempotencyKey = key
 		// Also keep in metadata for backward compatibility or middleware access if needed
-		call.Metadata["idempotency_key"] = key
+		call.Metadata[domain.KeyIdempotency] = key
 
 		// Deep Interpolation for Tool Args
 		if e.interpolator != nil && len(call.Args) > 0 {

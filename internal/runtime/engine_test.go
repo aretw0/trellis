@@ -52,9 +52,8 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 		if actions[0].Payload != "Start Node" {
 			t.Errorf("Unexpected payload: %v", actions[0].Payload)
 		}
-		// Render doesn't change state, so we check state locally or skip usage of nextState here
-		// Actually the original test asserted on nextState.CurrentNodeID
-		// In Render only, state doesn't change.
+		// Verify that Render did NOT change the state side-effects.
+		// The state.CurrentNodeID should remain at the entry point until Navigate is called.
 		if state.CurrentNodeID != "start" {
 			t.Errorf("Expected state to remain 'start', got '%s'", state.CurrentNodeID)
 		}
