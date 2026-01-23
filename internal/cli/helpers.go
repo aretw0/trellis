@@ -12,8 +12,8 @@ import (
 	"syscall"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters/file"
-	"github.com/aretw0/trellis/internal/adapters/redis"
+	"github.com/aretw0/trellis/pkg/adapters/file"
+	"github.com/aretw0/trellis/pkg/adapters/redis"
 	"github.com/aretw0/trellis/internal/logging"
 	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/aretw0/trellis/pkg/adapters/memory"
