@@ -174,7 +174,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
   - [x] **Session UX**: Feedback explícito para eventos de Sessão (Start, Rehydrate, Reload).
   - [x] **Signal Handling**: Mensagens graciosas de "Interrupted" mascarando erros crus de Contexto.
   - [ ] **Technical Debt (Backlog)**:
-    - [ ] `pkg/session`: Fix Lock Leaking (LRU/GC) for High-Traffic scenarios.
+    - [x] `pkg/session`: Fix Lock Leaking (RefCounting) to prevent infinite growth.
     - [x] `internal/adapters/redis`: Add TTL Support (Expiration) for compliance.
     - [x] `internal/adapters/redis`: Optimize List implementation (Scan is O(N)).
     - [x] `internal/adapters/file_store`: Implement Atomic Writes (prevent corruption on crash).
@@ -194,6 +194,9 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
+- [ ] **Performance Optimizations**:
+  - `pkg/session`: Implement *Sharded Map* to reduce Global Mutex contention (from v0.6 analysis).
+  - `pkg/adapters/redis`: External GC worker for ZSET index (from v0.6 analysis).
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 

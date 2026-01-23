@@ -32,7 +32,7 @@ As interfaces que o engine usa para buscar dados.
 - `GraphLoader.GetNode(id)`: Abstração para carregar nós. O **Loam** implementa isso via adapter.
 - `GraphLoader.ListNodes()`: Descoberta de nós para introspecção.
 
-#### 2.2.1. Portas de Persistência (Store) - *Experimental v0.6*
+#### 2.2.1. Portas de Persistência (Store)
 
 Interface experimental para "Durable Execution" (Sleep/Resume).
 
@@ -43,18 +43,25 @@ Interface experimental para "Durable Execution" (Sleep/Resume).
 
 The `pkg/session` package acts as the orchestrator for state durability. It wraps the `StateStore` to add concurrency control (locking) and lifecycle management (atomic "Load or Create").
 
+**Concurrency Strategy (Reference Counting)**:
+To prevent memory leaks in high-traffic scenarios, the Manager uses a **Reference Counting** mechanism for session locks. Locks are created on demand and automatically deleted when the reference count drops to zero.
+
 ```mermaid
 sequenceDiagram
-    participant CLI
-    participant SessionManager
-    participant Lock
-    participant Store
-    
-    CLI->>SessionManager: LoadOrStart(ID)
-    SessionManager->>Lock: Lock(ID)
-    SessionManager->>Store: Load(ID)
-    Store-->>SessionManager: State
-    SessionManager->>Lock: Unlock(ID)
+    participant Caller
+    participant Manager (Global)
+    participant Entry (Ref)
+
+    Caller->>Manager (Global): Acquire(ID)
+    Manager (Global)->>Manager (Global): Lock Global -> Inc Ref -> Unlock Global
+    Manager (Global)-->>Caller: Entry (Ref)
+
+    Caller->>Entry (Ref): Lock()
+    Note right of Caller: Critical Section
+    Caller->>Entry (Ref): Unlock()
+
+    Caller->>Manager (Global): Release(ID)
+    Manager (Global)->>Manager (Global): Lock Global -> Dec Ref -> Del if 0 -> Unlock Global
 ```
 
 #### 2.3. Diagrama de Arquitetura
@@ -159,16 +166,33 @@ sequenceDiagram
 - **Validation Failure**: Pausa se novos `required_context` surgirem sem dados na sessão.
 - **Type Mismatch**: Reseta o status de `WaitingForTool` se o nó mudar de tipo.
 
-### 5. Design Constraints & Known Limitations (v0.6)
+### 5. Design Constraints & Verified Limitations (v0.6)
 
-While ensuring "Durable Execution", some trade-offs were made for simplicity in v0.6:
+This section maps the "Sober View" of the architectural trade-offs accepted in version 0.6.
 
-1. **Session Concurrency (Lock Leaking)**:
-    - The `SessionManager` uses a `sync.Map` of Mutexes. Currently, these locks are not garbage collected after session deletion. This is acceptable for CLI/Dev use but requires an LRU/GC for long-running high-traffic servers.
+#### 5.1. Session Concurrency (RefCounting Fragility)
 
-2. **Redis Adapter Performance**:
-    - The `List()` method uses `SCAN`, which is O(N). For production with millions of keys, a separate `SET` of active session IDs should be maintained.
-    - *TTL*: Sessions currently store indefinitely (Expiration=0).
+To solve memory leaks without a heavy Garbage Collector, `pkg/session` uses **Reference Counting**:
+
+- **Risk**: Depends strictly on `Acquire/Release` pairing. A developer error (phantom panic or missing defer) creates a permanent leak for that ID.
+- **Bottleneck**: The `Manager` uses a **Global Mutex** (`mu`) to protect the lock map. In extreme concurrency (>100k Lock/Unlock ops/sec), this global lock becomes a contention point.
+- **Decision**: Acceptable for CLI/Agent use cases. For high-scale SaaS, sharding the Manager would be required:
+  - *Strategy*: Use `[ShardCount]*sync.Mutex` array.
+  - *Logic*: `shardID = hash(sessionID) % ShardCount`.
+  - *Benefit*: Reduces contention by factor of `ShardCount` (e.g., 256).
+
+#### 5.2. Redis Lazy Indexing (Zombie Entries)
+
+The Redis Adapter avoids background workers ("Serverless-friendliness"):
+
+- **Mechanism**: The `List()` method cleans up expired entries from the ZSET Index.
+- **Implication**: If `List()` is rarely called, the ZSET index may contain "Zombie Entries" (IDs whose actual keys have expired) until the next listing.
+- **Cost**: `List()` incurs a write penalty (`ZREMRANGEBYSCORE`).
+
+#### 5.3. FileStore Pruning (Manual Maintenance)
+
+- **Constraint**: The local file store never deletes old `.json` sessions automatically.
+- **Mitigation**: Rely on manual hygiene (`trellis session rm`) or external OS-level cron jobs. No auto-pruning logic exists to keep the binary simple.
 
 ### 6. Estratégia de Testes
 
