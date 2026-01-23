@@ -996,3 +996,34 @@ sequenceDiagram
     
     Engine->>Engine: Resolve Transition -> Node B
 ```
+
+#### 15. Process Adapter (Local Script Execution)
+
+O `ProcessAdapter` permite que o Trellis orquestre scripts locais (`.sh`, `.py`, `.js`, etc.) como ferramentas de primeira classe.
+
+- **Objective**: "Glue Code". Permitir que o Trellis automatize tarefas de infraestrutura sem reimplementar a lógica em Go.
+- **Architecture**: `Engine -> ToolCall -> ProcessAdapter -> os/exec`.
+
+**Security Model (v0.7 - Strict Registry):**
+
+O adaptador segue uma política de "Allow-Listing" rigorosa. Scripts não podem ser invocados arbitrariamente pelo Markdown. O Host Go deve registrar explicitamente quais comandos estão disponíveis.
+
+1. **Registry**: Mapeia `tool_name` -> `command` + `default_args`.
+2. **No Shell**: Usa `exec.Command` diretamente, evitando `sh -c` para mitigar injeção de comandos.
+3. **Input Mapping**: Argumentos complexos devem ser passados via Variáveis de Ambiente (`TRELLIS_ARG_KEY=VAL`) ou Stdin (JSON), evitando injeção de flags na linha de comando.
+
+```mermaid
+sequenceDiagram
+    participant State as Engine State
+    participant Adapter as ProcessAdapter
+    participant OS as OS/Shell
+    participant Script as deployment.py
+
+    State->>Adapter: Execute(ToolCall{name="deploy", args={env="prod"}})
+    Adapter->>Adapter: Lookup "deploy" in Registry
+    Adapter->>OS: exec("python3 deployment.py", ENV: TRELLIS_ARG_ENV="prod")
+    OS->>Script: Run Process
+    Script-->>OS: Stdout: "Deployment ID: 123"
+    OS-->>Adapter: Return Stdout
+    Adapter-->>State: ToolResult{Result="Deployment ID: 123"}
+```
