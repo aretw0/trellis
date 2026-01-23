@@ -6,6 +6,7 @@ type ExecutionStatus string
 const (
 	StatusActive         ExecutionStatus = "active"           // Normal operation
 	StatusWaitingForTool ExecutionStatus = "waiting_for_tool" // Engine is paused, waiting for Host result
+	StatusRollingBack    ExecutionStatus = "rolling_back"     // Engine is unwinding history (SAGA)
 	StatusTerminated     ExecutionStatus = "terminated"       // Sink state reached
 )
 

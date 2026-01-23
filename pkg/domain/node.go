@@ -59,6 +59,10 @@ type Node struct {
 	// Tools defined within this node (e.g. for LLM context)
 	Tools []Tool `json:"tools,omitempty" yaml:"tools,omitempty"`
 
+	// Undo defines the compensating action (SAGA pattern) to revert this node's effect.
+	// It is triggered if the engine enters rollback mode.
+	Undo *ToolCall `json:"undo,omitempty" yaml:"undo,omitempty"`
+
 	// Timeout defines the maximum duration (e.g. "30s") to wait for input.
 	Timeout string `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 }

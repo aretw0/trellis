@@ -138,6 +138,13 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 		data["tools"] = resolvedTools
 	}
 
+	if doc.Data.Undo != nil {
+		if doc.Data.Undo.ID == "" {
+			doc.Data.Undo.ID = doc.Data.Undo.Name
+		}
+		data["undo"] = doc.Data.Undo
+	}
+
 	// Map Metadata
 	if doc.Data.Metadata != nil {
 		data["metadata"] = doc.Data.Metadata

@@ -274,14 +274,20 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 	}
 
 	// Calculate Tool Request
-	if node.Type == domain.NodeTypeTool {
-		if node.ToolCall == nil {
-			// Fallback if ToolCall is missing in struct but Type is Tool
-			return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
+	// If RollingBack, we use the UNDO tool definition.
+	// If Normal, we use the standard TOOL call.
+	var toolCallToRender *domain.ToolCall
+
+	if currentState.Status == domain.StatusRollingBack {
+		if node.Undo != nil {
+			toolCallToRender = node.Undo
 		}
-		// Propagate Node Metadata to Tool Call
-		// This enables Middleware to see "confirm_msg" etc.
-		call := *node.ToolCall
+	} else if node.Type == domain.NodeTypeTool {
+		toolCallToRender = node.ToolCall
+	}
+
+	if toolCallToRender != nil {
+		call := *toolCallToRender
 		if node.Metadata != nil {
 			call.Metadata = make(map[string]string)
 			for k, v := range node.Metadata {
@@ -295,12 +301,11 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		// Generate Key
 		key := e.generateIdempotencyKey(currentState, node.ID, call.Name)
 		call.IdempotencyKey = key
-		// Also keep in metadata for backward compatibility or middleware access if needed
 		call.Metadata[domain.KeyIdempotency] = key
 
 		// Deep Interpolation for Tool Args
 		if e.interpolator != nil && len(call.Args) > 0 {
-			// Merge SystemContext for Interpolation (Reusing logic? We should extract this if it grows)
+			// Merge SystemContext for Interpolation
 			data := make(map[string]any)
 			for k, v := range currentState.Context {
 				data[k] = v
@@ -327,7 +332,12 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			Type:    domain.ActionCallTool,
 			Payload: call,
 		})
+	} else if node.Type == domain.NodeTypeTool && currentState.Status != domain.StatusRollingBack {
+		// Fallback if ToolCall is missing in struct but Type is Tool (and not rolling back)
+		return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
 	}
+
+	// A node is terminal if it has NO transitions (input, signal, or timeout).
 
 	// A node is terminal if it has NO transitions (input, signal, or timeout).
 	// If a Node has a Timeout, it will transition on timeout event.
@@ -338,6 +348,78 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 
 	isTerminal := !hasStandardTransitions && !hasSignalTransitions && !hasTimeout
 	return actions, isTerminal, nil
+}
+
+// startRollback initiates the SAGA rollback process.
+// It is called when a tool fails and on_error is set to "rollback".
+func (e *Engine) startRollback(ctx context.Context, failedState *domain.State) (*domain.State, error) {
+	// 1. We assume the *current* node failed, so it had no effect (or atomic failure).
+	// We pop it immediately so we don't try to undo it (unless we want to support undoing failed steps? No).
+	// SAGA typically implies undoing *completed* transactions.
+	return e.continueRollback(ctx, failedState, true)
+}
+
+// continueRollback unwinds the history stack until it finds a node with an Undo action.
+// popCurrent: If true, removes the current head of history before searching (used after Undo completion or initial failure).
+func (e *Engine) continueRollback(ctx context.Context, state *domain.State, popCurrent bool) (*domain.State, error) {
+	nextState := *state
+	nextState.Status = domain.StatusRollingBack
+	nextState.PendingToolCall = ""
+	// Deep copy context to be safe, though rollback might strictly rely on history
+	// For v0.7, we preserve variable context during rollback (maybe undo actions need variables).
+	nextState.Context = make(map[string]any)
+	for k, v := range state.Context {
+		nextState.Context[k] = v
+	}
+	nextState.SystemContext = make(map[string]any)
+	for k, v := range state.SystemContext {
+		nextState.SystemContext[k] = v
+	}
+
+	if popCurrent && len(nextState.History) > 0 {
+		// Pop the last node
+		nextState.History = nextState.History[:len(nextState.History)-1]
+	}
+
+	// Unwind Loop
+	for len(nextState.History) > 0 {
+		// Peek at the current tip of history
+		currentNodeID := nextState.History[len(nextState.History)-1]
+		nextState.CurrentNodeID = currentNodeID
+
+		// Load Node to check for Undo
+		raw, err := e.loader.GetNode(currentNodeID)
+		if err != nil {
+			return nil, fmt.Errorf("rollback failed: could not load node %s: %w", currentNodeID, err)
+		}
+		node, err := e.parser.Parse(raw)
+		if err != nil {
+			return nil, fmt.Errorf("rollback failed: could not parse node %s: %w", currentNodeID, err)
+		}
+
+		if node.Undo != nil {
+			// Found an undo action!
+			// We stay on this node, but in 'RollingBack' status.
+			// Render will pick this up and emit the Undo tool call.
+			nextState.PendingToolCall = node.Undo.ID
+			if nextState.PendingToolCall == "" {
+				nextState.PendingToolCall = node.Undo.Name
+			}
+			return &nextState, nil
+		}
+
+		// No undo action? Pop and continue (Read-only step)
+		nextState.History = nextState.History[:len(nextState.History)-1]
+	}
+
+	// History is empty or we hit start (and start has no undo).
+	// Reset to active/start or terminate?
+	// If we rolled back everything, we are effectively at "Terminated" (Aborted).
+	// Or we could go to a special "rollback_complete" node if it existed.
+	// For now: Terminate.
+	nextState.Status = domain.StatusTerminated
+	nextState.CurrentNodeID = "" // No context
+	return &nextState, nil
 }
 
 // Navigate determines the next state based on input.
@@ -351,6 +433,13 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 		}
 		if result.ID != currentState.PendingToolCall {
 			return nil, fmt.Errorf("tool result ID %s does not match pending call %s", result.ID, currentState.PendingToolCall)
+		}
+
+		// Handle State: RollingBack (Undo Tool Completed)
+		if currentState.Status == domain.StatusRollingBack {
+			// The Undo Action for the current node has completed.
+			// We now pop this node and continue unwinding.
+			return e.continueRollback(ctx, currentState, true)
 		}
 
 		// Handle Tool Error (Phase 0: Safety Check)
@@ -380,6 +469,9 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 			}
 
 			if node.OnError != "" {
+				if node.OnError == "rollback" {
+					return e.startRollback(ctx, currentState)
+				}
 				// Transition to Error Handler
 				// We skip applyInput (Context Update) to avoid polluting state with error.
 
