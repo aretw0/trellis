@@ -8,5 +8,6 @@ const (
 
 	// Signal constants representing global events.
 	SignalInterrupt = "interrupt" // CTRL+C or explicit cancellation
+	SignalShutdown  = "shutdown"  // System termination request (SIGTERM)
 	SignalTimeout   = "timeout"   // Node execution deadline exceeded
 )

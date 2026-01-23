@@ -30,7 +30,7 @@ func TestEngine_Signal(t *testing.T) {
 		ID:   "start",
 		Type: domain.NodeTypeText,
 		OnSignal: map[string]string{
-			domain.SignalInterrupt: "shutdown",
+			domain.SignalInterrupt: domain.SignalShutdown,
 		},
 		Transitions: []domain.Transition{
 			{ToNodeID: "next"},
@@ -42,7 +42,7 @@ func TestEngine_Signal(t *testing.T) {
 		Content: []byte("Next Step"),
 	}
 	shutdownNode := domain.Node{
-		ID:      "shutdown",
+		ID:      domain.SignalShutdown,
 		Type:    domain.NodeTypeText,
 		Content: []byte("Shutting down..."),
 	}
@@ -58,7 +58,7 @@ func TestEngine_Signal(t *testing.T) {
 		// Send Signal
 		nextState, err := engine.Signal(context.Background(), state, domain.SignalInterrupt)
 		assert.NoError(t, err)
-		assert.Equal(t, "shutdown", nextState.CurrentNodeID)
+		assert.Equal(t, domain.SignalShutdown, nextState.CurrentNodeID)
 	})
 
 	t.Run("Returns Error For Unhandled Signal", func(t *testing.T) {
