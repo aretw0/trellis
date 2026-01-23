@@ -80,6 +80,12 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	for _, lt := range doc.Data.Transitions {
 		domainTransitions = append(domainTransitions, convert(lt))
 	}
+	// Handle Top-Level "To" Shorthand
+	if doc.Data.To != "" {
+		domainTransitions = append(domainTransitions, domain.Transition{
+			ToNodeID: doc.Data.To,
+		})
+	}
 
 	data := make(map[string]any)
 	// Normalize ID: prefer metadata ID, fallback to filename ID, but always strip extension

@@ -70,3 +70,37 @@ Hello World`)
 	}
 
 }
+
+func TestFacade_Defaults(t *testing.T) {
+	// Regression Test: Ensure trellis.New without options defaults to a safe No-Op logger.
+	// Previous bug: caused panic when runtime tried to log.
+	repoPath := t.TempDir()
+	startFile := filepath.Join(repoPath, "start.md")
+	content := []byte(`---
+id: start
+type: text
+---
+Hello`)
+	if err := os.WriteFile(startFile, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Initialize WITHOUT WithLogger
+	engine, err := trellis.New(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to initialize engine: %v", err)
+	}
+
+	// Use the engine to ensure no nil pointer dereference during internal operations
+	ctx := context.Background()
+	state, err := engine.Start(ctx, "test-session", nil)
+	if err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+
+	// Trigger Render (which might log warnings/info)
+	_, _, err = engine.Render(ctx, state)
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+}

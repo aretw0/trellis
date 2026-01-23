@@ -199,3 +199,31 @@ default_context:
 	assert.Contains(t, jsonStr, `"env":"dev"`)
 	// Note: We check specifically for the key-value pair in JSON
 }
+
+func TestLoader_TransitionShorthand(t *testing.T) {
+	// Setup Temp Repository
+	tmpDir, repo := testutils.SetupTestRepo(t)
+
+	// Create a node using the "to" shorthand
+	content := `---
+id: jump
+type: text
+to: destination
+---
+Jumping...`
+	err := os.WriteFile(filepath.Join(tmpDir, "jump.md"), []byte(content), 0644)
+	require.NoError(t, err)
+
+	// Initialize Adapter
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
+	loader := New(typedRepo)
+
+	// Execute GetNode
+	data, err := loader.GetNode("jump")
+	require.NoError(t, err)
+
+	// Verify JSON output
+	// The loader should have converted "to" -> transitions: [{to_node_id: destination}]
+	jsonStr := string(data)
+	assert.Contains(t, jsonStr, `"to_node_id":"destination"`)
+}

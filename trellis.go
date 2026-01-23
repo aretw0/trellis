@@ -3,6 +3,7 @@ package trellis
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"path/filepath"
 
@@ -100,6 +101,11 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 		// Setup Typed Repository and Adapter
 		typedRepo := loam.NewTypedRepository[loamAdapter.NodeMetadata](repo)
 		eng.loader = loamAdapter.New(typedRepo)
+	}
+
+	// Ensure logger is initialized (so we don't pass nil to runtime, which would overwrite its default)
+	if eng.logger == nil {
+		eng.logger = slog.New(slog.NewJSONHandler(io.Discard, nil))
 	}
 
 	// Initialize Core Runtime with the selected loader
