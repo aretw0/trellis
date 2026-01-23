@@ -1,4 +1,4 @@
-package dto
+package loam
 
 import (
 	"github.com/aretw0/trellis/pkg/domain"

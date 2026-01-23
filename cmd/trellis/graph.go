@@ -11,7 +11,7 @@ import (
 	"github.com/aretw0/trellis/internal/presentation/graph"
 	"github.com/spf13/cobra"
 
-	"github.com/aretw0/trellis/internal/adapters/file"
+	"github.com/aretw0/trellis/pkg/adapters/file"
 )
 
 // graphCmd represents the graph command

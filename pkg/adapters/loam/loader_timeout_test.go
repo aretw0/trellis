@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/dto"
+
 	"github.com/aretw0/trellis/internal/testutils"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ Waiting...`
 	require.NoError(t, err)
 
 	// 3. Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	// 4. Load the node

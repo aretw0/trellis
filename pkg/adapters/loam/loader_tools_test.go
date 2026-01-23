@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/dto"
+
 	"github.com/aretw0/trellis/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,7 +83,7 @@ Cycle B`
 	writeFile(t, tmpDir, "cycle_b.md", cycleBContent)
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	t.Run("Resolves Deep Imports and Shadowing", func(t *testing.T) {

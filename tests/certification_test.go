@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/dto"
 	"github.com/aretw0/trellis/internal/testutils"
+	loamAdapter "github.com/aretw0/trellis/pkg/adapters/loam"
 )
 
 // TestCertificationSuite runs the certification specs defined in tests/specs.
@@ -58,7 +58,7 @@ func runSpec(t *testing.T, sourcePath string) {
 	// 3. Init Loam already done by helper.
 	// But we need the repo variable.
 	// repo is returned by helper.
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[loamAdapter.NodeMetadata](repo)
 
 	// 4. Crawler / BFS Validation
 	ctx := context.Background()

@@ -8,18 +8,17 @@ import (
 	"strings"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/dto"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/mitchellh/mapstructure"
 )
 
 // Loader adapts the Loam library to the Trellis GraphLoader interface.
 type Loader struct {
-	Repo *loam.TypedRepository[dto.NodeMetadata]
+	Repo *loam.TypedRepository[NodeMetadata]
 }
 
 // New creates a new Loam adapter.
-func New(repo *loam.TypedRepository[dto.NodeMetadata]) *Loader {
+func New(repo *loam.TypedRepository[NodeMetadata]) *Loader {
 	return &Loader{
 		Repo: repo,
 	}
@@ -46,7 +45,7 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	domainTransitions := make([]domain.Transition, 0, totalTransitions)
 
 	// Helper to convert LoaderTransition (DTO) to domain.Transition
-	convert := func(lt dto.LoaderTransition) domain.Transition {
+	convert := func(lt LoaderTransition) domain.Transition {
 		// Support both "to" and "to_node_id"
 		to := lt.To
 		if to == "" {

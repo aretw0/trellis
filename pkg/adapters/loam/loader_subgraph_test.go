@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/trellis/internal/dto"
+
 	"github.com/aretw0/trellis/internal/testutils"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +41,7 @@ Intro`), 0644)
 	require.NoError(t, err)
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	t.Run("Discovery of Namespaced IDs", func(t *testing.T) {

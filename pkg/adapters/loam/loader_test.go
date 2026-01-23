@@ -8,7 +8,7 @@ import (
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/trellis/internal/dto"
+
 	"github.com/aretw0/trellis/internal/testutils"
 	"github.com/aretw0/trellis/pkg/ports/tests"
 	"github.com/stretchr/testify/assert"
@@ -67,7 +67,7 @@ Node B`,
 	}
 
 	// 3. Create Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	// 4. Run Contract
@@ -101,7 +101,7 @@ ID is implied from filename`,
 	}
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	// Execute ListNodes
@@ -124,7 +124,7 @@ func TestLoader_GetNode_NormalizesID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	// Execute GetNode using the normalized name "node"
@@ -156,7 +156,7 @@ tool_call:
 	require.NoError(t, err)
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	// Execute GetNode
@@ -186,7 +186,7 @@ default_context:
 	require.NoError(t, err)
 
 	// Initialize Adapter
-	typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
 	loader := New(typedRepo)
 
 	// Execute GetNode

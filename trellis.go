@@ -7,9 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/aretw0/loam"
-	loamAdapter "github.com/aretw0/trellis/internal/adapters/loam"
-	"github.com/aretw0/trellis/internal/dto"
 	"github.com/aretw0/trellis/internal/runtime"
+	loamAdapter "github.com/aretw0/trellis/pkg/adapters/loam"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 )
@@ -99,7 +98,7 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 		}
 
 		// Setup Typed Repository and Adapter
-		typedRepo := loam.NewTypedRepository[dto.NodeMetadata](repo)
+		typedRepo := loam.NewTypedRepository[loamAdapter.NodeMetadata](repo)
 		eng.loader = loamAdapter.New(typedRepo)
 	}
 
