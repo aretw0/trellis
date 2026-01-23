@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func TestEngine_RequiredContext(t *testing.T) {
 			Content:         []byte("Start"),
 			RequiredContext: []string{"api_key"},
 		}
-		loader, _ := inmemory.NewFromNodes(startNode)
+		loader, _ := memory.NewFromNodes(startNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
 		// Start() gets invalid state (no context)
@@ -40,7 +40,7 @@ func TestEngine_RequiredContext(t *testing.T) {
 			Content:         []byte("Start"),
 			RequiredContext: []string{"api_key"},
 		}
-		loader, _ := inmemory.NewFromNodes(startNode)
+		loader, _ := memory.NewFromNodes(startNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
 		state := domain.NewState("test-session", "start")
@@ -67,7 +67,7 @@ func TestEngine_RequiredContext(t *testing.T) {
 			RequiredContext: []string{"token"},
 		}
 
-		loader, _ := inmemory.NewFromNodes(startNode, secureNode)
+		loader, _ := memory.NewFromNodes(startNode, secureNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
 		state := domain.NewState("test-session", "start")

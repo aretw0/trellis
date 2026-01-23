@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +47,7 @@ func TestEngine_Signal(t *testing.T) {
 		Content: []byte("Shutting down..."),
 	}
 
-	loader, _ := inmemory.NewFromNodes(startNode, nextNode, shutdownNode)
+	loader, _ := memory.NewFromNodes(startNode, nextNode, shutdownNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Successfully Handles Interrupt Signal", func(t *testing.T) {

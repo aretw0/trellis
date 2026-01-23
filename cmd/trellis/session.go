@@ -96,7 +96,7 @@ func init() {
 	sessionCmd.AddCommand(sessionRmCmd)
 }
 
-func getStore(cmd *cobra.Command) *file.FileStore {
+func getStore(cmd *cobra.Command) *file.Store {
 	projectDir, _ := cmd.Flags().GetString("dir")
 	if projectDir == "" {
 		projectDir = "."

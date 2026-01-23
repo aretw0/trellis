@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestEngine_IdempotencyKeys(t *testing.T) {
 			ID:   "call_1",
 		},
 	}
-	loader, _ := inmemory.NewFromNodes(node)
+	loader, _ := memory.NewFromNodes(node)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	ctx := context.Background()

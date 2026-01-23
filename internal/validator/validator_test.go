@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/compiler"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 )
 
 func TestValidateGraph(t *testing.T) {
@@ -14,7 +14,7 @@ func TestValidateGraph(t *testing.T) {
 
 	// 2. Scenario A: Valid Graph
 	// start -> a -> b (end)
-	loader := inmemory.New(map[string]string{
+	loader := memory.NewLoader(map[string]string{
 		"start": `{
 			"id": "start",
 			"type": "text",
@@ -40,7 +40,7 @@ func TestValidateGraph(t *testing.T) {
 	// 3. Scenario B: Broken Link
 	// start -> ghost
 	// We create a NEW loader for the second scenario since memory.New is immutable/static
-	loaderBroken := inmemory.New(map[string]string{
+	loaderBroken := memory.NewLoader(map[string]string{
 		"broken_start": `{
 			"id": "broken_start",
 			"type": "text",

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ func TestEngine_Start_WithDefaultContext(t *testing.T) {
 		Content:        []byte("Start Node"),
 		DefaultContext: map[string]any{"env": "dev", "retries": 3},
 	}
-	loader, _ := inmemory.NewFromNodes(startNode)
+	loader, _ := memory.NewFromNodes(startNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Applies Defaults When No Context Provided", func(t *testing.T) {

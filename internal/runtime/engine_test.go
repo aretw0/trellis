@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -35,7 +35,7 @@ func TestEngine_RenderAndNavigate(t *testing.T) {
 		Transitions: []domain.Transition{},
 	}
 
-	loader, _ := inmemory.NewFromNodes(startNode, middleNode, endNode)
+	loader, _ := memory.NewFromNodes(startNode, middleNode, endNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Initial Render", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestEngine_Render_Inputs(t *testing.T) {
 		InputDefault: "A",
 	}
 
-	loader, _ := inmemory.NewFromNodes(node)
+	loader, _ := memory.NewFromNodes(node)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// Render
@@ -170,7 +170,7 @@ func TestEngine_Interpolation(t *testing.T) {
 		Type:    domain.NodeTypeText,
 		Content: []byte("Hello {{ .Name }}! VIP: {{ if .VIP }}Yes{{ else }}No{{ end }}"),
 	}
-	loader, _ := inmemory.NewFromNodes(node)
+	loader, _ := memory.NewFromNodes(node)
 	engine := runtime.NewEngine(loader, nil, nil) // Uses DefaultInterpolator (text/template)
 
 	t.Run("Standard Template", func(t *testing.T) {
@@ -219,7 +219,7 @@ func TestEngine_Interpolation(t *testing.T) {
 			},
 		}
 
-		loader, _ := inmemory.NewFromNodes(toolNode)
+		loader, _ := memory.NewFromNodes(toolNode)
 		engine := runtime.NewEngine(loader, nil, nil)
 
 		state := domain.NewState("test-session", "call_tool")
@@ -265,7 +265,7 @@ func TestEngine_ToolResultBinding(t *testing.T) {
 		Content: []byte("Name: {{ .api_data.name }}, ID: {{ .api_data.id }}"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(toolNode, textNode)
+	loader, _ := memory.NewFromNodes(toolNode, textNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// A. Start at step1
@@ -324,7 +324,7 @@ func TestEngine_LegacyInterpolation(t *testing.T) {
 		Type:    domain.NodeTypeText,
 		Content: []byte("Hello {{ Name }}"), // Old syntax
 	}
-	loader, _ := inmemory.NewFromNodes(node)
+	loader, _ := memory.NewFromNodes(node)
 
 	// Inject LegacyInterpolator
 	engine := runtime.NewEngine(loader, nil, runtime.LegacyInterpolator)
@@ -358,7 +358,7 @@ func TestEngine_DataBinding(t *testing.T) {
 		Content: []byte("Hello {{ .user_name }}"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(node, greetNode)
+	loader, _ := memory.NewFromNodes(node, greetNode)
 	engine := runtime.NewEngine(loader, nil, nil) // Default Interpolator
 
 	state := domain.NewState("test-session", "ask_name")
@@ -410,7 +410,7 @@ func TestEngine_Namespacing(t *testing.T) {
 		Content: []byte("Try to hack"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(node, nodeViolation)
+	loader, _ := memory.NewFromNodes(node, nodeViolation)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	t.Run("Read System Context", func(t *testing.T) {

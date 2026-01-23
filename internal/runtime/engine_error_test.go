@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -39,7 +39,7 @@ func TestEngine_OnError_Transition(t *testing.T) {
 		Content: []byte("Success Mode"),
 	}
 
-	loader, _ := inmemory.NewFromNodes(toolNode, recoveryNode, successNode)
+	loader, _ := memory.NewFromNodes(toolNode, recoveryNode, successNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	// A. Start at step1
@@ -96,7 +96,7 @@ func TestEngine_OnError_Missing_FailFast(t *testing.T) {
 		Type: domain.NodeTypeText,
 	}
 
-	loader, _ := inmemory.NewFromNodes(toolNode, nextNode)
+	loader, _ := memory.NewFromNodes(toolNode, nextNode)
 	engine := runtime.NewEngine(loader, nil, nil)
 
 	state := domain.NewState("test-session", "step1")

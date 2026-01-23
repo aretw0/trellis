@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aretw0/trellis/internal/runtime"
-	"github.com/aretw0/trellis/pkg/adapters/inmemory"
+	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -24,7 +24,7 @@ func TestEngine_LifecycleHooks(t *testing.T) {
 			"type": "text"
 		}`,
 	}
-	loader := inmemory.New(nodes)
+	loader := memory.NewLoader(nodes)
 
 	// Capture events
 	var entered []string
