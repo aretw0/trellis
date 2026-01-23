@@ -25,6 +25,7 @@ var runCmd = &cobra.Command{
 		contextStr, _ := cmd.Flags().GetString("context")
 		sessionID, _ := cmd.Flags().GetString("session")
 		fresh, _ := cmd.Flags().GetBool("fresh")
+		redisURL, _ := cmd.Flags().GetString("redis-url")
 
 		opts := cli.RunOptions{
 			RepoPath:  repoPath,
@@ -35,6 +36,7 @@ var runCmd = &cobra.Command{
 			Context:   contextStr,
 			SessionID: sessionID,
 			Fresh:     fresh,
+			RedisURL:  redisURL,
 		}
 
 		if err := cli.Execute(opts); err != nil {
@@ -56,6 +58,7 @@ func init() {
 	runCmd.Flags().StringP("session", "s", "", "Session ID for durable execution (resumes if exists)")
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 	runCmd.Flags().Bool("fresh", false, "Start with a clean session (deletes existing session data)")
+	runCmd.Flags().String("redis-url", "", "Redis connection URL (e.g. redis://localhost:6379) for distributed state & locking")
 
 	// Make 'run' the default subcommand if no other command is provided.
 	// This allows users to type 'trellis .' instead of 'trellis run .'

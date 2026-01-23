@@ -16,24 +16,23 @@ import (
 )
 
 // RunWatch executes Trellis in development mode, reloading on file changes.
-// RunWatch executes Trellis in development mode, reloading on file changes.
-func RunWatch(repoPath string, sessionID string, debug bool, fresh bool) {
-	logger := createLogger(debug)
+func RunWatch(opts RunOptions) {
+	logger := createLogger(opts.Debug)
 	tui.PrintBanner(trellis.Version)
 
 	// Default session for watch mode to enable Stateful Hot Reload by default
 	// We scope it by path hash to prevent collisions between projects.
-	if sessionID == "" {
-		hash := md5.Sum([]byte(repoPath))
-		sessionID = fmt.Sprintf("watch-%x", hash[:4])
+	if opts.SessionID == "" {
+		hash := md5.Sum([]byte(opts.RepoPath))
+		opts.SessionID = fmt.Sprintf("watch-%x", hash[:4])
 	}
 
-	if fresh {
-		ResetSession(sessionID)
+	if opts.Fresh {
+		ResetSession(opts.SessionID)
 	}
 
-	logger.Info("Starting Watcher", "path", repoPath, "session_id", sessionID)
-	printSystemMessage("Watcher at '%s' session.", sessionID)
+	logger.Info("Starting Watcher", "path", opts.RepoPath, "session_id", opts.SessionID)
+	printSystemMessage("Watcher at '%s' session.", opts.SessionID)
 
 	sigCtx := NewSignalContext(context.Background())
 	defer sigCtx.Cancel()
@@ -44,7 +43,7 @@ func RunWatch(repoPath string, sessionID string, debug bool, fresh bool) {
 	ioHandler.Renderer = tui.NewRenderer()
 
 	for {
-		if !runWatchIteration(sigCtx, repoPath, sessionID, debug, ioHandler) {
+		if !runWatchIteration(sigCtx, opts, ioHandler) {
 			break
 		}
 		logger.Info("Watcher restarting")
@@ -55,22 +54,22 @@ func RunWatch(repoPath string, sessionID string, debug bool, fresh bool) {
 	os.Exit(0)
 }
 
-func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID string, debug bool, ioHandler runner.IOHandler) bool {
+func runWatchIteration(parentCtx *SignalContext, opts RunOptions, ioHandler runner.IOHandler) bool {
 	// Create a child context that can be cancelled by reload (without cancelling the parent signal context)
 	// But catching parent signals
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 
-	logger := createLogger(debug)
+	logger := createLogger(opts.Debug)
 
 	// 1. Initialize Engine
 	engineOpts := []trellis.Option{}
-	if debug {
+	if opts.Debug {
 		engineOpts = append(engineOpts, trellis.WithLogger(logger))
 		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
 	}
 
-	engine, err := trellis.New(repoPath, engineOpts...)
+	engine, err := trellis.New(opts.RepoPath, engineOpts...)
 	if err != nil {
 		logger.Error("Engine initialization failed", "err", err)
 		// We can't reuse waitBackoff easily with context, so manual check
@@ -83,9 +82,9 @@ func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID stri
 	}
 
 	// 2. Setup Persistence and Session Management
-	store, sessionManager := setupPersistence(sessionID)
+	store, sessionManager := setupPersistence(opts, logger)
 
-	state, loaded, err := hydrateAndValidateState(ctx, engine, sessionID, nil, sessionManager)
+	state, loaded, err := hydrateAndValidateState(ctx, engine, opts.SessionID, nil, sessionManager)
 	if err != nil {
 		logger.Error("State rehydration failed", "err", err)
 		// Wait for fix
@@ -98,14 +97,14 @@ func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID stri
 		}
 	}
 
-	if loaded && sessionID != "" {
-		logger.Info("Session rehydrated", "session_id", sessionID, "node_id", state.CurrentNodeID)
+	if loaded && opts.SessionID != "" {
+		logger.Info("Session rehydrated", "session_id", opts.SessionID, "node_id", state.CurrentNodeID)
 	}
 
 	// 3. Setup Watcher & Runner
 	watchCh, _ := engine.Watch(ctx)
 
-	rOpts := createRunnerOptions(logger, false, sessionID, store, false, &ioHandler)
+	rOpts := createRunnerOptions(logger, false, opts.SessionID, store, false, &ioHandler)
 	// Use the shared handler
 	rOpts = append(rOpts, runner.WithInputHandler(ioHandler))
 
@@ -123,7 +122,7 @@ func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID stri
 		case event, ok := <-watchCh:
 			if ok {
 				logger.Info("Change detected, triggering reload", "event", event)
-				if !debug {
+				if !opts.Debug {
 					fmt.Printf("\n")
 				}
 				printSystemMessage("Change detected in '%s'.", event)
@@ -161,7 +160,7 @@ func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID stri
 	case <-parentCtx.Done():
 		runCancel() // Stop the runner
 		<-doneCh    // Wait for it to exit
-		logCompletion(state.CurrentNodeID, context.Canceled, debug, true, false, parentCtx.Signal())
+		logCompletion(state.CurrentNodeID, context.Canceled, opts.Debug, true, false, parentCtx.Signal())
 		logger.Info("Stopping watcher (signal received)", "signal", parentCtx.Signal())
 		return false
 	case <-reloadCh:
@@ -169,7 +168,7 @@ func runWatchIteration(parentCtx *SignalContext, repoPath string, sessionID stri
 		<-doneCh    // Wait for it to exit
 		return true // Continue to next iteration
 	case res := <-doneCh:
-		return handleRunCompletion(runCtx, res.state, res.err, watchCh, parentCtx, logger, debug)
+		return handleRunCompletion(runCtx, res.state, res.err, watchCh, parentCtx, logger, opts.Debug)
 	}
 }
 

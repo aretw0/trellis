@@ -13,10 +13,14 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/adapters"
+	"github.com/aretw0/trellis/internal/adapters/memory"
+	"github.com/aretw0/trellis/internal/adapters/redis"
 	"github.com/aretw0/trellis/internal/logging"
 	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
+	"github.com/aretw0/trellis/pkg/session"
 )
 
 // SignalContext wraps a context and captures the signal that cancelled it.
@@ -97,7 +101,8 @@ func logSessionStatus(logger *slog.Logger, sessionID, nodeID string, loaded, qui
 }
 
 // createRunnerOptions prepares the functional options for the Runner.
-func createRunnerOptions(logger *slog.Logger, headless bool, sessionID string, store *adapters.FileStore, jsonMode bool, ioHandler *runner.IOHandler) []runner.Option {
+func createRunnerOptions(logger *slog.Logger, headless bool, sessionID string, store ports.StateStore, jsonMode bool, ioHandler *runner.IOHandler) []runner.Option {
+
 	opts := []runner.Option{
 		runner.WithLogger(logger),
 		runner.WithHeadless(headless),
@@ -233,12 +238,40 @@ func logCompletion(nodeID string, err error, debug bool, promptActive bool, quie
 }
 
 // setupPersistence initializes the state store and session manager.
-func setupPersistence(sessionID string) (*adapters.FileStore, *runner.SessionManager) {
-	var store *adapters.FileStore
-	if sessionID != "" {
-		store = adapters.NewFileStore("") // Uses default .trellis/sessions
+func setupPersistence(opts RunOptions, logger *slog.Logger) (ports.StateStore, *session.Manager) {
+	var store ports.StateStore
+	var locker ports.DistributedLocker
+
+	if opts.RedisURL != "" {
+		// Use Redis Store & Locker
+		storeOpts, err := redis.ParseURL(opts.RedisURL)
+		if err == nil {
+			rStore := redis.New(storeOpts.Addr, storeOpts.Password, storeOpts.DB)
+			// Enable Distributed Locking by default for Redis
+			locker = redis.NewLocker(rStore.Client(), "trellis:lock:")
+			store = rStore
+		} else {
+			fmt.Printf("Warning: Invalid Redis URL %q, falling back to FileStore. Error: %v\n", opts.RedisURL, err)
+		}
 	}
-	return store, runner.NewSessionManager(store)
+
+	if store == nil {
+		if opts.SessionID != "" {
+			store = adapters.NewFileStore("") // Uses default .trellis/sessions
+		} else {
+			// Ephemeral session: Use In-Memory store to prevent Panics when Session Manager tries to Load/Save
+			store = memory.New()
+		}
+	}
+
+	managerOpts := []session.Option{
+		session.WithLogger(logger),
+	}
+	if locker != nil {
+		managerOpts = append(managerOpts, session.WithLocker(locker))
+	}
+
+	return store, session.NewManager(store, managerOpts...)
 }
 
 // ResetSession clears the session data for the given ID.
@@ -251,14 +284,39 @@ func ResetSession(sessionID string) {
 }
 
 // hydrateAndValidateState handles session rehydration and reload guardrails.
-func hydrateAndValidateState(ctx context.Context, engine *trellis.Engine, sessionID string, initialContext map[string]any, sessionManager *runner.SessionManager) (*domain.State, bool, error) {
-	state, loaded, err := sessionManager.LoadOrStart(ctx, engine, sessionID, initialContext)
-	if err != nil {
-		return nil, false, err
-	}
+func hydrateAndValidateState(ctx context.Context, engine *trellis.Engine, sessionID string, initialContext map[string]any, sessionManager *session.Manager) (*domain.State, bool, error) {
+	// We need to know 'loaded' boolean for UI logs ("Resumed" vs "Created").
+	// Since LoadOrStart atomically handles creation, we assume "Loaded" if the state exists in the store.
 
+	var state *domain.State
+	var loaded bool
+	sessionManager.WithLock(ctx, sessionID, func(ctx context.Context) error {
+		// 1. Try Load
+		s, err := sessionManager.Store().Load(ctx, sessionID)
+		if err == nil {
+			state = s
+			loaded = true
+			return nil
+		}
+		// If not found, create new
+		if err != domain.ErrSessionNotFound {
+			return err
+		}
+
+		// 2. Start New Session
+		s, err = engine.Start(ctx, initialContext)
+		if err != nil {
+			return err
+		}
+		state = s
+		loaded = false
+		return sessionManager.Store().Save(ctx, sessionID, state)
+	})
+
+	// Validation logic...
 	if loaded && sessionID != "" {
-		// Reload Guardrail: Check if node still exists and handle type mismatches
+		// Reload Guardrail...
+
 		nodes, _ := engine.Inspect()
 		var node *domain.Node
 		for _, n := range nodes {

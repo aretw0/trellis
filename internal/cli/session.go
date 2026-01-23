@@ -10,27 +10,27 @@ import (
 )
 
 // RunSession executes a single session of Trellis.
-func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initialContext map[string]any, sessionID string) error {
-	logger := createLogger(debug)
+func RunSession(opts RunOptions, initialContext map[string]any) error {
+	logger := createLogger(opts.Debug)
 
-	if !jsonMode && !headless {
+	if !opts.JSON && !opts.Headless {
 		tui.PrintBanner(trellis.Version)
 	}
 
 	// Initialize Engine
 	engineOpts := []trellis.Option{}
-	if debug {
+	if opts.Debug {
 		engineOpts = append(engineOpts, trellis.WithLogger(logger))
 		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
 	}
 
-	engine, err := trellis.New(repoPath, engineOpts...)
+	engine, err := trellis.New(opts.RepoPath, engineOpts...)
 	if err != nil {
 		return fmt.Errorf("error initializing trellis: %w", err)
 	}
 
 	// Setup Persistence
-	store, sessionManager := setupPersistence(sessionID)
+	store, sessionManager := setupPersistence(opts, logger)
 
 	// Setup signal handling
 	// Use the unified SignalContext helper
@@ -38,15 +38,15 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 	defer sigCtx.Cancel()
 
 	// Hydrate State
-	state, loaded, err := hydrateAndValidateState(sigCtx, engine, sessionID, initialContext, sessionManager)
+	state, loaded, err := hydrateAndValidateState(sigCtx, engine, opts.SessionID, initialContext, sessionManager)
 	if err != nil {
 		return fmt.Errorf("failed to init session: %w", err)
 	}
 
-	logSessionStatus(logger, sessionID, state.CurrentNodeID, loaded, jsonMode || headless)
+	logSessionStatus(logger, opts.SessionID, state.CurrentNodeID, loaded, opts.JSON || opts.Headless)
 
 	// Setup Runner
-	runnerOpts := createRunnerOptions(logger, headless, sessionID, store, jsonMode, nil)
+	runnerOpts := createRunnerOptions(logger, opts.Headless, opts.SessionID, store, opts.JSON, nil)
 	r := runner.NewRunner(runnerOpts...)
 
 	// Execute
@@ -63,7 +63,7 @@ func RunSession(repoPath string, headless bool, jsonMode bool, debug bool, initi
 		runErr = sigCtx.Err()
 	}
 
-	logCompletion(completionNodeID, runErr, debug, true, jsonMode || headless, sigCtx.Signal())
+	logCompletion(completionNodeID, runErr, opts.Debug, true, opts.JSON || opts.Headless, sigCtx.Signal())
 
 	return handleExecutionError(runErr)
 }

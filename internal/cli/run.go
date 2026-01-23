@@ -15,6 +15,7 @@ type RunOptions struct {
 	Context   string // Raw JSON string
 	SessionID string
 	Fresh     bool
+	RedisURL  string
 }
 
 // Execute handles the 'run' command logic, dispatching to Session or Watch mode.
@@ -31,7 +32,7 @@ func Execute(opts RunOptions) error {
 		if opts.Headless {
 			return fmt.Errorf("--watch and --headless cannot be used together")
 		}
-		RunWatch(opts.RepoPath, opts.SessionID, opts.Debug, opts.Fresh)
+		RunWatch(opts)
 		return nil
 	}
 
@@ -41,5 +42,5 @@ func Execute(opts RunOptions) error {
 		ResetSession(opts.SessionID)
 	}
 
-	return RunSession(opts.RepoPath, opts.Headless, opts.JSON, opts.Debug, initialContext, opts.SessionID)
+	return RunSession(opts, initialContext)
 }
