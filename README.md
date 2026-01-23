@@ -41,6 +41,7 @@ options: # Transições explícitas
 - **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação (Zero "undefined" errors).
 - **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core é desacoplado de IO e Persistência (Hexagonal).
 - **Error Handling**: Mecanismo nativo de recuperação (`on_error`) para ferramentas que falham.
+- **Native SAGA Support**: Orquestração de transações distribuídas com `undo` e `rollback` automático.
 - **Hot Reload**: Desenvolva com feedback instantâneo (SSE) ao salvar seus arquivos.
 
 ## Quick Start

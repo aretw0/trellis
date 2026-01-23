@@ -454,6 +454,53 @@ sequenceDiagram
     Note over T: External System (e.g., API, DB)<br/>deduplicates using Key
 ```
 
+### 8.7. Native SAGA Orchestration (v0.7)
+
+Trellis supports the **SAGA Pattern** natively, allowing for reliable distributed transactions without a central database coordinator.
+
+#### 8.7.1. Concept: Do/Undo Symmetry
+
+Every "Action" (Side-Effect) can have a corresponding "Reversal" (Compensating Transaction) defined directly in the node.
+
+```go
+type Node struct {
+    Do   *ToolCall // The Primary Action (e.g., Charge Card)
+    Undo *ToolCall // The Compensating Action (e.g., Refund Card)
+}
+```
+
+This ensures **Locality of Behavior**: the code that reverses an action sits right next to the action itself.
+
+#### 8.7.2. Rollback Lifecycle
+
+When a tool fails with `on_error: rollback`, the Engine enters **Rollback Mode**:
+
+1. **Unwind**: The Engine pops the history stack one by one.
+2. **Compensate**: If a popped node has an `undo` definition, the Engine executes it.
+3. **Continue**: The rollback continues until the history is empty or a savepoint is reached (Start).
+
+```mermaid
+sequenceDiagram
+    participant Engine
+    participant Host
+    
+    Note over Engine: State: Active (Step 2)
+    Engine->>Host: Execute "Ship Item"
+    Host-->>Engine: Error ("Out of Stock")
+    
+    Note over Engine: Transition: on_error: rollback
+    Engine->>Engine: Status = RollingBack
+    Engine->>Engine: Pop Step 2 (Failed)
+    Engine->>Engine: Pop Step 1 (Completed "Charge")
+    
+    Note right of Engine: Step 1 has Undo "Refund"
+    Engine->>Host: Execute "Refund"
+    Host-->>Engine: Result "Refunded"
+    
+    Engine->>Engine: Pop Start
+    Note over Engine: State: Terminated
+```
+
 ### 9. Runner & IO Architecture
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.
@@ -963,7 +1010,8 @@ Trellis fornece **Lifecycle Hooks** para instrumentação externa.
 - **Log Standard**: Events use consistent keys.
   - `node_id`: ID of the node.
   - `tool_name`: Name of the tool (never empty).
-  - `type`: Event type (enter, leave, tool_call).
+  - `type`: Event type (`node_enter`, `node_leave`, `tool_call`, `tool_return`).
+  - **Note**: The event type `tool_call` is preserved for historical observability stability, even though the Node field is now `Do`.
 - **Integração**: Pode ser usado com `log/slog` e `Prometheus` sem acoplar essas dependências ao Core (ex: `examples/structured-logging`).
 
 #### 14.1 Diagrama de Eventos (Lifecycle Hooks)

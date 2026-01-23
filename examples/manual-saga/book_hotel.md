@@ -5,7 +5,7 @@ tool_call:
 metadata:
   undo_action: cancel_hotel
 save_to: hotel_id
-on_error: rollback
+on_error: manual_rollback
 transitions:
   - to: book_car
 ---
