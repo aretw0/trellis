@@ -35,7 +35,7 @@ func TestRunner_HandleTool(t *testing.T) {
 			nodeJSON: `{
 				"id": "step_tool",
 				"type": "tool",
-				"tool_call": { "name": "calc", "args": { "op": "add" } },
+				"do": { "name": "calc", "args": { "op": "add" } },
 				"transitions": [
 					{ "condition": "", "to_node_id": "success" }
 				]
@@ -53,7 +53,7 @@ func TestRunner_HandleTool(t *testing.T) {
 			nodeJSON: `{
 				"id": "step_tool_fail",
 				"type": "tool",
-				"tool_call": { "name": "calc" },
+				"do": { "name": "calc" },
 				"on_error": "recovery_node"
 			}`,
 			toolCall: newToolCall("calc", nil),
@@ -69,7 +69,7 @@ func TestRunner_HandleTool(t *testing.T) {
 			nodeJSON: `{
 				"id": "step_tool_fatal",
 				"type": "tool",
-				"tool_call": { "name": "calc" }
+				"do": { "name": "calc" }
 			}`,
 			toolCall: newToolCall("calc", nil),
 			toolResult: domain.ToolResult{

@@ -53,9 +53,9 @@ func TestToolExecutionFlow(t *testing.T) {
 			},
 		},
 		"tool_node": {
-			ID:       "tool_node",
-			Type:     domain.NodeTypeTool,
-			ToolCall: &toolCall,
+			ID:   "tool_node",
+			Type: domain.NodeTypeTool,
+			Do:   &toolCall,
 			Transitions: []domain.Transition{
 				{ToNodeID: "success", Condition: "input == '2'"},
 				{ToNodeID: "failure", Condition: ""}, // Default fallback

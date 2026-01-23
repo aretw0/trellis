@@ -54,7 +54,8 @@ type Node struct {
 	InputDefault string   `json:"input_default,omitempty" yaml:"input_default,omitempty"`
 
 	// Tool Configuration (Optional, used if Type == "tool")
-	ToolCall *ToolCall `json:"tool_call,omitempty" yaml:"tool_call,omitempty"`
+	// Do defines the primary action to execute.
+	Do *ToolCall `json:"do,omitempty" yaml:"do,omitempty"`
 
 	// Tools defined within this node (e.g. for LLM context)
 	Tools []Tool `json:"tools,omitempty" yaml:"tools,omitempty"`

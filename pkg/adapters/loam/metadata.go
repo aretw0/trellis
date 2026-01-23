@@ -33,6 +33,7 @@ type NodeMetadata struct {
 
 	// Tool Config
 	ToolCall *domain.ToolCall `json:"tool_call" mapstructure:"tool_call"`
+	Do       *domain.ToolCall `json:"do" mapstructure:"do"`
 	Tools    []any            `json:"tools" mapstructure:"tools"`
 	Undo     *domain.ToolCall `json:"undo,omitempty" mapstructure:"undo"`
 

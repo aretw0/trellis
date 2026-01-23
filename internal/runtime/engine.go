@@ -283,7 +283,7 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 			toolCallToRender = node.Undo
 		}
 	} else if node.Type == domain.NodeTypeTool {
-		toolCallToRender = node.ToolCall
+		toolCallToRender = node.Do
 	}
 
 	if toolCallToRender != nil {
@@ -362,6 +362,7 @@ func (e *Engine) startRollback(ctx context.Context, failedState *domain.State) (
 // continueRollback unwinds the history stack until it finds a node with an Undo action.
 // popCurrent: If true, removes the current head of history before searching (used after Undo completion or initial failure).
 func (e *Engine) continueRollback(ctx context.Context, state *domain.State, popCurrent bool) (*domain.State, error) {
+	e.logger.InfoContext(ctx, "continuing rollback", "history_len", len(state.History), "pop_current", popCurrent)
 	nextState := *state
 	nextState.Status = domain.StatusRollingBack
 	nextState.PendingToolCall = ""
@@ -425,11 +426,11 @@ func (e *Engine) continueRollback(ctx context.Context, state *domain.State, popC
 // Navigate determines the next state based on input.
 // Input can be a string (user text) or a domain.ToolResult (side-effect result).
 func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input any) (*domain.State, error) {
-	// 1. Handle State: WaitingForTool
-	if currentState.Status == domain.StatusWaitingForTool {
+	// 1. Handle State: WaitingForTool (or RollingBack which works similarly for Undo)
+	if currentState.Status == domain.StatusWaitingForTool || currentState.Status == domain.StatusRollingBack {
 		result, ok := input.(domain.ToolResult)
 		if !ok {
-			return nil, fmt.Errorf("expected ToolResult input when in WaitingForTool status")
+			return nil, fmt.Errorf("expected ToolResult input when in WaitingForTool/RollingBack status")
 		}
 		if result.ID != currentState.PendingToolCall {
 			return nil, fmt.Errorf("tool result ID %s does not match pending call %s", result.ID, currentState.PendingToolCall)
@@ -721,8 +722,8 @@ func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*doma
 
 	if nextNode.Type == domain.NodeTypeTool {
 		nextState.Status = domain.StatusWaitingForTool
-		if nextNode.ToolCall != nil {
-			nextState.PendingToolCall = nextNode.ToolCall.ID
+		if nextNode.Do != nil {
+			nextState.PendingToolCall = nextNode.Do.ID
 		}
 	}
 

@@ -15,7 +15,7 @@ func TestEngine_IdempotencyKeys(t *testing.T) {
 	node := domain.Node{
 		ID:   "start",
 		Type: domain.NodeTypeTool,
-		ToolCall: &domain.ToolCall{
+		Do: &domain.ToolCall{
 			Name: "my_tool",
 			ID:   "call_1",
 		},

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/aretw0/trellis/internal/adapters/redis"
+	"github.com/aretw0/trellis/pkg/adapters/redis"
 	backend "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )

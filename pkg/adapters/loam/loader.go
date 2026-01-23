@@ -123,12 +123,20 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	}
 
 	// Map Tool Configuration
-	if doc.Data.ToolCall != nil {
+	// Priority: Do > ToolCall (Alias)
+	var toolCall *domain.ToolCall
+	if doc.Data.Do != nil {
+		toolCall = doc.Data.Do
+	} else if doc.Data.ToolCall != nil {
+		toolCall = doc.Data.ToolCall
+	}
+
+	if toolCall != nil {
 		// Ensure ID is present
-		if doc.Data.ToolCall.ID == "" {
-			doc.Data.ToolCall.ID = doc.Data.ToolCall.Name
+		if toolCall.ID == "" {
+			toolCall.ID = toolCall.Name
 		}
-		data["tool_call"] = doc.Data.ToolCall
+		data["do"] = toolCall
 	}
 	if len(doc.Data.Tools) > 0 {
 		resolvedTools, err := l.resolveTools(ctx, doc.Data.Tools, nil)

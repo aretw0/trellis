@@ -15,11 +15,11 @@ func TestEngine_OnError_Transition(t *testing.T) {
 
 	// Node 1: Tool Node with OnError
 	toolNode := domain.Node{
-		ID:       "step1",
-		Type:     domain.NodeTypeTool,
-		ToolCall: &domain.ToolCall{ID: "t1", Name: "risky_tool"},
-		SaveTo:   "result_data", // Should NOT be written on error
-		OnError:  "recovery",
+		ID:      "step1",
+		Type:    domain.NodeTypeTool,
+		Do:      &domain.ToolCall{ID: "t1", Name: "risky_tool"},
+		SaveTo:  "result_data", // Should NOT be written on error
+		OnError: "recovery",
 		Transitions: []domain.Transition{
 			{ToNodeID: "success"},
 		},
@@ -82,10 +82,10 @@ func TestEngine_OnError_Missing_FailFast(t *testing.T) {
 	// Scenario: Tool returns error, but NO OnError is defined. Should FAIL FAST.
 
 	toolNode := domain.Node{
-		ID:       "step1",
-		Type:     domain.NodeTypeTool,
-		ToolCall: &domain.ToolCall{ID: "t1", Name: "risky_tool"},
-		SaveTo:   "result_data",
+		ID:     "step1",
+		Type:   domain.NodeTypeTool,
+		Do:     &domain.ToolCall{ID: "t1", Name: "risky_tool"},
+		SaveTo: "result_data",
 		// OnError is MISSING
 		Transitions: []domain.Transition{
 			{ToNodeID: "next"},

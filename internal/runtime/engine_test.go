@@ -209,7 +209,7 @@ func TestEngine_Interpolation(t *testing.T) {
 		toolNode := domain.Node{
 			ID:   "call_tool",
 			Type: domain.NodeTypeTool,
-			ToolCall: &domain.ToolCall{
+			Do: &domain.ToolCall{
 				ID:   "t1",
 				Name: "update_user",
 				Args: map[string]any{
@@ -250,10 +250,10 @@ func TestEngine_Interpolation(t *testing.T) {
 func TestEngine_ToolResultBinding(t *testing.T) {
 	// Scenario: Call tool, save result (map) to context, read context in next node
 	toolNode := domain.Node{
-		ID:       "step1",
-		Type:     domain.NodeTypeTool,
-		ToolCall: &domain.ToolCall{ID: "t1", Name: "get_data"},
-		SaveTo:   "api_data",
+		ID:     "step1",
+		Type:   domain.NodeTypeTool,
+		Do:     &domain.ToolCall{ID: "t1", Name: "get_data"},
+		SaveTo: "api_data",
 		Transitions: []domain.Transition{
 			{ToNodeID: "step2"},
 		},
