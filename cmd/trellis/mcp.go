@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters/mcp"
 	"github.com/aretw0/trellis/internal/logging"
+	"github.com/aretw0/trellis/pkg/adapters/mcp"
 	"github.com/spf13/cobra"
 )
 

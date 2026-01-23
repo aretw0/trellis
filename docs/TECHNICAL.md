@@ -113,12 +113,11 @@ trellis/
 ├── cmd/
 │   └── trellis/       # Entrypoint (CLI)
 ├── internal/          # Detalhes de implementação (Privado)
-│   ├── adapters/      # Implementações (Loam, HTTP, MCP)
 │   ├── presentation/  # TUI & Renderização
 │   ├── runtime/       # Engine de execução
 │   └── validator/     # Lógica de validação
 ├── pkg/               # Contratos Públicos (Safe to import)
-│   ├── adapters/      # Adaptadores Compartilhados (Memory)
+│   ├── adapters/      # Adaptadores (File, Redis, Loam, HTTP, MCP)
 │   ├── domain/        # Core Domain (Node, State)
 │   ├── ports/         # Interfaces (Driver & Driven)
 │   ├── registry/      # Registro de Ferramentas

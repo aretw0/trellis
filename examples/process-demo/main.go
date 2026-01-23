@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/internal/adapters/process"
+	"github.com/aretw0/trellis/pkg/adapters/process"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 )

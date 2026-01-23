@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/aretw0/trellis"
-	httpAdapter "github.com/aretw0/trellis/internal/adapters/http"
 	"github.com/aretw0/trellis/internal/logging"
+	httpAdapter "github.com/aretw0/trellis/pkg/adapters/http"
 	"github.com/spf13/cobra"
 )
 
