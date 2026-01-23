@@ -233,5 +233,6 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - **2026-01-16**: *Runner Refactor Decision*. Decidido refatorar o `Runner` para usar **Functional Options Pattern**. Motivo: A injeção de `Store` e `SessionID` via argumentos/propriedades tornou a API frágil e inconsistente ("bêbada"). A configuração deve ser imutável no momento da construção.
 - **2026-01-22**: *Runner Loop Simplification*. Removida otimização prematura ("Short Circuit") para nós terminais. Decisão: O `Runner` deve sempre delegar ao `Engine.Navigate` para garantir que eventos de ciclo de vida (`OnNodeLeave`) sejam disparados consistentemente, mesmo na saída.
 - **2026-01-22**: *Explicit Naming Strategy*. Adotada convenção "Manual X" (`manual-saga`, `manual-security`) para exemplos que demonstram wiring explícito de features que futuramente serão nativas/automáticas. Isso preserva o espaço semântico e educa o usuário sobre a diferença entre "Padrão Nativo" e "Implementação via Código".
+- **2026-01-23**: *Library-First Architecture*. Movidos adaptadores de infraestrutura (`file`, `redis`, `loam`) e DTOs para `pkg` a fim de permitir o uso do Trellis como biblioteca. `internal/dto` foi consolidado em `pkg/adapters/loam` para aumentar a coesão, revertendo a extração de 2025-12-16.
 
 ---
