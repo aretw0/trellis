@@ -66,8 +66,11 @@ transitions:
   - to: fallback_node
 
 on_error: error_handler_node  # Transition if Tool fails
+
+# Signal Handlers
+on_timeout: timeout_node      # Syntactic Sugar for on_signal["timeout"]
 on_signal:
-  timeout: timeout_handler    # Transition on signal
+  interrupt: exit_node        # Handle specific signals
 
 timeout: "30s"            # Max time to wait for input
 ```
@@ -188,6 +191,8 @@ do:
 | `to` | `string` | Shorthand for single unconditional transition. |
 | `transitions` | `[]Transition` | List of conditional paths. Evaluated in order. |
 | `on_error` | `string` | Target node ID if `do` fails. |
+| `on_timeout` | `string` | Syntactic sugar for `on_signal["timeout"]`. |
+| `on_interrupt` | `string` | Syntactic sugar for `on_signal["interrupt"]`. |
 | `on_signal` | `map[string]string` | Handlers for global signals (`interrupt`, `timeout`). |
 | `tools` | `[]Tool` | Definitions of tools available to this node (for LLMs). |
 | `undo` | `ToolCall` | SAGA compensation action if flow rolls back. |

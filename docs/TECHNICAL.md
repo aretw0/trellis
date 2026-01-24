@@ -842,6 +842,7 @@ Mecanismos para controle de fluxo assíncrono e limites de execução.
 **Timeouts (Sinal de Sistema):**
 
 - **Definição**: `timeout: 30s` (declarativo no nó).
+- **Handler**: `on_timeout: "retry_node"` (Sugar) ou `on_signal: { timeout: ... }`.
 - **Mapping**: O Runner mapeia `context.DeadlineExceeded` automaticamente para o sinal `"timeout"`.
 - **Fail Fast**: Se o sinal `"timeout"` não for tratado via `on_signal`, o Runner encerra a execução com erro (`timeout exceeded`). Isso evita loops infinitos ou estados zumbis.
 
@@ -880,6 +881,7 @@ O namespace `sys.*` é reservado no Engine.
 O Trellis suporta a conversão de sinais do sistema operacional (ex: `Ctrl+C` / `SIGINT`) em transições de estado.
 
 - **`on_signal`**: Define um mapa de sinais para nós de destino.
+- **Syntactic Sugar**: `on_interrupt` mapeia para `on_signal["interrupt"]`.
 - **Engine.Signal**: Método que dispara a transição.
 
 ```yaml
@@ -897,7 +899,8 @@ Se o sinal "interrupt" for recebido enquanto o nó estiver ativo, o Engine trans
 
 O mecanismo de `on_signal` é a base para extensibilidade do fluxo via eventos:
 
-- **System Contexts (Timeouts)**: `on_signal: { timeout: "retry_node" }`. (Implementado)
+- **System Contexts (Timeouts)**: `on_signal: { timeout: "retry_node" }` ou `on_timeout: "retry_node"`. (Implementado)
+- **External Signals (Interrupts)**: `on_signal: { interrupt: "exit_node" }` ou `on_interrupt: "exit_node"`. (Implementado)
 - **External Signals (Webhooks)**: `on_signal: { payment_received: "success" }`. Disparado via `POST /signal`. (Implementado)
 - **Payload injection (Future)**: Injeção de dados junto com o sinal (ex: webhook payload -> `context.webhook_data`).
 
