@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -127,8 +128,26 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 	// Copy useful fields from toolCall.Args to Key=Value strings
 	for k, v := range toolCall.Args {
 		// Basic sanitization: keys must be alphanumeric
-		// Values are treated as strings.
-		val := fmt.Sprintf("%v", v)
+		// Values serialization strategy:
+		// - Primitives (string, number, bool): fmt.Sprintf (Simple)
+		// - Complex (Map, Slice): json.Marshal (Structured)
+		var val string
+
+		switch v.(type) {
+		case string, int, int64, float64, bool:
+			val = fmt.Sprintf("%v", v)
+		case nil:
+			val = ""
+		default:
+			// Complex types: Try JSON
+			if inJson, err := json.Marshal(v); err == nil {
+				val = string(inJson)
+			} else {
+				// Fallback to Go format if marshal fails
+				val = fmt.Sprintf("%v", v)
+			}
+		}
+
 		env = append(env, fmt.Sprintf("TRELLIS_ARG_%s=%s", strings.ToUpper(k), val))
 	}
 	cmd.Env = append(cmd.Environ(), env...)
@@ -159,9 +178,20 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 	// We return stdout as the result.
 	// The Host/Engine will handle parsing if it's JSON (via SaveTo logic).
 	output := stdout.String()
-	// Trim whitespace for cleaner string results?
-	// Generally safer to trim.
-	result.Result = strings.TrimSpace(output)
+	trimmed := strings.TrimSpace(output)
+
+	// Try to parse as JSON (Auto-Detection)
+	if (strings.HasPrefix(trimmed, "{") && strings.HasSuffix(trimmed, "}")) ||
+		(strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]")) {
+		var jsonResult any
+		if jsonErr := json.Unmarshal([]byte(trimmed), &jsonResult); jsonErr == nil {
+			result.Result = jsonResult
+			return result, nil
+		}
+	}
+
+	// Fallback to string
+	result.Result = trimmed
 
 	return result, nil
 }

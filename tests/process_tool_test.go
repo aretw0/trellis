@@ -8,6 +8,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/adapters/process"
+	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/runner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -126,4 +127,73 @@ Checking OS...
 	// On Windows, should be windows. On Linux, linux.
 	t.Logf("Detected OS: %v", val)
 	assert.NotEmpty(t, val)
+}
+
+// TestProcessAdapter_ComplexArgs verifies that complex arguments (Maps/Slices)
+// are serialized as valid JSON strings in environment variables.
+func TestProcessAdapter_ComplexArgs(t *testing.T) {
+	// 1. Setup
+	procRunner := process.NewRunner(process.WithInlineExecution(true))
+
+	// 2. Define complex args
+	args := map[string]any{
+		"data": map[string]any{
+			"foo":  "bar",
+			"list": []int{1, 2, 3},
+		},
+	}
+
+	toolCall := domain.ToolCall{
+		Name: "json_check",
+		Args: args,
+		Metadata: map[string]string{
+			"x-exec-command": "go",
+			"x-exec-args":    "run ./testdata/json_echo.go", // We will mock this command logic differently to keep test self-contained
+		},
+	}
+
+	// Because creating a separate Go file for the test command is complex,
+	// let's use a simple shell approach or just rely on 'echo'.
+	// Windows 'echo' is tricky with quotes.
+	// Alternative: Inspect the Runner logic directly? No, we want integration.
+	// Let's use `go run` with a tiny inline helper if possible, or write a temporary handled script.
+
+	tmpDir := t.TempDir()
+	scriptPath := filepath.Join(tmpDir, "inspector.go")
+	scriptContent := `package main
+import (
+	"fmt"
+	"os"
+)
+func main() {
+	// Print the env var raw
+	fmt.Print(os.Getenv("TRELLIS_ARG_DATA"))
+}`
+	err := os.WriteFile(scriptPath, []byte(scriptContent), 0644)
+	require.NoError(t, err)
+
+	toolCall.Metadata["x-exec-command"] = "go"
+	toolCall.Metadata["x-exec-args"] = "run " + scriptPath
+
+	// 3. Execute
+	result, err := procRunner.Execute(context.Background(), toolCall)
+	require.NoError(t, err)
+
+	// 4. Verify Output
+	// Should be valid JSON: {"foo":"bar","list":[1,2,3]}
+	// Note: keys in map are unordered, so exact string match is flaky.
+	// But since it's small, it might be stable or we parse it back.
+
+	// The runner now AUTO-PARSES JSON output.
+	// If the script prints JSON, the runner parses it.
+	// Our script prints the ENV VAR. If the ENV VAR is JSON, the script prints JSON.
+	// So the runner should parse it back to a map.
+
+	assert.IsType(t, map[string]any{}, result.Result, "Expected result to be parsed JSON object")
+	resMap := result.Result.(map[string]any)
+
+	assert.Equal(t, "bar", resMap["foo"])
+	// JSON numbers are float64 by default in unmarshal
+	list := resMap["list"].([]any)
+	assert.Equal(t, 3, len(list))
 }
