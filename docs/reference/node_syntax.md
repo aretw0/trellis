@@ -30,13 +30,25 @@ We do not rely on rigid `type` fields (like `type: tool`). Instead, the properti
 ## 2. Anatomy of a Node (YAML/Frontmatter)
 
 ```yaml
-type: text              # Legacy/Optional. Inferred from behavior.
+type: text              # Optional. Inferred from behavior (Defaults to "text").
 
 # --- Behavior: Action (The "Do") ---
 do:
   name: my_tool_name    # Tool to execute
   args:                 # Arguments passed to the tool
     id: "{{ user_id }}"
+
+# --- Behavior: SAGA (The "Undo") ---
+undo:
+  name: revert_tool     # Executed if flow rolls back
+  args:
+    id: "{{ user_id }}"
+
+# --- Context Management ---
+required_context:       # Fails if these keys are missing
+  - "user_id"
+default_context:        # Fallback values
+  theme: "dark"
 
 # --- Behavior: Input (The "Wait") ---
 wait: true              # Pauses for simple text input (Enter)
@@ -56,6 +68,8 @@ transitions:
 on_error: error_handler_node  # Transition if Tool fails
 on_signal:
   timeout: timeout_handler    # Transition on signal
+
+timeout: "30s"            # Max time to wait for input
 ```
 
 ## 3. Formatting Rules
@@ -176,6 +190,10 @@ do:
 | `on_error` | `string` | Target node ID if `do` fails. |
 | `on_signal` | `map[string]string` | Handlers for global signals (`interrupt`, `timeout`). |
 | `tools` | `[]Tool` | Definitions of tools available to this node (for LLMs). |
+| `undo` | `ToolCall` | SAGA compensation action if flow rolls back. |
+| `required_context` | `[]string` | Keys that MUST exist in context or flow errors. |
+| `default_context` | `map[string]any` | Default values for context keys if missing. |
+| `timeout` | `string` | Duration (e.g. "30s") to wait for input before signaling timeout. |
 
 ### 5.1. The Confirm Convention (Unix Style)
 

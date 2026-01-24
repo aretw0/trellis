@@ -18,19 +18,21 @@ Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (o
 O Trellis define fluxos através de arquivos Markdown (Loam). Texto, Lógica e Dados vivem juntos:
 
 ```yaml
-# start.md
+# start.yaml
 type: question
-text: "Olá! Qual é o seu nome?"
-save_to: "user_name" # Data Binding automático
----
-# greeting.md
-type: text
-text: "Prazer, {{ .user_name }}! O que deseja fazer?"
+save_to: user_name  # Data Binding automático
+to: greeting # Transição explícita
+content: Olá! Qual é o seu nome?
+```
+
+```yaml
+# greeting.yaml
 options: # Transições explícitas
   - text: "Ver Menu"
     to: "menu"
   - text: "Sair"
     to: "exit"
+content: Prazer, {{ .user_name }}! O que deseja fazer?
 ```
 
 ## Funcionalidades Principais
