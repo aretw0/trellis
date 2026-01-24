@@ -7,7 +7,6 @@ do:
     x-exec:
       command: go
       args: ["env", "GOOS"]
-save_to: os_name
 transitions:
   - to: end
 ---

@@ -388,19 +388,6 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	return nextState, nil
 }
 
-// applyInput handles the Update Phase: Creates new state and applies SaveTo logic.
-func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input any) (*domain.State, error) {
-	nextState := e.cloneState(currentState)
-
-	if node.SaveTo != "" {
-		if node.SaveTo == "sys" || strings.HasPrefix(node.SaveTo, "sys.") {
-			return nil, fmt.Errorf("security violation: cannot save to reserved namespace 'sys' in node %s", node.ID)
-		}
-		nextState.Context[node.SaveTo] = input
-	}
-	return nextState, nil
-}
-
 // transitionTo handles the mechanics of moving the state to a new node ID.
 func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*domain.State, error) {
 	// Update State to new Node

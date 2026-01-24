@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aretw0/trellis/pkg/domain"
 )
@@ -42,4 +43,25 @@ func (e *Engine) validateContext(node *domain.Node, state *domain.State) error {
 		}
 	}
 	return nil
+}
+
+// applyInput handles the Update Phase: Creates new state and applies SaveTo logic.
+// It also automatically populates the implicit 'sys.ans' variable for zero-friction data propagation.
+func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input any) (*domain.State, error) {
+	nextState := e.cloneState(currentState)
+
+	// Implicit Propagation: Always store the latest result in 'sys.ans'
+	if nextState.SystemContext == nil {
+		nextState.SystemContext = make(map[string]any)
+	}
+	nextState.SystemContext["ans"] = input
+
+	// Explicit Persistence: Save to a named key if configured
+	if node.SaveTo != "" {
+		if node.SaveTo == "sys" || strings.HasPrefix(node.SaveTo, "sys.") {
+			return nil, fmt.Errorf("security violation: cannot save to reserved namespace 'sys' in node %s", node.ID)
+		}
+		nextState.Context[node.SaveTo] = input
+	}
+	return nextState, nil
 }
