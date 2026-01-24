@@ -55,6 +55,16 @@ Demonstrates the **new** Native SAGA orchestration in Trellis v0.7. The engine a
 **Concepts:** `Durable Execution`, `Persistence`, `Signals`
 Demonstrates a **Long Running SAGA**. The flow pauses for an external signal (Manager Approval), is interrupted (process exit), resumed from disk, and then rolled back upon Rejection.
 
+### [Confirm Demo (Unix Style)](./confirm-demo)
+
+**Concepts:** `input_type: confirm`, `input_default`, `Unix Conventions`
+Demonstrates the native confirmation UX. It shows how the engine follows standard CLI conventions (Enter = Yes) and how to formally override those defaults for secure flows.
+
+### [Process Demo (Dynamic Scripts)](./process-demo)
+
+**Concepts:** `x-exec`, `Tools`, `YAML Metadata`
+Demonstrates the power of Universal Action Semantics. This example shows how to define and execute dynamic OS processes (scripts) directly from node metadata without pre-compiling Go tools.
+
 ---
 
 ## 4. Advanced Control
@@ -63,6 +73,16 @@ Demonstrates a **Long Running SAGA**. The flow pauses for an external signal (Ma
 
 **Concepts:** `on_signal`, `Graceful Shutdown`, `Ctrl+C`
 Demonstrates how to handle global interruptions (like `SIGINT`) gracefully. Instead of crashing, the flow transitions to a confirmation node ("Are you sure?"), preventing data loss.
+
+### [Sub-graph Demo (Modularity)](./subgraph-demo)
+
+**Concepts:** `Modular Graphs`, `Portability`, `Logical Segregation`
+Demonstrates how to split a complex state machine into multiple smaller, manageable files. This is the cornerstone of building complex, enterprise-ready automation.
+
+### [Reload Demo (Live Dev)](./reload-demo)
+
+**Concepts:** `--watch`, `Hot Reload`, `DX`
+Shows how Trellis supports a high-velocity developer experience. Modify your Markdown files and see the engine reload the logic in real-time without restarting the process.
 
 ### [Context Injection (Testing & Automation)](./context-demo)
 
@@ -90,7 +110,7 @@ Demonstrates how to use the `--debug` flag to visualize state transitions and ev
 
 ---
 
-## 6. Internals
+## 6. Internals & API
 
 ### [Low Level API (Advanced)](./low-level-api)
 
