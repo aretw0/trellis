@@ -115,7 +115,7 @@ Foco: Remover heurísticas de CLI do Core Engine e alinhar tipos de nós com sem
 - [x] **Lifecycle Cleanup**: Adotar padrão **Resolve** (Read Context, Deep Interpolation), **Execute** (Side-Effect), **Update** (Write Context).
 - [x] **Type Erasure Fix**: Permitir que `save_to` armazene objetos complexos (`any`) de resultados de Tools, não apenas strings.
 - [x] **Syntactic Sugar: Options**: Suporte a `options` como alias para `transitions` com `condition` implícita (Precedência: Options > Transitions).
-- [ ] **Syntactic Sugar: Root `to`**: Permitir `to: "next_node"` na raiz quando houver apenas uma transição incondicional (Menos verbosidade).
+- [x] **Syntactic Sugar: Root `to`**: Permitir `to: "next_node"` na raiz quando houver apenas uma transição incondicional (Menos verbosidade).
 - [x] **Manual Migration**: Atualizar grafos de exemplo (`examples/`) para usar `wait: true` ou `type: prompt` onde necessário. (Análise: ~14 arquivos, inviável automação).
 
 ### 🛡️ v0.5.1: Robustness & Observation (The "Production" Patch)
@@ -194,7 +194,7 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 - [x] **Universal Action Semantics ("Duck Typing")**: Remover a restrição de `type: tool`. Se um nó tem intenção de ação (`do`), ele executa. Unifica "Falar" e "Fazer" num único nó (Text + Action), reduzindo fadiga.
   - *Constraint*: `do` e `wait` (Input) são mutuamente exclusivos por enquanto.
-- [ ] **Syntactic Sugar: on_timeout**: Alias semântico para `on_signal["timeout"]`. Melhora a DX alinhando com `on_error`.
+- [x] **Syntactic Sugar: on_timeout**: Alias semântico para `on_signal["timeout"]`. Melhora a DX alinhando com `on_error`.
 - [ ] **Process Adapter (Scriptable Tools)**: Adaptador seguro para executar scripts locais (`.sh`, `.js`, `.py`) via `tools.yaml` ou `x-exec` (Dev Mode). "Unix Philosophy".
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
