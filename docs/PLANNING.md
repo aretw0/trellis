@@ -192,7 +192,9 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [x] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
   - [x] *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
-- [ ] **Process Adapter (Scriptable Tools)**: Adaptador genérico para executar scripts locais (`.sh`, `.js`, `.py`) ou Binários (Lambdas) como Ferramentas, sem recompilar o Runner. "Unix Philosophy".
+- [ ] **Universal Action Semantics ("Duck Typing")**: Remover a restrição de `type: tool`. Se um nó tem intenção de ação (`do`), ele executa. Unifica "Falar" e "Fazer" num único nó (Text + Action), reduzindo fadiga.
+  - *Constraint*: `do` e `wait` (Input) são mutuamente exclusivos por enquanto.
+- [ ] **Process Adapter (Scriptable Tools)**: Adaptador seguro para executar scripts locais (`.sh`, `.js`, `.py`) via `tools.yaml` ou `x-exec` (Dev Mode). "Unix Philosophy".
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).

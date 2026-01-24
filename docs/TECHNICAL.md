@@ -290,7 +290,25 @@ sequenceDiagram
     - **Resolve**: Avalia as condições de transição baseadas no novo contexto.
     - **Transition**: Retorna o novo estado apontando para o próximo nó.
 
-#### 7.1. Hot Reload Lifecycle (v0.6)
+### 7.1. Universal Action Semantics ("Duck Typing") - v0.7
+
+Na versão 0.7, o Engine adotou a semântica de "Actions Universais", removendo a necessidade estrita de definir `type: tool`. O comportamento do nó é inferido por suas propriedades:
+
+- **Action Node**: Se possui `do`, executa uma ferramenta.
+- **Input Node**: Se possui `wait` ou `input_type`, aguarda input do usuário.
+- **Content Node**: Se possui `content` (ou corpo Markdown), renderiza texto.
+
+**Padrões e Restrições:**
+
+1. **Text + Action (The "Zero Fatigue" Pattern)**:
+   - Um nó pode ter texto E ação. O Engine renderiza o texto e imediatamente dispara a ferramenta.
+   - *Exemplo*: "Carregando..." (`text`) + `init_db` (`do`).
+
+2. **Mutual Exclusion (Action vs Input)**:
+   - **Constraint**: Um nó **Não Pode** ter `do` E `wait`.
+   - *Motivo*: O Engine não pode estar em dois estados (`WaitingForTool` e `WaitingForInput`) simultaneamente.
+
+### 7.2. Hot Reload Lifecycle (v0.6)
 
 No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado usando um `SignalContext` hierárquico.
 
@@ -366,6 +384,7 @@ sequenceDiagram
 Graças a este desacoplamento, a mesma definição de grafo pode usar ferramentas implementadas de formas diferentes dependendo do adaptador:
 
 - **CLI Runner**: Executa scripts locais (`.sh`, `.py`) ou funções Go embutidas.
+- **Process Adapter (v0.7)**: Executor seguro para scripts e binários definidos em `tools.yaml` ou inline (`x-exec`). Suporta argumentos, variáveis de ambiente e validação de registro.
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
 
