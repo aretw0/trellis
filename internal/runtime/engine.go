@@ -641,10 +641,42 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 
 	var nextNodeID string
 
-	// 2. Resolve Phase: Evaluate Transitions
-	nextNodeID, err = e.resolveTransition(ctx, node, input)
-	if err != nil {
-		return nil, err
+	// 2. Resolve Phase: Evaluate Transitions (Sober Priority)
+
+	// Check for refusal (for on_denied handling)
+	isRefusal := false
+	switch v := input.(type) {
+	case bool:
+		isRefusal = !v
+	case string:
+		clean := strings.ToLower(strings.TrimSpace(v))
+		isRefusal = clean == "n" || clean == "no" || clean == "false" || clean == "deny"
+	}
+
+	// Priority 1: Conditional Transitions (Explicit Logic)
+	for _, t := range node.Transitions {
+		if t.Condition != "" && e.evaluator != nil {
+			ok, err := e.evaluator(ctx, t.Condition, input)
+			if err == nil && ok {
+				nextNodeID = t.ToNodeID
+				break
+			}
+		}
+	}
+
+	// Priority 2: Policy Handler (on_denied)
+	if nextNodeID == "" && isRefusal && node.OnDenied != "" {
+		nextNodeID = node.OnDenied
+	}
+
+	// Priority 3: Unconditional Transitions ('to')
+	if nextNodeID == "" {
+		for _, t := range node.Transitions {
+			if t.Condition == "" {
+				nextNodeID = t.ToNodeID
+				break
+			}
+		}
 	}
 
 	// If we hit the reserved "rollback" target, initiate the saga compensation.

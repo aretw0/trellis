@@ -96,8 +96,8 @@ func TestConfirmationMiddleware_Deny(t *testing.T) {
 		t.Error("Expected tool to be denied with 'n'")
 	}
 
-	if !res.IsError || res.Error != "User denied execution by policy" {
-		t.Errorf("Expected denial error, got: %v", res)
+	if res.IsError || !res.IsDenied || res.Error != "User denied execution by policy" {
+		t.Errorf("Expected denial (IsError=false, IsDenied=true), got: %v", res)
 	}
 }
 
