@@ -10,6 +10,7 @@ type NodeMetadata struct {
 	// To is a shorthand for a single unconditional transition
 	To       string            `json:"to" mapstructure:"to"`
 	OnError  string            `json:"on_error" mapstructure:"on_error"`
+	OnDenied string            `json:"on_denied" mapstructure:"on_denied"`
 	OnSignal map[string]string `json:"on_signal" mapstructure:"on_signal"`
 	Wait     bool              `json:"wait" mapstructure:"wait"`
 	// SaveTo captures the input into a variable in the context

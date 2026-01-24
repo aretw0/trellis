@@ -452,7 +452,49 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 			return e.continueRollback(ctx, currentState, true)
 		}
 
-		// Handle Tool Error (Phase 0: Safety Check)
+		// Handle Tool Result
+		if result.IsDenied {
+			e.logger.Debug("tool execution denied", "tool", result.ID, "node", currentState.CurrentNodeID)
+
+			// Resolve Target Handler
+			target := ""
+
+			// Load current node to check for handlers
+			raw, err := e.loader.GetNode(currentState.CurrentNodeID)
+			if err == nil {
+				node, err := e.parser.Parse(raw)
+				if err == nil {
+					target = node.OnDenied
+					if target == "" {
+						target = node.OnError
+					}
+				}
+			}
+
+			if target == "" {
+				target = e.defaultErrorNodeID
+			}
+
+			if target != "" {
+				// Transition to policy handler
+				nextState := *currentState
+				nextState.Context = make(map[string]any)
+				for k, v := range currentState.Context {
+					nextState.Context[k] = v
+				}
+				nextState.Status = domain.StatusActive
+				nextState.PendingToolCall = ""
+				return e.transitionTo(&nextState, target)
+			}
+
+			// If unhandled, we terminate gracefully but with a policy status?
+			// For now, return terminal state to indicate "halted by policy".
+			nextState := *currentState
+			nextState.Status = domain.StatusTerminated
+			return &nextState, nil
+		}
+
+		// Handle Tool Error
 		if result.IsError {
 			// Emit Tool Return (Error)
 			e.emitToolReturn(ctx, currentState.CurrentNodeID, result.ID, result.Result, true)

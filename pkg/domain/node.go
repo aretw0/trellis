@@ -53,6 +53,9 @@ type Node struct {
 	// OnError defines the node ID to transition to if a Tool returns an error.
 	OnError string `json:"on_error,omitempty" yaml:"on_error,omitempty"`
 
+	// OnDenied defines the node ID to transition to if a Tool execution is denied by policy.
+	OnDenied string `json:"on_denied,omitempty" yaml:"on_denied,omitempty"`
+
 	// OnSignal defines transitions triggered by global signals (e.g., "interrupt").
 	OnSignal map[string]string `json:"on_signal,omitempty" yaml:"on_signal,omitempty"`
 

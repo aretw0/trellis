@@ -12,10 +12,11 @@ type ToolCall struct {
 
 // ToolResult represents the output of a side-effect returned by the Host.
 type ToolResult struct {
-	ID      string `json:"id"` // Must match the ToolCall.ID
-	Result  any    `json:"result,omitempty"`
-	IsError bool   `json:"is_error,omitempty"`
-	Error   string `json:"error,omitempty"`
+	ID       string `json:"id"` // Must match the ToolCall.ID
+	Result   any    `json:"result,omitempty"`
+	IsError  bool   `json:"is_error,omitempty"`
+	IsDenied bool   `json:"is_denied,omitempty"`
+	Error    string `json:"error,omitempty"`
 }
 
 // Tool defines metadata about a tool available to the engine.

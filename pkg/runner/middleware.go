@@ -78,9 +78,10 @@ func ConfirmationMiddleware(handler IOHandler) ToolInterceptor {
 		}
 
 		return false, domain.ToolResult{
-			ID:      call.ID,
-			IsError: true,
-			Error:   "User denied execution by policy",
+			ID:       call.ID,
+			IsError:  false,
+			IsDenied: true,
+			Error:    "User denied execution by policy",
 		}, nil
 	}
 }

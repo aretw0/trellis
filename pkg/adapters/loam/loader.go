@@ -106,6 +106,9 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	if doc.Data.OnError != "" {
 		data["on_error"] = doc.Data.OnError
 	}
+	if doc.Data.OnDenied != "" {
+		data["on_denied"] = doc.Data.OnDenied
+	}
 	if len(doc.Data.OnSignal) > 0 {
 		data["on_signal"] = doc.Data.OnSignal
 	}
