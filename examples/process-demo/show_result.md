@@ -1,5 +1,4 @@
 ---
-content: "Script Output"
 to: end
 ---
 Script Output:

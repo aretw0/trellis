@@ -1,5 +1,4 @@
 ---
-wait: true
 options:
   - text: "Back to Root"
     to: start

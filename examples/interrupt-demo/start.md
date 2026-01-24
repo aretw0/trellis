@@ -1,6 +1,4 @@
 ---
-id: start
-type: text
 wait: true
 on_signal:
   interrupt: confirm_exit

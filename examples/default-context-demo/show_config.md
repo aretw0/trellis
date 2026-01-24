@@ -1,6 +1,4 @@
 ---
-id: show_config
-type: text
 wait: true
 ---
 ## Current Configuration

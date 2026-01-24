@@ -1,5 +1,4 @@
 ---
-type: tool
 do:
   name: get_os
   metadata:

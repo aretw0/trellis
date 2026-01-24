@@ -1,13 +1,7 @@
 ---
-id: confirm_exit
-type: question
 input_type: confirm
-save_to: confirm_exit
-options:
-  - text: Yes
-    to: exit_now
-  - text: No
-    to: start
+to: exit_now
+on_denied: start
 ---
 
 # ⚠️ Signal Received

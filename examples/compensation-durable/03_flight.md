@@ -1,5 +1,4 @@
 ---
-type: tool
 do:
   name: book_flight
   args:

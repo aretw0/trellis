@@ -1,3 +1,1 @@
----
-content: "Demo Complete."
----
+Demo Complete.

@@ -1,5 +1,4 @@
 ---
-type: question
 options:
   - text: "approve"
     to: 03_flight

@@ -6,3 +6,4 @@ do:
 on_denied: rejected
 to: show_result
 ---
+Calling hello_script...

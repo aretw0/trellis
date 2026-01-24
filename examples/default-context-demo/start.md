@@ -1,13 +1,10 @@
 ---
-id: start
-type: text
 default_context:
   api_url: "http://localhost:8080"
   user_role: "guest"
   retries: 3
   debug_mode: true
-transitions:
-  - to: show_config
+to: show_config
 ---
 # Default Context Demo
 

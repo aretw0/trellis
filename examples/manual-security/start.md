@@ -1,15 +1,13 @@
 ---
-type: start
-transitions:
-- to: end
+to: end
 ---
 
 # 🔐 Secure Storage Demo
 
 I have injected sensitive data into the context:
 
-- API Key: {{ api_key }}
-- Password: {{ password }}
+- API Key: {{ .api_key }}
+- Password: {{ .password }}
 
 This data is available in memory for me to use.
 

@@ -1,6 +1,5 @@
 ---
-type: text
-transitions:
+options:
   - text: "Next Step"
     to: step_2
 ---

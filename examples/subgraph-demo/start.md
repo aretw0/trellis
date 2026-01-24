@@ -1,5 +1,4 @@
 ---
-wait: true
 options:
   - text: "Go to Checkout"
     to: modules/checkout/start

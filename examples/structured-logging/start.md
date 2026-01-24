@@ -1,6 +1,3 @@
----
-type: text
----
 # Structured Observability Demo
 
 This flow generates:

@@ -1,5 +1,3 @@
----
----
 # Result
 
 The inline tool detected your OS as: **{{ .sys.ans }}**
