@@ -12,7 +12,11 @@ type NodeMetadata struct {
 	OnError  string            `json:"on_error" mapstructure:"on_error"`
 	OnDenied string            `json:"on_denied" mapstructure:"on_denied"`
 	OnSignal map[string]string `json:"on_signal" mapstructure:"on_signal"`
-	Wait     bool              `json:"wait" mapstructure:"wait"`
+	// OnTimeout is syntactic sugar for on_signal["timeout"]
+	OnTimeout string `json:"on_timeout" mapstructure:"on_timeout"`
+	// OnInterrupt is syntactic sugar for on_signal["interrupt"]
+	OnInterrupt string `json:"on_interrupt" mapstructure:"on_interrupt"`
+	Wait        bool   `json:"wait" mapstructure:"wait"`
 	// SaveTo captures the input into a variable in the context
 	SaveTo string `json:"save_to" mapstructure:"save_to"`
 

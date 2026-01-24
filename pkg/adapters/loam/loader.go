@@ -112,6 +112,24 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	if len(doc.Data.OnSignal) > 0 {
 		data["on_signal"] = doc.Data.OnSignal
 	}
+	// Syntactic Sugar: on_timeout -> on_signal["timeout"]
+	if doc.Data.OnTimeout != "" {
+		signals, ok := data["on_signal"].(map[string]string)
+		if !ok {
+			signals = make(map[string]string)
+			data["on_signal"] = signals
+		}
+		signals[domain.SignalTimeout] = doc.Data.OnTimeout
+	}
+	// Syntactic Sugar: on_interrupt -> on_signal["interrupt"]
+	if doc.Data.OnInterrupt != "" {
+		signals, ok := data["on_signal"].(map[string]string)
+		if !ok {
+			signals = make(map[string]string)
+			data["on_signal"] = signals
+		}
+		signals[domain.SignalInterrupt] = doc.Data.OnInterrupt
+	}
 	if doc.Data.SaveTo != "" {
 		data["save_to"] = doc.Data.SaveTo
 	}

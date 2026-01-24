@@ -1,8 +1,7 @@
 ---
 type: question
 timeout: 5s
-on_signal:
-  timeout: timeout_received
+on_timeout: timeout_received
 ---
 # Timeout Test
 
