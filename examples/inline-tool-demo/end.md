@@ -1,6 +1,4 @@
 ---
-id: end
-type: text
 ---
 # Result
 

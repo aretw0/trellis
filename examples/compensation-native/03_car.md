@@ -1,5 +1,4 @@
 ---
-type: tool
 do:
   name: rent_car
   args:

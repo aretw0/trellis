@@ -1,7 +1,5 @@
 ---
-type: text
-transitions:
-  - to: cancel_car
+to: cancel_car
 ---
 # ⚠️ Booking Failed
 

@@ -1,5 +1,4 @@
 ---
-type: text
 to: 01_hotel
 ---
 # 🌍 Native SAGA Demo

@@ -1,5 +1,4 @@
 ---
-id: start
 type: tool
 do:
   name: get_os
@@ -7,8 +6,7 @@ do:
     x-exec:
       command: go
       args: ["env", "GOOS"]
-transitions:
-  - to: end
+to: end
 ---
 # Inline Tool Demo
 

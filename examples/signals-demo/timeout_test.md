@@ -1,5 +1,4 @@
 ---
-id: timeout_test
 type: question
 timeout: 5s
 on_signal:

@@ -1,9 +1,8 @@
 ---
-type: text
 wait: true
-transitions:
+options:
   - text: "Back to Root"
-    jump_to: start
+    to: start
 ---
 # Checkout Module
 

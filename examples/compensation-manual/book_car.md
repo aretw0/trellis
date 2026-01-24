@@ -1,6 +1,5 @@
 ---
-type: tool
-tool_call:
+do:
   name: book_car
 metadata:
   undo_action: cancel_car

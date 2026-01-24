@@ -1,6 +1,4 @@
 ---
-id: interrupt_test
-type: text
 wait: true
 on_signal:
   interrupt: signal_received

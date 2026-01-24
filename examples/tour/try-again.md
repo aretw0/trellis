@@ -1,9 +1,6 @@
 ---
-id: try-again
-type: text
 wait: true
-transitions:
-  - to_node_id: start
+to: start
 ---
 # Try Again
 

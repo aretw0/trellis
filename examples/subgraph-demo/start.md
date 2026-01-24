@@ -1,10 +1,8 @@
 ---
-id: start
-type: text
 wait: true
-transitions:
+options:
   - text: "Go to Checkout"
-    jump_to: modules/checkout/start
+    to: modules/checkout/start
 ---
 # Main Flow
 

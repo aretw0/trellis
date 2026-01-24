@@ -1,5 +1,4 @@
 ---
-type: start
 required_context:
   - api_key
   - user_id

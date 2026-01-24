@@ -1,8 +1,6 @@
 ---
-type: tool
-tool_call:
+do:
   name: cancel_car
-transitions:
-  - to: cancel_hotel
+to: cancel_hotel
 ---
 Canceling Car Reservation...

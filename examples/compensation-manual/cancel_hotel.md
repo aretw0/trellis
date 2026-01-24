@@ -1,8 +1,6 @@
 ---
-type: tool
-tool_call:
+do:
   name: cancel_hotel
-transitions:
-  - to: cancel_flight
+to: cancel_flight
 ---
 Canceling Hotel Reservation...

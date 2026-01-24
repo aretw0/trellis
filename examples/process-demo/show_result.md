@@ -5,5 +5,5 @@ to: end
 Script Output:
 
 ```json
-{{ .script_output }}
+{{ .sys.ans }}
 ```

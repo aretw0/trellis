@@ -1,5 +1,4 @@
 ---
-type: tool
 do:
   name: reserve_hotel
   args:

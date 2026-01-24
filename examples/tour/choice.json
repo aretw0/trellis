@@ -1,14 +1,13 @@
 {
-  "id": "choice.json",
   "type": "question",
   "content": "You have reached a crossroads (defined in JSON).\n\nDo you want to succeed?\n(Type 'yes' or 'no')\n\n   ",
   "transitions": [
     {
-      "to_node_id": "success",
+      "to": "success",
       "condition": "input == 'yes'"
     },
     {
-      "to_node_id": "try-again",
+      "to": "try-again",
       "condition": "input == 'no'"
     }
   ]

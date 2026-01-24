@@ -1,8 +1,6 @@
 ---
-type: start
 save_to: booking_request
-transitions:
-- to: book_flight
+to: book_flight
 ---
 
 # ✈️ Travel Booker

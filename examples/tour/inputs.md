@@ -1,5 +1,4 @@
 ---
-id: inputs
 type: question
 input_type: choice
 input_options: ["Go to End", "Go Loop"]

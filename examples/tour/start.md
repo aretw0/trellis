@@ -1,11 +1,9 @@
 ---
-id: start
 type: question
 options:
   - text: "Inputs"
     to: "inputs"
-transitions:
-  - to_node_id: choice
+to: choice
 ---
 # Welcome to Trellis Tour
 

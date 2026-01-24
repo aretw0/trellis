@@ -1,8 +1,5 @@
 ---
-id: success
-type: text
 wait: true
-transitions: []
 ---
 # Success
 

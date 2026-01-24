@@ -1,5 +1,4 @@
 ---
-id: start
 type: question
 options:
   - text: "Test Timeout"
