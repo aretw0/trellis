@@ -274,7 +274,7 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		if node.Undo != nil {
 			toolCallToRender = node.Undo
 		}
-	} else if node.Type == domain.NodeTypeTool {
+	} else if node.Do != nil {
 		toolCallToRender = node.Do
 	}
 
@@ -327,8 +327,8 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 
 		// Emit Tool Call Event (Fix: Was missing)
 		e.emitToolCall(ctx, currentState.CurrentNodeID, call)
-	} else if node.Type == domain.NodeTypeTool && currentState.Status != domain.StatusRollingBack {
-		// Fallback if ToolCall is missing in struct but Type is Tool (and not rolling back)
+	} else if node.Type == domain.NodeTypeTool && node.Do == nil && currentState.Status != domain.StatusRollingBack {
+		// Fallback: If type IS tool but Do is missing, that's an error.
 		return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
 	}
 
@@ -673,11 +673,9 @@ func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*doma
 		return nil, fmt.Errorf("failed to parse next node %s: %w", nextNodeID, err)
 	}
 
-	if nextNode.Type == domain.NodeTypeTool {
+	if nextNode.Do != nil {
 		nextState.Status = domain.StatusWaitingForTool
-		if nextNode.Do != nil {
-			nextState.PendingToolCall = nextNode.Do.ID
-		}
+		nextState.PendingToolCall = nextNode.Do.ID
 	}
 
 	// Emit Enter Event
