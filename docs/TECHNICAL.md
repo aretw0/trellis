@@ -384,7 +384,11 @@ sequenceDiagram
 Graças a este desacoplamento, a mesma definição de grafo pode usar ferramentas implementadas de formas diferentes dependendo do adaptador:
 
 - **CLI Runner**: Executa scripts locais (`.sh`, `.py`) ou funções Go embutidas.
-- **Process Adapter (v0.7)**: Executor seguro para scripts e binários definidos em `tools.yaml` ou inline (`x-exec`). Suporta argumentos, variáveis de ambiente e validação de registro.
+- **Process Adapter (v0.7)**: Executor seguro para scripts e binários definidos em `tools.yaml` ou inline (`x-exec`).
+  - *Contract*: Input via `TRELLIS_ARG_*` (Env Vars), Output via Stdout.
+  - *JSON Auto-Detection*: O runner detecta automaticamente se o Stdout é um JSON válido (inicia com `{` ou `[` e termina com `}` ou `]`) e o converte para objeto estruturado.
+  - *Caveat*: Se o JSON for inválido, ele faz fallback silencioso para string crua.
+  - *Security*: Argumentos nunca são passados como flags de CLI para evitar injeção.
 - **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 - **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
 

@@ -195,7 +195,8 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [x] **Universal Action Semantics ("Duck Typing")**: Remover a restrição de `type: tool`. Se um nó tem intenção de ação (`do`), ele executa. Unifica "Falar" e "Fazer" num único nó (Text + Action), reduzindo fadiga.
   - *Constraint*: `do` e `wait` (Input) são mutuamente exclusivos por enquanto.
 - [x] **Syntactic Sugar: on_timeout**: Alias semântico para `on_signal["timeout"]`. Melhora a DX alinhando com `on_error`.
-- [ ] **Process Adapter (Scriptable Tools)**: Adaptador seguro para executar scripts locais (`.sh`, `.js`, `.py`) via `tools.yaml` ou `x-exec` (Dev Mode). "Unix Philosophy".
+- [x] **Process Adapter (Scriptable Tools)**: Adaptador seguro para executar scripts locais (`.sh`, `.js`, `.py`, `.ps1`) via `tools.yaml`.
+  - *Strategy*: Foco em "Polyglot Examples" para demonstrar o contrato Unix (Env/Stdin/Stdout) sem SDKs complexos por enquanto.
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
