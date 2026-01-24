@@ -653,6 +653,16 @@ Essa camada é crucial para operações de longa duração, onde "desligar e lig
 
 > **Maintenance Note**: O file.Store não implementa *Auto-Pruning* (limpeza automática) de sessões antigas. Cabe ao administrador ou desenvolvedor executar `trellis session rm` periodicamente ou configurar scripts externos de limpeza (cron) se o diretório de sessões crescer excessivamente.
 
+#### 9.9. File Store Semantics (Baton Passing)
+
+While the File Store enables durability, it imposes specific architectural constraints:
+
+- **Passive Storage**: The file storage is passive. It does not push updates to running processes.
+- **Baton Passing Model**:
+  - If **Process A** is running and waiting for input, and **Process B** updates the state file (e.g., via a Signal), **Process A will not automatically wake up**.
+  - Process A is effectively a "Zombie" regarding the new state until it is restarted or explicitly polls (polling is not implemented in v0.6).
+  - This model supports **"Stop-and-Resume"** (Baton Passing) but not real-time **"Remote Control"**.
+
 #### 10. Fluxo de Dados e Serialização
 
 #### 10.1. Data Binding (SaveTo)
