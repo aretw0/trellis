@@ -87,3 +87,6 @@ winget:
     license: "AGPL-3.0"
     license_url: "https://github.com/aretw0/trellis/blob/main/LICENSE.txt"
     short_description: "Deterministic state machine engine for CLIs and automation."
+    repository:
+      owner: aretw0
+      name: winget-pkgs
