@@ -633,8 +633,24 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, err
 	}
 
+	// 0. Resolve Defaults
+	// If input is empty (string or nil), use node default if available
+	effectiveInput := input
+	if node.InputDefault != "" {
+		isEmpty := false
+		switch v := input.(type) {
+		case string:
+			isEmpty = v == ""
+		case nil:
+			isEmpty = true
+		}
+		if isEmpty {
+			effectiveInput = node.InputDefault
+		}
+	}
+
 	// 1. Update Phase: Apply Input to Context
-	nextState, err := e.applyInput(currentState, node, input)
+	nextState, err := e.applyInput(currentState, node, effectiveInput)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +661,7 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 
 	// Check for refusal (for on_denied handling)
 	isRefusal := false
-	switch v := input.(type) {
+	switch v := effectiveInput.(type) {
 	case bool:
 		isRefusal = !v
 	case string:
@@ -656,7 +672,7 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 	// Priority 1: Conditional Transitions (Explicit Logic)
 	for _, t := range node.Transitions {
 		if t.Condition != "" && e.evaluator != nil {
-			ok, err := e.evaluator(ctx, t.Condition, input)
+			ok, err := e.evaluator(ctx, t.Condition, effectiveInput)
 			if err == nil && ok {
 				nextNodeID = t.ToNodeID
 				break
