@@ -50,12 +50,30 @@ content: Prazer, {{ .user_name }}! O que deseja fazer?
 
 ### Instalação
 
-Como o Trellis é tanto uma Library quanto um CLI, recomendamos clonar para ter acesso aos exemplos e ferramentas:
+#### Windows (Recomendado)
+
+A forma mais fácil de instalar no Windows é via **Scoop**:
+
+```powershell
+# 1. Adicione o bucket (apenas a primeira vez)
+scoop bucket add aretw0 https://github.com/aretw0/scoop-bucket
+
+# 2. Instale o Trellis
+scoop install trellis
+```
+
+#### macOS / Linux
+
+Instale via **Homebrew**:
 
 ```bash
-git clone https://github.com/aretw0/trellis
-cd trellis
-go mod tidy # Sincroniza dependências
+brew install aretw0/tap/trellis
+```
+
+#### Via Go (Desenvolvedores)
+
+```bash
+go install github.com/aretw0/trellis/cmd/trellis@latest
 ```
 
 ### Rodando o Golden Path (Demo)
