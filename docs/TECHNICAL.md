@@ -666,6 +666,13 @@ flowchart LR
 
 > **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
+#### 9.5.1. Windows Console Strategy (CONIN$)
+
+On Windows, standard `os.Stdin` behavior differs significantly from Unix. Pressing `Ctrl+C` often closes the `Stdin` stream immediately (sending `io.EOF`) before the OS signal handler can intercept the interrupt. This leads to a race condition where the application treats the interrupt as a simple End-Of-File or "User Quit" rather than a signal.
+
+**The Solution:**
+To mitigate this, the `TextHandler` detects if it is running on a Windows Terminal and, if so, opens `CONIN$` directly. `CONIN$` is a special Windows file handle that remains open even when `Ctrl+C` is pressed, allowing the `SignalManager` to trap the signal correctly and protecting the input stream from premature closure.
+
 #### 9.6. Architectural Insight: Engine-bound vs Runner-bound
 
 Para manter a arquitetura limpa, diferenciamos onde cada responsabilidade reside:
