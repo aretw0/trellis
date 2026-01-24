@@ -633,20 +633,48 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, err
 	}
 
-	// 0. Resolve Defaults
-	// If input is empty (string or nil), use node default if available
+	// 0. Resolve Defaults & Logic Validation
 	effectiveInput := input
-	if node.InputDefault != "" {
-		isEmpty := false
-		switch v := input.(type) {
-		case string:
-			isEmpty = v == ""
-		case nil:
-			isEmpty = true
-		}
+
+	// Check if input is empty
+	isEmpty := false
+	switch v := input.(type) {
+	case string:
+		isEmpty = v == ""
+	case nil:
+		isEmpty = true
+	}
+
+	// Logic for 'confirm' type validation and defaults (Unix Convention)
+	if node.InputType == "confirm" {
 		if isEmpty {
-			effectiveInput = node.InputDefault
+			if node.InputDefault != "" {
+				effectiveInput = node.InputDefault
+			} else {
+				// Convention: Empty is True (Unix/Trellis Standard)
+				effectiveInput = "yes"
+			}
 		}
+
+		// Validation: Ensure input is a valid truthy/falsy signal
+		strVal := fmt.Sprintf("%v", effectiveInput)
+		clean := strings.ToLower(strings.TrimSpace(strVal))
+		isTruthy := clean == "y" || clean == "yes" || clean == "true" || clean == "1"
+		isFalsy := clean == "n" || clean == "no" || clean == "false" || clean == "0"
+
+		if !isTruthy && !isFalsy {
+			return nil, fmt.Errorf("invalid confirmation input: '%s' (expected y/n/yes/no)", strVal)
+		}
+
+		// Canonical Normalization for predictably clean Context and Transitions
+		if isTruthy {
+			effectiveInput = "yes"
+		} else {
+			effectiveInput = "no"
+		}
+	} else if isEmpty && node.InputDefault != "" {
+		// Generic Default Fallback for other types
+		effectiveInput = node.InputDefault
 	}
 
 	// 1. Update Phase: Apply Input to Context
@@ -747,26 +775,6 @@ func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input
 		nextState.Context[node.SaveTo] = input
 	}
 	return &nextState, nil
-}
-
-// resolveTransition handles the Resolve Phase: Evaluates conditions to find the next node.
-func (e *Engine) resolveTransition(ctx context.Context, node *domain.Node, input any) (string, error) {
-	for _, t := range node.Transitions {
-		if t.Condition == "" {
-			return t.ToNodeID, nil
-		}
-
-		if e.evaluator != nil {
-			ok, err := e.evaluator(ctx, t.Condition, input)
-			if err != nil {
-				return "", fmt.Errorf("condition evaluation failed for '%s': %w", t.Condition, err)
-			}
-			if ok {
-				return t.ToNodeID, nil
-			}
-		}
-	}
-	return "", nil
 }
 
 // transitionTo handles the mechanics of moving the state to a new node ID.

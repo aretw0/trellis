@@ -170,6 +170,7 @@ do:
 | `content` | `string` | Message to display to the user. |
 | `options` | `[]string` | Shorthand for choice input. Presents a menu. |
 | `input_type`| `string` | `text` (default), `confirm`, `choice`, `int`. |
+| `input_default`| `string` | Default value if user presses Enter. |
 | `input_options`| `[]string` | Options for `choice` input (Low-level). |
 | `save_to` | `string` | Context variable key to store Input or Tool Result. |
 | `to` | `string` | Shorthand for single unconditional transition. |
@@ -177,3 +178,20 @@ do:
 | `on_error` | `string` | Target node ID if `do` fails. |
 | `on_signal` | `map[string]string` | Handlers for global signals (`interrupt`, `timeout`). |
 | `tools` | `[]Tool` | Definitions of tools available to this node (for LLMs). |
+
+### 5.1. The Confirm Convention (Unix Style)
+
+When using `input_type: confirm`, Trellis follows the standard CLI convention:
+
+- **Empty Input (Enter)**: Defaults to `yes` (True) unless an explicit `input_default` is provided.
+- **Strict Validation**: Only `y`, `yes`, `true`, `1` (True) or `n`, `no`, `false`, `0` (False) are accepted.
+- **Normalization**: Input is automatically converted to a canonical `yes` or `no` before being saved to `save_to` or evaluated in `transitions`.
+
+**Implementation Example:**
+
+```yaml
+input_type: confirm
+input_default: "no" # Overrides convention to make Enter = False
+on_denied: stop_flow
+to: continue_flow
+```
