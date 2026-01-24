@@ -1,5 +1,4 @@
 ---
-type: question
 options:
   - text: "Inputs"
     to: "inputs"

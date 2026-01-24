@@ -1,5 +1,4 @@
 ---
-type: question
 options:
   - text: "Go to End"
     to: success
