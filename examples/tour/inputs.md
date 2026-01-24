@@ -1,13 +1,11 @@
 ---
 type: question
-input_type: choice
-input_options: ["Go to End", "Go Loop"]
+options:
+  - text: "Go to End"
+    to: success
+  - text: "Go Loop"
+    to: start
 input_default: "Go to End"
-transitions:
-  - to: success
-    condition: input == "Go to End"
-  - to: start
-    condition: input == "Go Loop"
 ---
 # Interactive Inputs
 

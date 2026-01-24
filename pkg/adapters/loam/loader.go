@@ -124,10 +124,30 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	data["transitions"] = domainTransitions
 	data["content"] = []byte(doc.Content) // As Base64
 
+	// Smart Choice Inference: If options have text, they are likely for a choice input.
+	inferredOptions := make([]string, 0)
+	for _, opt := range doc.Data.Options {
+		if opt.Text != "" {
+			inferredOptions = append(inferredOptions, opt.Text)
+		}
+	}
+
+	inputType := doc.Data.InputType
+	inputOptions := doc.Data.InputOptions
+
+	if len(inferredOptions) > 0 {
+		if len(inputOptions) == 0 {
+			inputOptions = inferredOptions
+		}
+		if inputType == "" {
+			inputType = string(domain.InputChoice)
+		}
+	}
+
 	// Map Input Configuration
-	if doc.Data.InputType != "" {
-		data["input_type"] = doc.Data.InputType
-		data["input_options"] = doc.Data.InputOptions
+	if inputType != "" {
+		data["input_type"] = inputType
+		data["input_options"] = inputOptions
 		data["input_default"] = doc.Data.InputDefault
 	}
 
