@@ -19,7 +19,9 @@ func RunSession(opts RunOptions, initialContext map[string]any) error {
 	}
 
 	// Initialize Engine
-	engineOpts := []trellis.Option{}
+	engineOpts := []trellis.Option{
+		trellis.WithDefaultErrorNode("error"),
+	}
 	if opts.Debug {
 		engineOpts = append(engineOpts, trellis.WithLogger(logger))
 		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))

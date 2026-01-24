@@ -17,12 +17,13 @@ import (
 // Engine is the high-level entry point for the Trellis library.
 // It wraps the internal runtime and provides a simplified API for consumers.
 type Engine struct {
-	runtime      *runtime.Engine
-	loader       ports.GraphLoader
-	evaluator    runtime.ConditionEvaluator
-	interpolator runtime.Interpolator
-	hooks        domain.LifecycleHooks
-	logger       *slog.Logger
+	runtime            *runtime.Engine
+	loader             ports.GraphLoader
+	evaluator          runtime.ConditionEvaluator
+	interpolator       runtime.Interpolator
+	defaultErrorNodeID string
+	hooks              domain.LifecycleHooks
+	logger             *slog.Logger
 }
 
 // Option defines a functional option for configuring the Engine.
@@ -60,6 +61,13 @@ func WithInterpolator(interp runtime.Interpolator) Option {
 func WithLogger(logger *slog.Logger) Option {
 	return func(e *Engine) {
 		e.logger = logger
+	}
+}
+
+// WithDefaultErrorNode sets a global fallback node for tool errors.
+func WithDefaultErrorNode(nodeID string) Option {
+	return func(e *Engine) {
+		e.defaultErrorNodeID = nodeID
 	}
 }
 
@@ -115,6 +123,7 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 		eng.interpolator,
 		runtime.WithLifecycleHooks(eng.hooks),
 		runtime.WithLogger(eng.logger),
+		runtime.WithDefaultErrorNode(eng.defaultErrorNodeID),
 	)
 
 	return eng, nil

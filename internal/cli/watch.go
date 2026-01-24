@@ -63,7 +63,9 @@ func runWatchIteration(parentCtx *SignalContext, opts RunOptions, ioHandler runn
 	logger := createLogger(opts.Debug)
 
 	// 1. Initialize Engine
-	engineOpts := []trellis.Option{}
+	engineOpts := []trellis.Option{
+		trellis.WithDefaultErrorNode("error"),
+	}
 	if opts.Debug {
 		engineOpts = append(engineOpts, trellis.WithLogger(logger))
 		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))

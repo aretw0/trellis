@@ -21,13 +21,14 @@ type ConditionEvaluator func(ctx context.Context, condition string, input any) (
 
 // Engine is the core state machine runner.
 type Engine struct {
-	loader       ports.GraphLoader
-	parser       *compiler.Parser
-	evaluator    ConditionEvaluator
-	interpolator Interpolator
-	hooks        domain.LifecycleHooks
-	entryNodeID  string
-	logger       *slog.Logger
+	loader             ports.GraphLoader
+	parser             *compiler.Parser
+	evaluator          ConditionEvaluator
+	interpolator       Interpolator
+	hooks              domain.LifecycleHooks
+	entryNodeID        string
+	defaultErrorNodeID string
+	logger             *slog.Logger
 }
 
 // EngineOption allows configuring the engine via functional options.
@@ -51,6 +52,13 @@ func WithEntryNode(nodeID string) EngineOption {
 func WithLogger(logger *slog.Logger) EngineOption {
 	return func(e *Engine) {
 		e.logger = logger
+	}
+}
+
+// WithDefaultErrorNode sets a global fallback node for tool errors.
+func WithDefaultErrorNode(nodeID string) EngineOption {
+	return func(e *Engine) {
+		e.defaultErrorNodeID = nodeID
 	}
 }
 
@@ -483,6 +491,15 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 				nextState.PendingToolCall = ""
 
 				return e.transitionTo(&nextState, node.OnError)
+			}
+
+			// Global Fallback
+			if e.defaultErrorNodeID != "" {
+				e.emitNodeLeave(ctx, node)
+				nextState := *currentState
+				nextState.Status = domain.StatusActive
+				nextState.PendingToolCall = ""
+				return e.transitionTo(&nextState, e.defaultErrorNodeID)
 			}
 
 			// Fail Fast: If no handler is defined, we stop execution to prevent context poisoning.

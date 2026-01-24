@@ -1,0 +1,5 @@
+tools:
+  - name: hello_script
+    command: go
+    args: ["run", "./examples/process-demo/scripts/main.go"]
+    description: "Runs the hello script using Go"
