@@ -19,17 +19,9 @@ func RunSession(opts RunOptions, initialContext map[string]any) error {
 	}
 
 	// Initialize Engine
-	engineOpts := []trellis.Option{
-		trellis.WithDefaultErrorNode("error"),
-	}
-	if opts.Debug {
-		engineOpts = append(engineOpts, trellis.WithLogger(logger))
-		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
-	}
-
-	engine, err := trellis.New(opts.RepoPath, engineOpts...)
+	engine, err := createEngine(opts, logger)
 	if err != nil {
-		return fmt.Errorf("error initializing trellis: %w", err)
+		return err
 	}
 
 	// Setup Persistence

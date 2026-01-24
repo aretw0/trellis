@@ -63,15 +63,7 @@ func runWatchIteration(parentCtx *SignalContext, opts RunOptions, ioHandler runn
 	logger := createLogger(opts.Debug)
 
 	// 1. Initialize Engine
-	engineOpts := []trellis.Option{
-		trellis.WithDefaultErrorNode("error"),
-	}
-	if opts.Debug {
-		engineOpts = append(engineOpts, trellis.WithLogger(logger))
-		engineOpts = append(engineOpts, trellis.WithLifecycleHooks(createDebugHooks(logger)))
-	}
-
-	engine, err := trellis.New(opts.RepoPath, engineOpts...)
+	engine, err := createEngine(opts, logger)
 	if err != nil {
 		logger.Error("Engine initialization failed", "err", err)
 		// We can't reuse waitBackoff easily with context, so manual check

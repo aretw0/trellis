@@ -15,6 +15,14 @@ const (
 	NodeTypeStart = "start"
 )
 
+// Standard Node ID Conventions
+const (
+	// DefaultStartNodeID is the standard entry point for a flow.
+	DefaultStartNodeID = "start"
+	// DefaultErrorNodeID is the standard fallback for tool errors and denials.
+	DefaultErrorNodeID = "error"
+)
+
 // Node represents a logical unit in the graph.
 // It can contain text content (for Wiki-style) or logic instructions (for Logic-style).
 type Node struct {
