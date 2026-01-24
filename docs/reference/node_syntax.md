@@ -30,7 +30,6 @@ We do not rely on rigid `type` fields (like `type: tool`). Instead, the properti
 ## 2. Anatomy of a Node (YAML/Frontmatter)
 
 ```yaml
-id: my_node_id          # Optional (Defaults to filename)
 type: text              # Legacy/Optional. Inferred from behavior.
 
 # --- Behavior: Action (The "Do") ---
@@ -164,7 +163,6 @@ do:
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `id` | `string` | Unique identifier. Defaults to filename (without ext). |
 | `do` | `ToolCall` | Definition of side-effect to execute. |
 | `wait` | `bool` | If true, pause for user input (default text). |
 | `content` | `string` | Message to display to the user. |
