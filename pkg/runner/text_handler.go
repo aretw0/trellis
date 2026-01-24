@@ -6,8 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
+	"time"
+
+	"golang.org/x/term"
 
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/registry"
@@ -15,10 +19,12 @@ import (
 
 // TextHandler implements the standard text-based interface.
 type TextHandler struct {
-	Reader   *bufio.Reader
-	Writer   io.Writer
-	Renderer ContentRenderer
-	Registry *registry.Registry
+	source      io.Reader
+	interactive bool // true if reading from CONIN$ (Windows) where EOF should be ignored
+	Reader      *bufio.Reader
+	Writer      io.Writer
+	Renderer    ContentRenderer
+	Registry    *registry.Registry
 
 	inputChan chan inputResult
 	startOnce sync.Once
@@ -55,9 +61,26 @@ func NewTextHandler(r io.Reader, w io.Writer, opts ...TextHandlerOption) *TextHa
 		w = os.Stdout
 	}
 	h := &TextHandler{
-		Reader: bufio.NewReader(r),
+		source: r,
 		Writer: w,
 	}
+
+	// Windows Specific: Check if we are running in a terminal.
+	// If so, we MUST use CONIN$ to read input.
+	// Standard os.Stdin on Windows closes immediately on Ctrl+C (EOF),
+	// which creates a race condition with the SignalManager.
+	// CONIN$ stays open, allowing the SignalManager to catch the Interrupt first.
+	if runtime.GOOS == "windows" {
+		if f, ok := r.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+			conin, err := os.Open("CONIN$")
+			if err == nil {
+				h.source = conin
+				h.interactive = true
+			}
+		}
+	}
+
+	h.Reader = bufio.NewReader(h.source)
 
 	for _, opt := range opts {
 		opt(h)
@@ -69,19 +92,40 @@ func NewTextHandler(r io.Reader, w io.Writer, opts ...TextHandlerOption) *TextHa
 func (h *TextHandler) initPump() {
 	h.startOnce.Do(func() {
 		h.inputChan = make(chan inputResult)
-		go func() {
-			for {
-				text, err := h.Reader.ReadString('\n')
-				// Send result. This blocks until someone (Input) reads it.
-				// This implies that if no one asks for input, we buffer exactly one line (OS buffer aside).
-				h.inputChan <- inputResult{text: text, err: err}
-				if err != nil {
-					close(h.inputChan)
-					return
-				}
-			}
-		}()
+		go h.pump()
 	})
+}
+
+func (h *TextHandler) pump() {
+	for {
+		text, err := h.Reader.ReadString('\n')
+
+		// If we got text (even with EOF), send it
+		if text != "" {
+			h.inputChan <- inputResult{text: text, err: nil}
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				if h.interactive {
+					// In interactive mode (e.g. Windows CONIN$), EOF might mean
+					// a signal interrupted the read, but the stream is still valid regarding the OS.
+					// We pass the EOF to the consumer so they know the current read failed (likely due to signal),
+					// but we DO NOT close the channel so future reads can happen (e.g. after signal handling).
+					h.inputChan <- inputResult{text: "", err: io.EOF}
+					// Prevent busy loop if EOFs are generated rapidly (e.g. holding Ctrl+C)
+					time.Sleep(50 * time.Millisecond)
+					continue
+				}
+				close(h.inputChan)
+				return
+			}
+			// Send non-EOF errors
+			h.inputChan <- inputResult{text: "", err: err}
+			// Backoff for non-fatal errors to prevent CPU spikes on persistent failure
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
 }
 
 func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest) (bool, error) {

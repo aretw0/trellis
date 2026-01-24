@@ -344,6 +344,18 @@ func (r *Runner) handleInput(
 		}
 
 		if err == io.EOF {
+			// Special Case: On some platforms/terminals (e.g. Windows), Ctrl+C might trigger EOF.
+			// If a signal is active, we should prioritize the signal transition logic.
+			if signals.Context().Err() != nil {
+				signalName := domain.SignalInterrupt
+				nextState, sigErr := engine.Signal(context.Background(), currentState, signalName)
+				if sigErr == nil {
+					r.Logger.Debug("Runner input: Signal transition success (EOF override)", "signal", signalName)
+					signals.Reset()
+
+					return nil, nextState, nil
+				}
+			}
 			return nil, nil, err
 		}
 		return nil, nil, fmt.Errorf("input error: %w", err)
