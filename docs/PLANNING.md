@@ -192,7 +192,7 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [x] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
   - [x] *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
-- [ ] **Universal Action Semantics ("Duck Typing")**: Remover a restrição de `type: tool`. Se um nó tem intenção de ação (`do`), ele executa. Unifica "Falar" e "Fazer" num único nó (Text + Action), reduzindo fadiga.
+- [x] **Universal Action Semantics ("Duck Typing")**: Remover a restrição de `type: tool`. Se um nó tem intenção de ação (`do`), ele executa. Unifica "Falar" e "Fazer" num único nó (Text + Action), reduzindo fadiga.
   - *Constraint*: `do` e `wait` (Input) são mutuamente exclusivos por enquanto.
 - [ ] **Process Adapter (Scriptable Tools)**: Adaptador seguro para executar scripts locais (`.sh`, `.js`, `.py`) via `tools.yaml` ou `x-exec` (Dev Mode). "Unix Philosophy".
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
@@ -237,5 +237,6 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - **2026-01-22**: *Runner Loop Simplification*. Removida otimização prematura ("Short Circuit") para nós terminais. Decisão: O `Runner` deve sempre delegar ao `Engine.Navigate` para garantir que eventos de ciclo de vida (`OnNodeLeave`) sejam disparados consistentemente, mesmo na saída.
 - **2026-01-22**: *Explicit Naming Strategy*. Adotada convenção "Manual X" (`manual-saga`, `manual-security`) para exemplos que demonstram wiring explícito de features que futuramente serão nativas/automáticas. Isso preserva o espaço semântico e educa o usuário sobre a diferença entre "Padrão Nativo" e "Implementação via Código".
 - **2026-01-23**: *Library-First Architecture*. Movidos adaptadores de infraestrutura (`file`, `redis`, `loam`) e DTOs para `pkg` a fim de permitir o uso do Trellis como biblioteca. `internal/dto` foi consolidado em `pkg/adapters/loam` para aumentar a coesão, revertendo a extração de 2025-12-16.
+- **2026-01-23**: *Loader Adapter Strategy*. Implementado "Metadata Flattening" no adaptador Loam (`LoaderToolCall`) para suportar YAML rico (`x-exec` aninhado) enquanto mantém o Core Domain estrito (`map[string]string`). Isso resolve a discrepância de UX vs Arquitetura mantendo o core puro.
 
 ---

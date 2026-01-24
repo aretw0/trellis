@@ -130,7 +130,7 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 
 	// Map Tool Configuration
 	// Priority: Do > ToolCall (Alias)
-	var toolCall *domain.ToolCall
+	var toolCall *LoaderToolCall
 	if doc.Data.Do != nil {
 		toolCall = doc.Data.Do
 	} else if doc.Data.ToolCall != nil {
@@ -138,11 +138,12 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	}
 
 	if toolCall != nil {
+		domainCall := convertToolCall(toolCall)
 		// Ensure ID is present
-		if toolCall.ID == "" {
-			toolCall.ID = toolCall.Name
+		if domainCall.ID == "" {
+			domainCall.ID = domainCall.Name
 		}
-		data["do"] = toolCall
+		data["do"] = domainCall
 	}
 	if len(doc.Data.Tools) > 0 {
 		resolvedTools, err := l.resolveTools(ctx, doc.Data.Tools, nil)
@@ -153,15 +154,16 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 	}
 
 	if doc.Data.Undo != nil {
-		if doc.Data.Undo.ID == "" {
-			doc.Data.Undo.ID = doc.Data.Undo.Name
+		domainUndo := convertToolCall(doc.Data.Undo)
+		if domainUndo.ID == "" {
+			domainUndo.ID = domainUndo.Name
 		}
-		data["undo"] = doc.Data.Undo
+		data["undo"] = domainUndo
 	}
 
-	// Map Metadata
+	// Map Metadata with Flattening
 	if doc.Data.Metadata != nil {
-		data["metadata"] = doc.Data.Metadata
+		data["metadata"] = flattenMetadata(doc.Data.Metadata)
 	}
 	if doc.Data.Timeout != "" {
 		data["timeout"] = doc.Data.Timeout
@@ -312,4 +314,65 @@ func (l *Loader) Watch(ctx context.Context) (<-chan string, error) {
 	}()
 
 	return ch, nil
+}
+
+// flattenMetadata converts a nested map[string]any into a flat map[string]string
+// using dot notation (or dash for compatibility) for keys.
+func flattenMetadata(src map[string]any) map[string]string {
+	res := make(map[string]string)
+	var visit func(prefix string, v any)
+
+	visit = func(prefix string, v any) {
+		switch val := v.(type) {
+		case map[string]any:
+			for k, sub := range val {
+				fullKey := k
+				if prefix != "" {
+					// Use '-' separator for x-exec compatibility (x-exec-command)
+					// Generally dot is better, but our hypothesis was x-exec-command.
+					// Let's check prefix. If prefix is "x-exec", we want "x-exec-command".
+					fullKey = prefix + "-" + k
+				}
+				visit(fullKey, sub)
+			}
+		case map[interface{}]interface{}: // YAML often decodes to this
+			for k, sub := range val {
+				strKey := fmt.Sprintf("%v", k)
+				fullKey := strKey
+				if prefix != "" {
+					fullKey = prefix + "-" + strKey
+				}
+				visit(fullKey, sub)
+			}
+		case []any:
+			// Join arrays as space-separated strings (useful for args)
+			var parts []string
+			for _, item := range val {
+				parts = append(parts, fmt.Sprintf("%v", item))
+			}
+			res[prefix] = strings.Join(parts, " ")
+		default:
+			if prefix != "" {
+				res[prefix] = fmt.Sprintf("%v", val)
+			}
+		}
+	}
+
+	for k, v := range src {
+		visit(k, v)
+	}
+	return res
+}
+
+func convertToolCall(src *LoaderToolCall) *domain.ToolCall {
+	if src == nil {
+		return nil
+	}
+	return &domain.ToolCall{
+		ID:             src.ID,
+		Name:           src.Name,
+		Args:           src.Args,
+		Metadata:       flattenMetadata(src.Metadata),
+		IdempotencyKey: src.IdempotencyKey,
+	}
 }

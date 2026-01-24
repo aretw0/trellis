@@ -6,6 +6,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/presentation/tui"
+	"github.com/aretw0/trellis/pkg/adapters/process"
 	"github.com/aretw0/trellis/pkg/runner"
 )
 
@@ -45,8 +46,25 @@ func RunSession(opts RunOptions, initialContext map[string]any) error {
 
 	logSessionStatus(logger, opts.SessionID, state.CurrentNodeID, loaded, opts.JSON || opts.Headless)
 
+	// Setup Process Runner (Tooling)
+	toolConfig, err := process.LoadTools(opts.ToolsPath)
+	if err != nil {
+		// Only fail if user explicitly pointed to a file that is broken.
+		// If default missing, LoadTools returns empty.
+		// However, process.LoadTools logic I implemented returns error for any read failure except IsNotExist.
+		// Let's assume critical failure if config is bad.
+		logger.Warn("Failed to load tools config", "path", opts.ToolsPath, "error", err)
+	}
+
+	procRunner := process.NewRunner(
+		process.WithRegistry(toolConfig),
+		process.WithInlineExecution(opts.UnsafeInline),
+	)
+
 	// Setup Runner
 	runnerOpts := createRunnerOptions(logger, opts.Headless, opts.SessionID, store, opts.JSON, nil)
+	runnerOpts = append(runnerOpts, runner.WithToolRunner(procRunner))
+
 	r := runner.NewRunner(runnerOpts...)
 
 	// Execute

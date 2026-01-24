@@ -8,6 +8,12 @@ It follows a **hexagonal architecture (ports and adapters)**, decoupling the cor
 
 The default implementation uses **Loam**, a library that reads Markdown/JSON/YAML files to define the state machine graph.
 
+## Project Structure & Documentation
+
+- **[TECHNICAL.md](docs/TECHNICAL.md)**: Deep dive into the architecture (Hexagonal/Ports & Adapters).
+- **[Node Syntax Guide](docs/reference/node_syntax.md)**: The canonical reference for defining flows (Universal Action Semantics).
+- **[PLANNING.md](docs/PLANNING.md)**: Current roadmap and task tracking.
+
 ## Key Commands
 
 To get started, ensure Go dependencies are synced:

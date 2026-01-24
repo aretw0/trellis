@@ -26,17 +26,21 @@ var runCmd = &cobra.Command{
 		sessionID, _ := cmd.Flags().GetString("session")
 		fresh, _ := cmd.Flags().GetBool("fresh")
 		redisURL, _ := cmd.Flags().GetString("redis-url")
+		toolsPath, _ := cmd.Flags().GetString("tools")
+		unsafeInline, _ := cmd.Flags().GetBool("unsafe-inline")
 
 		opts := cli.RunOptions{
-			RepoPath:  repoPath,
-			Headless:  headless,
-			Watch:     watchMode,
-			JSON:      jsonMode,
-			Debug:     debug,
-			Context:   contextStr,
-			SessionID: sessionID,
-			Fresh:     fresh,
-			RedisURL:  redisURL,
+			RepoPath:     repoPath,
+			Headless:     headless,
+			Watch:        watchMode,
+			JSON:         jsonMode,
+			Debug:        debug,
+			Context:      contextStr,
+			SessionID:    sessionID,
+			Fresh:        fresh,
+			RedisURL:     redisURL,
+			ToolsPath:    toolsPath,
+			UnsafeInline: unsafeInline,
 		}
 
 		if err := cli.Execute(opts); err != nil {
@@ -59,6 +63,8 @@ func init() {
 	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
 	runCmd.Flags().Bool("fresh", false, "Start with a clean session (deletes existing session data)")
 	runCmd.Flags().String("redis-url", "", "Redis connection URL (e.g. redis://localhost:6379) for distributed state & locking")
+	runCmd.Flags().String("tools", "tools.yaml", "Path to the tool registry file")
+	runCmd.Flags().Bool("unsafe-inline", false, "Allow inline execution of scripts defined in Markdown (Dangerous)")
 
 	// Make 'run' the default subcommand if no other command is provided.
 	// This allows users to type 'trellis .' instead of 'trellis run .'

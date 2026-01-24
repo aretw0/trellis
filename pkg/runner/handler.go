@@ -25,3 +25,9 @@ type IOHandler interface {
 	// This is distinct from content rendering.
 	SystemOutput(ctx context.Context, msg string) error
 }
+
+// ToolRunner defines the strategy for executing side-effects.
+// It decouples execution logic (Process, HTTP, MCP) from IO logic (Text, JSON).
+type ToolRunner interface {
+	Execute(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error)
+}

@@ -58,3 +58,10 @@ func WithInterceptor(interceptor ToolInterceptor) Option {
 		r.Interceptor = interceptor
 	}
 }
+
+// WithToolRunner configures the strategy for executing side-effects.
+func WithToolRunner(tr ToolRunner) Option {
+	return func(r *Runner) {
+		r.ToolRunner = tr
+	}
+}

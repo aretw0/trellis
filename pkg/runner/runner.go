@@ -24,6 +24,7 @@ type Runner struct {
 	SessionID   string
 	Renderer    ContentRenderer
 	Interceptor ToolInterceptor
+	ToolRunner  ToolRunner
 }
 
 // ContentRenderer is a function that transforms the content before outputting it.
@@ -254,6 +255,11 @@ func (r *Runner) handleTool(
 
 	if !allowed {
 		return policyResult, nil
+	}
+
+	// Priority: Explicit ToolRunner > Handler (Legacy/IO-bound)
+	if r.ToolRunner != nil {
+		return r.ToolRunner.Execute(ctx, *pendingCall)
 	}
 
 	result, err := handler.HandleTool(ctx, *pendingCall)

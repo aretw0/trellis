@@ -13,7 +13,8 @@ import (
 // Runner implements a ToolRunner that executes local processes.
 // It follows a Strict Registry pattern for security (Allow-Listing).
 type Runner struct {
-	registry map[string]RegisteredProcess
+	registry    map[string]RegisteredProcess
+	allowInline bool
 }
 
 // RegisteredProcess defines a allowed command execution.
@@ -22,11 +23,34 @@ type RegisteredProcess struct {
 	Args    []string // Default/Template args
 }
 
+// RunnerOption configures the runner.
+type RunnerOption func(*Runner)
+
+// WithRegistry populates the allow-list from a loaded config.
+func WithRegistry(tools map[string]ProcessConfig) RunnerOption {
+	return func(r *Runner) {
+		for name, tool := range tools {
+			r.Register(name, tool.Command, tool.Args...)
+		}
+	}
+}
+
+// WithInlineExecution enables ad-hoc execution (Dangerous).
+func WithInlineExecution(allow bool) RunnerOption {
+	return func(r *Runner) {
+		r.allowInline = allow
+	}
+}
+
 // NewRunner creates a new Process Runner.
-func NewRunner() *Runner {
-	return &Runner{
+func NewRunner(opts ...RunnerOption) *Runner {
+	r := &Runner{
 		registry: make(map[string]RegisteredProcess),
 	}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
 }
 
 // Register adds a trusted script/command to the allow-list.
@@ -40,15 +64,54 @@ func (r *Runner) Register(name string, command string, args ...string) {
 // Execute satisfies the hypothetical ToolRunner interface (or is called by IOHandler).
 // For now, checks the toolCall.Name against the registry.
 func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.ToolResult, error) {
+	// 1. Try Registry
 	proc, ok := r.registry[toolCall.Name]
+
+	// 2. Try Inline (Ad-Hoc) if allowed
+	if !ok {
+		if r.allowInline && toolCall.Metadata != nil {
+			// Check for x-exec vendor extension
+			// The Engine passes metadata as map[string]string, but x-exec usually needs structure.
+			// However, since Metadata is strings, users might pass x-exec-command, x-exec-args (comma separated)?
+			// Or we assume the generic `map[string]string` flatten strategy is sufficient for simple use cases.
+			// Let's look for `x-exec-command`.
+
+			// FIXME: In `node_syntax.md` we designed:
+			// x-exec:
+			//   command: python
+			//   args: ...
+			//
+			// But `ToolCall.Metadata` in `pkg/domain` is `map[string]string`.
+			// The Loader/Parser flattens YAML? Or we need to update Domain?
+			// Checking `pkg/domain/node.go`, ToolCall metadata is `map[string]string`.
+			// So intricate objects in YAML might be lost or flattened.
+			// For v0.7, we support `x-exec-command` and `x-exec-args` (space separated or just command line?)
+
+			// Alternative: Support JSON string in `x-exec`.
+
+			if cmd, exists := toolCall.Metadata["x-exec-command"]; exists {
+				// Inline Found
+				argsStr := toolCall.Metadata["x-exec-args"]
+				var args []string
+				if argsStr != "" {
+					args = strings.Fields(argsStr) // Basic splitting
+				}
+
+				proc = RegisteredProcess{
+					Command: cmd,
+					Args:    args,
+				}
+				ok = true
+			}
+		}
+	}
+
 	if !ok {
 		// Not found in this adapter.
-		// In a multi-adapter setup, we might return a specific error or nil to let others try.
-		// Here we assume if it's routed here, it must exist.
 		return domain.ToolResult{
 			ID:      toolCall.ID,
 			IsError: true,
-			Error:   fmt.Sprintf("process tool not registered: %s", toolCall.Name),
+			Error:   fmt.Sprintf("process tool not registered: %s (and inline execution not enabled/found)", toolCall.Name),
 		}, nil
 	}
 

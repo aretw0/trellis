@@ -522,6 +522,34 @@ sequenceDiagram
     Note over Engine: State: Terminated
 ```
 
+### 8.8. Metadata Flattening Strategy (Loader Adapter)
+
+To support rich UX in YAML (nested objects) while keeping the Core Domain simple (`map[string]string`), the `loam.Loader` implements a **Flattening Strategy**.
+
+**Problem**: The Core `domain.ToolCall.Metadata` is strictly a `map[string]string` to ensure flat serialization protocols (HTTP Headers, simple JSON). However, users want to define complex configs like `x-exec` naturally in YAML.
+
+**Solution**: The Adapter accepts `map[string]any` and recursively flattens it using dot-notation (or dash-notation for specific prefixes) before creating the Domain Node.
+
+**Example**:
+
+*YAML Input:*
+
+```yaml
+metadata:
+  x-exec:
+    command: python
+    args: ["main.py"]
+```
+
+*Domain Representation:*
+
+```go
+Metadata: {
+  "x-exec-command": "python",
+  "x-exec-args": "main.py"
+}
+```
+
 ### 9. Runner & IO Architecture
 
 The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.

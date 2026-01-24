@@ -1,9 +1,5 @@
 package loam
 
-import (
-	"github.com/aretw0/trellis/pkg/domain"
-)
-
 // NodeMetadata represents the header/metadata of a Trellis Node.
 // It uses "mapstructure" tags to match standard Frontmatter/YAML keys (to, from).
 type NodeMetadata struct {
@@ -34,13 +30,13 @@ type NodeMetadata struct {
 	InputDefault string   `json:"input_default" mapstructure:"input_default"`
 
 	// Tool Config
-	ToolCall *domain.ToolCall `json:"tool_call" mapstructure:"tool_call"`
-	Do       *domain.ToolCall `json:"do" mapstructure:"do"`
-	Tools    []any            `json:"tools" mapstructure:"tools"`
-	Undo     *domain.ToolCall `json:"undo,omitempty" mapstructure:"undo"`
+	ToolCall *LoaderToolCall `json:"tool_call" mapstructure:"tool_call"`
+	Do       *LoaderToolCall `json:"do" mapstructure:"do"`
+	Tools    []any           `json:"tools" mapstructure:"tools"`
+	Undo     *LoaderToolCall `json:"undo,omitempty" mapstructure:"undo"`
 
 	// General Metadata
-	Metadata map[string]string `json:"metadata" mapstructure:"metadata"`
+	Metadata map[string]any `json:"metadata" mapstructure:"metadata"`
 }
 
 type LoaderTransition struct {
@@ -53,4 +49,13 @@ type LoaderTransition struct {
 	// Text is the display label for options/buttons.
 	// It is also used as the implicit match condition (Condition="input == Text") if Condition is empty.
 	Text string `json:"text" mapstructure:"text"`
+}
+
+// LoaderToolCall is a permissive version of domain.ToolCall for YAML decoding.
+type LoaderToolCall struct {
+	ID             string         `json:"id" mapstructure:"id"`
+	Name           string         `json:"name" mapstructure:"name"`
+	Args           map[string]any `json:"args" mapstructure:"args"`
+	Metadata       map[string]any `json:"metadata" mapstructure:"metadata"`
+	IdempotencyKey string         `json:"idempotency_key" mapstructure:"idempotency_key"`
 }

@@ -7,15 +7,17 @@ import (
 
 // RunOptions contains all the configuration for the Run command.
 type RunOptions struct {
-	RepoPath  string
-	Headless  bool
-	Watch     bool
-	JSON      bool
-	Debug     bool
-	Context   string // Raw JSON string
-	SessionID string
-	Fresh     bool
-	RedisURL  string
+	RepoPath     string
+	Headless     bool
+	Watch        bool
+	JSON         bool
+	Debug        bool
+	Context      string // Raw JSON string
+	SessionID    string
+	Fresh        bool
+	RedisURL     string
+	ToolsPath    string
+	UnsafeInline bool
 }
 
 // Execute handles the 'run' command logic, dispatching to Session or Watch mode.

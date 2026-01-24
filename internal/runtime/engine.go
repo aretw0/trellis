@@ -170,6 +170,12 @@ func (e *Engine) Start(ctx context.Context, sessionID string, initialContext map
 		state.Context[k] = v
 	}
 
+	// Determine initial status based on Entry Node
+	if startNode != nil && startNode.Do != nil {
+		state.Status = domain.StatusWaitingForTool
+		state.PendingToolCall = startNode.Do.ID
+	}
+
 	// Trigger OnNodeEnter for the start node
 	if startNode != nil {
 		e.emitNodeEnter(ctx, startNode, e.entryNodeID)
