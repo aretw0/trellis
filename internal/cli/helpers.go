@@ -12,11 +12,11 @@ import (
 	"syscall"
 
 	"github.com/aretw0/trellis"
-	"github.com/aretw0/trellis/pkg/adapters/file"
-	"github.com/aretw0/trellis/pkg/adapters/redis"
 	"github.com/aretw0/trellis/internal/logging"
 	"github.com/aretw0/trellis/internal/presentation/tui"
+	"github.com/aretw0/trellis/pkg/adapters/file"
 	"github.com/aretw0/trellis/pkg/adapters/memory"
+	"github.com/aretw0/trellis/pkg/adapters/redis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
@@ -34,8 +34,8 @@ type SignalContext struct {
 	mu     sync.Mutex
 }
 
-// NewSignalContext creates a context that is cancelled on SIGINT or SIGTERM.
-// It acts as a drop-in replacement for signal.NotifyContext but allows retrieving the signal.
+// NewSignalContext creates a context that is cancelled on SIGTERM (standard termination).
+// It captures SIGINT (Interrupt) separately to allow the state machine to handle it.
 func NewSignalContext(parent context.Context) *SignalContext {
 	ctx, cancel := context.WithCancel(parent)
 	sc := &SignalContext{
@@ -45,6 +45,9 @@ func NewSignalContext(parent context.Context) *SignalContext {
 	}
 
 	sc.start.Do(func() {
+		// We only cancel the context on SIGTERM.
+		// SIGINT is captured but NOT automatically cancel the context here,
+		// because we want the Engine/Runner to have first dibs on handling it.
 		signal.Notify(sc.sigCh, os.Interrupt, syscall.SIGTERM)
 		go func() {
 			select {
@@ -52,7 +55,9 @@ func NewSignalContext(parent context.Context) *SignalContext {
 				sc.mu.Lock()
 				sc.sigVal = sig
 				sc.mu.Unlock()
-				sc.Cancel()
+				if sig == syscall.SIGTERM {
+					sc.Cancel()
+				}
 			case <-sc.Context.Done():
 				// Context cancelled elsewhere
 			}

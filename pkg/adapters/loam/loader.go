@@ -144,6 +144,11 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 		}
 	}
 
+	// Smart Confirm Inference: Default options for confirmation type
+	if inputType == string(domain.InputConfirm) && len(inputOptions) == 0 {
+		inputOptions = []string{"yes", "no"}
+	}
+
 	// Map Input Configuration
 	if inputType != "" {
 		data["input_type"] = inputType
