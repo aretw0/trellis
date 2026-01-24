@@ -183,7 +183,7 @@ Foco: Transformar o Trellis de um Engine Stateless em uma solução de **Durable
     - [x] `pkg/persistence`: Refine internal usage of Middleware. (See v0.8 Declarative Config).
     - [x] `pkg/engine`: Validate Saga constraints in manual flows. (See v0.7 Native Saga).
 
-### 🔌 v0.7: Protocol & Scale (The "Network" Phase)
+### ✅ v0.7: Protocol & Scale (The "Network" Phase)
 
 Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Systems).
 
@@ -191,15 +191,21 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [x] **Tool Idempotency**: Suporte a `idempotency_keys` para chamadas de ferramentas, garantindo segurança em retentativas (Network Flakes).
 - [x] **Native SAGA Orchestration**: Engine capaz de fazer rollback automático (`undo`) lendo o histórico de execução (Stack Unwinding), eliminando a necessidade de wiring manual de cancelamento.
   - [x] *Validation*: Ensure Saga constraints are enforced (e.g., matching undo types).
-- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 - [x] **Universal Action Semantics ("Duck Typing")**: Remover a restrição de `type: tool`. Se um nó tem intenção de ação (`do`), ele executa. Unifica "Falar" e "Fazer" num único nó (Text + Action), reduzindo fadiga.
   - *Constraint*: `do` e `wait` (Input) são mutuamente exclusivos por enquanto.
 - [x] **Syntactic Sugar: on_timeout**: Alias semântico para `on_signal["timeout"]`. Melhora a DX alinhando com `on_error`.
 - [x] **Process Adapter (Scriptable Tools)**: Adaptador seguro para executar scripts locais (`.sh`, `.js`, `.py`, `.ps1`) via `tools.yaml`.
   - *Strategy*: Foco em "Polyglot Examples" para demonstrar o contrato Unix (Env/Stdin/Stdout) sem SDKs complexos por enquanto.
+- [x] **Granular SSE Events**: (Moved to v0.7.1)
+- [x] **MCP Advanced**: (Moved to v0.7.1)
+- [x] **WASM/gRPC**: (Moved to v0.8)
+
+### 🚧 v0.7.1: Advanced IO & Performance (The "Optimization" Patch)
+
+Foco: Melhorias de performance e targets avançados que não bloquearam o release v0.7.0.
+
+- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
-- [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
-- [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
 - [ ] **Performance Optimizations**:
   - `pkg/session`: Implement *Sharded Map* to reduce Global Mutex contention (from v0.6 analysis).
   - `pkg/adapters/redis`: External GC worker for ZSET index (from v0.6 analysis).
@@ -216,6 +222,8 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
 - [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração, eliminando a necessidade de código Go (`main.go`) para setups padrão.
   - *Refinement*: Internal middleware usage should be fully driven by this config.
+- [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
+- [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
 
 ---
 
@@ -240,5 +248,6 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - **2026-01-22**: *Explicit Naming Strategy*. Adotada convenção "Manual X" (`manual-saga`, `manual-security`) para exemplos que demonstram wiring explícito de features que futuramente serão nativas/automáticas. Isso preserva o espaço semântico e educa o usuário sobre a diferença entre "Padrão Nativo" e "Implementação via Código".
 - **2026-01-23**: *Library-First Architecture*. Movidos adaptadores de infraestrutura (`file`, `redis`, `loam`) e DTOs para `pkg` a fim de permitir o uso do Trellis como biblioteca. `internal/dto` foi consolidado em `pkg/adapters/loam` para aumentar a coesão, revertendo a extração de 2025-12-16.
 - **2026-01-23**: *Loader Adapter Strategy*. Implementado "Metadata Flattening" no adaptador Loam (`LoaderToolCall`) para suportar YAML rico (`x-exec` aninhado) enquanto mantém o Core Domain estrito (`map[string]string`). Isso resolve a discrepância de UX vs Arquitetura mantendo o core puro.
+- **2026-01-24**: *Release v0.7.0*. Fechado o escopo da v0.7 focado em "Polyglot Integration" (Process Adapter finalizado). Itens de otimização (SSE Granular, Sharding) e targets exóticos (WASM) foram movidos para v0.7.1 e v0.8 para não bloquear o release estável das novas features de Processo e SAGA.
 
 ---

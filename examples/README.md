@@ -65,6 +65,11 @@ Demonstrates the native confirmation UX. It shows how the engine follows standar
 **Concepts:** `x-exec`, `Tools`, `YAML Metadata`
 Demonstrates the power of Universal Action Semantics. This example shows how to define and execute dynamic OS processes (scripts) directly from node metadata without pre-compiling Go tools.
 
+### [Polyglot Tools (Script Adapter)](./polyglot-tools)
+
+**Concepts:** `tools.yaml`, `Python/Node/PowerShell`, `JSON IO`
+A reference implementation for the **Unix-Style Contract**. Shows how to write scriptable tools in multiple languages that receive arguments via Environment Variables and return structured JSON output, all registered via a safe `tools.yaml` manifest.
+
 ### [Inline Tool Demo (Zero-Config)](./inline-tool-demo)
 
 **Concepts:** `Standalone Nodes`, `Dynamic x-exec`
