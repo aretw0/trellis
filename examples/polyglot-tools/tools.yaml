@@ -1,0 +1,15 @@
+tools:
+  - name: greet_py
+    command: python
+    args: ["./py-tool.py"]
+    description: "Greets caller using Python"
+
+  - name: greet_js
+    command: node
+    args: ["./js-tool.js"]
+    description: "Greets caller using Node.js"
+
+  - name: greet_ps
+    command: pwsh
+    args: ["-File", "./ps-tool.ps1"]
+    description: "Greets caller using PowerShell"
