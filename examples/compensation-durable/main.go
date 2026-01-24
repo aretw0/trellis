@@ -19,6 +19,7 @@ import (
 func main() {
 	// Flags to control the simulation
 	action := flag.String("action", "run", "Action to perform: run, approve, reject")
+	fresh := flag.Bool("fresh", false, "Force a fresh session (delete existing state)")
 	flag.Parse()
 
 	// 1. Setup Logger
@@ -101,10 +102,29 @@ func main() {
 		// Initial Run: Start the flow
 		fmt.Println("🚀 Starting Flow... (Will pause at Approval)")
 
+		if *fresh {
+			fmt.Println("🧹 Force Fresh: Deleting existing session.")
+			_ = sessMgr.Delete(ctx, sessionID) // Ignore error if not exists
+		}
+
 		// Load state if exists, or start new
 		state, err := sessMgr.LoadOrStart(ctx, sessionID, "start")
 		if err != nil {
 			panic(err)
+		}
+
+		// Check if terminated (finished previously)
+		if state.Status == domain.StatusTerminated {
+			fmt.Println("🔄 Previous session finished. Starting fresh...")
+			// Start new session
+			state, err = eng.Start(ctx, sessionID, nil)
+			if err != nil {
+				panic(err)
+			}
+			// Save initial state so the runner picks it up (though LoadOrStart usually handles this, we are overriding)
+			if err := sessMgr.Save(ctx, sessionID, state); err != nil {
+				panic(err)
+			}
 		}
 
 		// Run with the loaded/new state
@@ -127,8 +147,20 @@ func main() {
 			return
 		}
 
-		_, err = r.Run(ctx, eng, state)
-		fmt.Printf("Result: %v\n", err)
+		// Apply Signal
+		state, err = eng.Signal(ctx, state, "manager_approval")
+		if err != nil {
+			fmt.Printf("Error sending signal: %v\n", err)
+			return
+		}
+
+		// Save state after signal (optional, but good for durability)
+		if err := sessMgr.Save(ctx, sessionID, state); err != nil {
+			panic(err)
+		}
+
+		fmt.Println("✅ Signal 'manager_approval' applied to state.")
+		fmt.Println("💾 State saved. Run 'go run main.go' to RESUME execution from the next step.")
 
 	case "reject":
 		// Resume and signal rejection
@@ -140,24 +172,23 @@ func main() {
 			return
 		}
 
-		autoRejectHandler := &AutoInputMiddleware{
-			Next:          toolHandler,
-			InputToInject: "reject",
+		// Apply Signal
+		state, err = eng.Signal(ctx, state, "manager_rejection")
+		if err != nil {
+			fmt.Printf("Error sending signal: %v\n", err)
+			return
 		}
-		// Reform the runner with auto-handler
-		r = runner.NewRunner(
-			runner.WithInputHandler(autoRejectHandler),
-			runner.WithStore(sessMgr),
-			runner.WithSessionID(sessionID),
-			runner.WithHeadless(true),
-		)
 
-		_, err = r.Run(ctx, eng, state)
-		fmt.Printf("Result: %v\n", err)
+		// Save state after signal (optional, but good for durability)
+		if err := sessMgr.Save(ctx, sessionID, state); err != nil {
+			panic(err)
+		}
+
+		fmt.Println("✅ Signal 'manager_rejection' applied to state.")
+		fmt.Println("💾 State saved. Run 'go run main.go' to RESUME execution (Rollback phase).")
 	}
 }
 
-// Minimal Middlewares
 type ToolMiddleware struct {
 	Next  runner.IOHandler
 	Tools map[string]func(map[string]any) (any, error)
