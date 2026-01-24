@@ -196,6 +196,10 @@ func (e *Engine) Start(ctx context.Context, sessionID string, initialContext map
 // It loads the node and generates actions (e.g. print text) but does NOT change state.
 // It returns actions, isTerminal (true if no transitions), and error.
 func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]domain.ActionRequest, bool, error) {
+	if currentState == nil {
+		return nil, false, fmt.Errorf("cannot render nil state")
+	}
+
 	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
@@ -206,6 +210,11 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 		return nil, false, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
+	// Safety: Check for logical violations (e.g. Do + Wait)
+	if err := e.validateExecution(node); err != nil {
+		return nil, false, err
+	}
+
 	// Validate Context Requirements
 	if err := e.validateContext(node, currentState); err != nil {
 		return nil, false, err
@@ -213,228 +222,51 @@ func (e *Engine) Render(ctx context.Context, currentState *domain.State) ([]doma
 
 	actions := []domain.ActionRequest{}
 
-	// Render content based on node type.
-	// Render is stateless and returns the view representation of the node.
-	// Run-time evaluation of templates happens here.
-	if node.Type == domain.NodeTypeText || node.Type == domain.NodeTypeQuestion {
-		text := string(node.Content)
-
-		// Apply Interpolation
-		if e.interpolator != nil {
-			// Merge SystemContext for Interpolation
-			data := make(map[string]any)
-			for k, v := range currentState.Context {
-				data[k] = v
-			}
-			data["sys"] = currentState.SystemContext
-
-			interpolated, err := e.interpolator(ctx, text, data)
-			if err != nil {
-				// If interpolation fails, we currently error out.
-				// Alternative: log error and return original text.
-				return nil, false, fmt.Errorf("rendering failed during interpolation: %w", err)
-			}
-			text = interpolated
+	// 1. Render Content (Text/Markdown)
+	if node.Type == domain.NodeTypeText || node.Type == domain.NodeTypeQuestion || len(node.Content) > 0 {
+		text, err := e.renderContent(ctx, node, currentState)
+		if err != nil {
+			return nil, false, err
 		}
-
 		actions = append(actions, domain.ActionRequest{
 			Type:    domain.ActionRenderContent,
 			Payload: text,
 		})
 	}
 
-	// Calculate Input Request
-	// We only request input if explicitly configured (wait: true, type: question, or input_type set)
-	needsInput := node.Wait || node.Type == domain.NodeTypeQuestion || node.InputType != ""
-
-	if needsInput {
-		inputType := domain.InputType(node.InputType)
-		// Default to Text input if not specified but input is required
-		if inputType == "" {
-			inputType = domain.InputText
-		}
-
-		// Parse Timeout
-		var timeoutDuration time.Duration
-		if node.Timeout != "" {
-			if d, err := time.ParseDuration(node.Timeout); err == nil {
-				timeoutDuration = d
-			} else {
-				e.logger.Warn("Failed to parse node timeout",
-					"node_id", node.ID,
-					"timeout", node.Timeout,
-					"error", err,
-				)
-			}
-		}
-
-		actions = append(actions, domain.ActionRequest{
-			Type: domain.ActionRequestInput,
-			Payload: domain.InputRequest{
-				Type:    inputType,
-				Options: node.InputOptions,
-				Default: node.InputDefault,
-				Timeout: timeoutDuration,
-			},
-		})
+	// 2. Render Input Request
+	inputReq, err := e.renderInputRequest(node)
+	if err != nil {
+		return nil, false, err
+	}
+	if inputReq != nil {
+		actions = append(actions, *inputReq)
 	}
 
-	// Calculate Tool Request
-	// If RollingBack, we use the UNDO tool definition.
-	// If Normal, we use the standard TOOL call.
-	var toolCallToRender *domain.ToolCall
-
-	if currentState.Status == domain.StatusRollingBack {
-		if node.Undo != nil {
-			toolCallToRender = node.Undo
-		}
-	} else if node.Do != nil {
-		toolCallToRender = node.Do
+	// 3. Render Tool Call (Side-effect)
+	toolCall, err := e.renderToolCall(ctx, node, currentState)
+	if err != nil {
+		return nil, false, err
+	}
+	if toolCall != nil {
+		actions = append(actions, *toolCall)
+		e.emitToolCall(ctx, currentState.CurrentNodeID, toolCall.Payload.(domain.ToolCall))
 	}
 
-	if toolCallToRender != nil {
-		call := *toolCallToRender
-		if node.Metadata != nil {
-			call.Metadata = make(map[string]string)
-			for k, v := range node.Metadata {
-				call.Metadata[k] = v
-			}
-		}
-
-		if call.Metadata == nil {
-			call.Metadata = make(map[string]string)
-		}
-		// Generate Key
-		key := e.generateIdempotencyKey(currentState, node.ID, call.Name)
-		call.IdempotencyKey = key
-		call.Metadata[domain.KeyIdempotency] = key
-
-		// Deep Interpolation for Tool Args
-		if e.interpolator != nil && len(call.Args) > 0 {
-			// Merge SystemContext for Interpolation
-			data := make(map[string]any)
-			for k, v := range currentState.Context {
-				data[k] = v
-			}
-			data["sys"] = currentState.SystemContext
-
-			interpolatedArgs := make(map[string]any)
-			for k, v := range call.Args {
-				// We only interpolate strings
-				if strVal, ok := v.(string); ok && strings.Contains(strVal, "{{") {
-					interpolated, err := e.interpolator(ctx, strVal, data)
-					if err != nil {
-						return nil, false, fmt.Errorf("failed to interpolate tool arg '%s': %w", k, err)
-					}
-					interpolatedArgs[k] = interpolated
-				} else {
-					interpolatedArgs[k] = v
-				}
-			}
-			call.Args = interpolatedArgs
-		}
-
-		actions = append(actions, domain.ActionRequest{
-			Type:    domain.ActionCallTool,
-			Payload: call,
-		})
-
-		// Emit Tool Call Event (Fix: Was missing)
-		e.emitToolCall(ctx, currentState.CurrentNodeID, call)
-	} else if node.Type == domain.NodeTypeTool && node.Do == nil && currentState.Status != domain.StatusRollingBack {
-		// Fallback: If type IS tool but Do is missing, that's an error.
-		return nil, false, fmt.Errorf("node %s is type 'tool' but missing tool_call definition", node.ID)
-	}
-
-	// A node is terminal if it has NO transitions (input, signal, or timeout).
-
-	// A node is terminal if it has NO transitions (input, signal, or timeout).
-	// If a Node has a Timeout, it will transition on timeout event.
-	// If a Node has OnSignal, it can transition on external signal.
+	// 4. Terminal Logic
 	hasStandardTransitions := len(node.Transitions) > 0
 	hasSignalTransitions := len(node.OnSignal) > 0
 	hasTimeout := node.Timeout != ""
-
 	isTerminal := !hasStandardTransitions && !hasSignalTransitions && !hasTimeout
+
 	return actions, isTerminal, nil
 }
 
-// startRollback initiates the SAGA rollback process.
-// It is called when a tool fails and on_error is set to "rollback".
-func (e *Engine) startRollback(ctx context.Context, failedState *domain.State) (*domain.State, error) {
-	// 1. We assume the *current* node failed, so it had no effect (or atomic failure).
-	// We pop it immediately so we don't try to undo it (unless we want to support undoing failed steps? No).
-	// SAGA typically implies undoing *completed* transactions.
-	return e.continueRollback(ctx, failedState, true)
-}
-
-// continueRollback unwinds the history stack until it finds a node with an Undo action.
-// popCurrent: If true, removes the current head of history before searching (used after Undo completion or initial failure).
-func (e *Engine) continueRollback(ctx context.Context, state *domain.State, popCurrent bool) (*domain.State, error) {
-	e.logger.InfoContext(ctx, "continuing rollback", "history_len", len(state.History), "pop_current", popCurrent)
-	nextState := *state
-	nextState.Status = domain.StatusRollingBack
-	nextState.PendingToolCall = ""
-	// Deep copy context to be safe, though rollback might strictly rely on history
-	// For v0.7, we preserve variable context during rollback (maybe undo actions need variables).
-	nextState.Context = make(map[string]any)
-	for k, v := range state.Context {
-		nextState.Context[k] = v
-	}
-	nextState.SystemContext = make(map[string]any)
-	for k, v := range state.SystemContext {
-		nextState.SystemContext[k] = v
-	}
-
-	if popCurrent && len(nextState.History) > 0 {
-		// Pop the last node
-		nextState.History = nextState.History[:len(nextState.History)-1]
-	}
-
-	// Unwind Loop
-	for len(nextState.History) > 0 {
-		// Peek at the current tip of history
-		currentNodeID := nextState.History[len(nextState.History)-1]
-		nextState.CurrentNodeID = currentNodeID
-
-		// Load Node to check for Undo
-		raw, err := e.loader.GetNode(currentNodeID)
-		if err != nil {
-			return nil, fmt.Errorf("rollback failed: could not load node %s: %w", currentNodeID, err)
-		}
-		node, err := e.parser.Parse(raw)
-		if err != nil {
-			return nil, fmt.Errorf("rollback failed: could not parse node %s: %w", currentNodeID, err)
-		}
-
-		if node.Undo != nil {
-			// Found an undo action!
-			// We stay on this node, but in 'RollingBack' status.
-			// Render will pick this up and emit the Undo tool call.
-			nextState.PendingToolCall = node.Undo.ID
-			if nextState.PendingToolCall == "" {
-				nextState.PendingToolCall = node.Undo.Name
-			}
-			return &nextState, nil
-		}
-
-		// No undo action? Pop and continue (Read-only step)
-		nextState.History = nextState.History[:len(nextState.History)-1]
-	}
-
-	// History is empty or we hit start (and start has no undo).
-	// Reset to active/start or terminate?
-	// If we rolled back everything, we are effectively at "Terminated" (Aborted).
-	// Or we could go to a special "rollback_complete" node if it existed.
-	// For now: Terminate.
-	nextState.Status = domain.StatusTerminated
-	nextState.CurrentNodeID = "" // No context
-	return &nextState, nil
-}
-
-// Navigate determines the next state based on input.
-// Input can be a string (user text) or a domain.ToolResult (side-effect result).
 func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input any) (*domain.State, error) {
+	if currentState == nil {
+		return nil, fmt.Errorf("cannot navigate nil state")
+	}
+
 	// 1. Handle State: WaitingForTool (or RollingBack which works similarly for Undo)
 	if currentState.Status == domain.StatusWaitingForTool || currentState.Status == domain.StatusRollingBack {
 		result, ok := input.(domain.ToolResult)
@@ -447,139 +279,32 @@ func (e *Engine) Navigate(ctx context.Context, currentState *domain.State, input
 
 		// Handle State: RollingBack (Undo Tool Completed)
 		if currentState.Status == domain.StatusRollingBack {
-			// The Undo Action for the current node has completed.
-			// We now pop this node and continue unwinding.
 			return e.continueRollback(ctx, currentState, true)
 		}
 
-		// Handle Tool Result
-		if result.IsDenied {
-			e.logger.Debug("tool execution denied", "tool", result.ID, "node", currentState.CurrentNodeID)
-
-			// Resolve Target Handler
-			target := ""
-
-			// Load current node to check for handlers
-			raw, err := e.loader.GetNode(currentState.CurrentNodeID)
-			if err == nil {
-				node, err := e.parser.Parse(raw)
-				if err == nil {
-					target = node.OnDenied
-					if target == "" {
-						target = node.OnError
-					}
-				}
-			}
-
-			if target == "" {
-				target = e.defaultErrorNodeID
-			}
-
-			if target != "" {
-				// Transition to policy handler
-				nextState := *currentState
-				nextState.Context = make(map[string]any)
-				for k, v := range currentState.Context {
-					nextState.Context[k] = v
-				}
-				nextState.Status = domain.StatusActive
-				nextState.PendingToolCall = ""
-				return e.transitionTo(&nextState, target)
-			}
-
-			// If unhandled, we terminate gracefully but with a policy status?
-			// For now, return terminal state to indicate "halted by policy".
-			nextState := *currentState
-			nextState.Status = domain.StatusTerminated
-			return &nextState, nil
+		// Handle Tool Result (Success/Error/Denied)
+		raw, err := e.loader.GetNode(currentState.CurrentNodeID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load node %s: %w", currentState.CurrentNodeID, err)
+		}
+		node, err := e.parser.Parse(raw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 		}
 
-		// Handle Tool Error
-		if result.IsError {
-			// Emit Tool Return (Error)
-			e.emitToolReturn(ctx, currentState.CurrentNodeID, result.ID, result.Result, true)
-
-			// Load current node to check for OnError handler
-			raw, err := e.loader.GetNode(currentState.CurrentNodeID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load node %s during error handling: %w", currentState.CurrentNodeID, err)
-			}
-			node, err := e.parser.Parse(raw)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse node %s during error handling: %w", currentState.CurrentNodeID, err)
-			}
-
-			if node.OnError != "" {
-				if node.OnError == "rollback" {
-					e.emitNodeLeave(ctx, node)
-					return e.startRollback(ctx, currentState)
-				}
-				// Transition to Error Handler
-				// We skip applyInput (Context Update) to avoid polluting state with error.
-
-				// Initialize next state with clean context copy
-				nextState := *currentState
-				nextState.Context = make(map[string]any)
-				for k, v := range currentState.Context {
-					nextState.Context[k] = v
-				}
-				nextState.SystemContext = make(map[string]any)
-				for k, v := range currentState.SystemContext {
-					nextState.SystemContext[k] = v
-				}
-
-				// Reset status setup
-				nextState.Status = domain.StatusActive
-				nextState.PendingToolCall = ""
-
-				return e.transitionTo(&nextState, node.OnError)
-			}
-
-			// Global Fallback
-			if e.defaultErrorNodeID != "" {
-				e.emitNodeLeave(ctx, node)
-				nextState := *currentState
-				nextState.Status = domain.StatusActive
-				nextState.PendingToolCall = ""
-				return e.transitionTo(&nextState, e.defaultErrorNodeID)
-			}
-
-			// Fail Fast: If no handler is defined, we stop execution to prevent context poisoning.
-			// This enforces explicit error handling or tool reliability.
-			return nil, &UnhandledToolError{
-				NodeID:   node.ID,
-				ToolName: result.ID,
-				Cause:    result.Result,
-			}
-		}
-
-		// Resume execution:
-		// Emit Tool Return (Success)
-		e.emitToolReturn(ctx, currentState.CurrentNodeID, result.ID, result.Result, false)
-
-		// We pass the raw result to navigateInternal.
-		// 1. applyInput: Captures the result (any) into Context if SaveTo is set.
-		// 2. resolveTransition: Evaluates conditions against the result.
-		//    Note: DefaultEvaluator coerces to string for checking, ensuring compatibility with existing flows.
-
-		// Create a clean "Active" state to proceed with regular logic
-		resumedState := *currentState
-		resumedState.Status = domain.StatusActive
-		resumedState.PendingToolCall = ""
-
-		return e.navigateInternal(ctx, &resumedState, result.Result)
+		return e.handleToolResult(ctx, currentState, node, result)
 	}
 
 	// 2. Handle State: Active (Standard Input)
-	// Input is already any, so we just pass it through.
 	return e.navigateInternal(ctx, currentState, input)
 }
 
 // Signal triggers a transition based on a global signal (e.g., "interrupt").
-// If the current node has a handler for the signal, it transitions to the target node.
-// If no handler is found, it returns ErrUnhandledSignal.
 func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalName string) (*domain.State, error) {
-	// Load current node to check for signal handlers
+	if currentState == nil {
+		return nil, fmt.Errorf("cannot signal nil state")
+	}
+
 	raw, err := e.loader.GetNode(currentState.CurrentNodeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load node %s during signal handling: %w", currentState.CurrentNodeID, err)
@@ -589,7 +314,6 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
-	// Emit Leave Event for interrupted node (before context reset or exit)
 	e.emitNodeLeave(ctx, node)
 
 	targetNodeID, ok := node.OnSignal[signalName]
@@ -597,23 +321,12 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 		return nil, domain.ErrUnhandledSignal
 	}
 
-	// Initialize next state with clean context copy (similar to OnError)
-	// We do NOT apply input here, as this is an interruption.
-	nextState := *currentState
-	nextState.Context = make(map[string]any)
-	for k, v := range currentState.Context {
-		nextState.Context[k] = v
-	}
-	nextState.SystemContext = make(map[string]any)
-	for k, v := range currentState.SystemContext {
-		nextState.SystemContext[k] = v
-	}
-
-	// Reset status setup
+	// Initialize next state with clean context copy
+	nextState := e.cloneState(currentState)
 	nextState.Status = domain.StatusActive
 	nextState.PendingToolCall = ""
 
-	return e.transitionTo(&nextState, targetNodeID)
+	return e.transitionTo(nextState, targetNodeID)
 }
 
 // navigateInternal contains the core transition logic (Node loading + Condition eval)
@@ -628,119 +341,46 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
-	// Validate Context Requirements
+	// Safety: Check for logical violations
+	if err := e.validateExecution(node); err != nil {
+		return nil, err
+	}
+
 	if err := e.validateContext(node, currentState); err != nil {
 		return nil, err
 	}
 
-	// 0. Resolve Defaults & Logic Validation
-	effectiveInput := input
-
-	// Check if input is empty
-	isEmpty := false
-	switch v := input.(type) {
-	case string:
-		isEmpty = v == ""
-	case nil:
-		isEmpty = true
+	// 0. Build Effective Input (Defaults/Validation)
+	effectiveInput, err := e.resolveEffectiveInput(node, input)
+	if err != nil {
+		return nil, err
 	}
 
-	// Logic for 'confirm' type validation and defaults (Unix Convention)
-	if node.InputType == "confirm" {
-		if isEmpty {
-			if node.InputDefault != "" {
-				effectiveInput = node.InputDefault
-			} else {
-				// Convention: Empty is True (Unix/Trellis Standard)
-				effectiveInput = "yes"
-			}
-		}
-
-		// Validation: Ensure input is a valid truthy/falsy signal
-		strVal := fmt.Sprintf("%v", effectiveInput)
-		clean := strings.ToLower(strings.TrimSpace(strVal))
-		isTruthy := clean == "y" || clean == "yes" || clean == "true" || clean == "1"
-		isFalsy := clean == "n" || clean == "no" || clean == "false" || clean == "0"
-
-		if !isTruthy && !isFalsy {
-			return nil, fmt.Errorf("invalid confirmation input: '%s' (expected y/n/yes/no)", strVal)
-		}
-
-		// Canonical Normalization for predictably clean Context and Transitions
-		if isTruthy {
-			effectiveInput = "yes"
-		} else {
-			effectiveInput = "no"
-		}
-	} else if isEmpty && node.InputDefault != "" {
-		// Generic Default Fallback for other types
-		effectiveInput = node.InputDefault
-	}
-
-	// 1. Update Phase: Apply Input to Context
+	// 1. Update Context (SaveTo)
 	nextState, err := e.applyInput(currentState, node, effectiveInput)
 	if err != nil {
 		return nil, err
 	}
 
-	var nextNodeID string
-
-	// 2. Resolve Phase: Evaluate Transitions (Sober Priority)
-
-	// Check for refusal (for on_denied handling)
-	isRefusal := false
-	switch v := effectiveInput.(type) {
-	case bool:
-		isRefusal = !v
-	case string:
-		clean := strings.ToLower(strings.TrimSpace(v))
-		isRefusal = clean == "n" || clean == "no" || clean == "false" || clean == "deny"
+	// 2. Resolve Next Node (Priority Logic: Conditional > Denial > Fallback)
+	nextNodeID, err := e.resolveNextNodeID(ctx, node, effectiveInput)
+	if err != nil {
+		return nil, err
 	}
 
-	// Priority 1: Conditional Transitions (Explicit Logic)
-	for _, t := range node.Transitions {
-		if t.Condition != "" && e.evaluator != nil {
-			ok, err := e.evaluator(ctx, t.Condition, effectiveInput)
-			if err == nil && ok {
-				nextNodeID = t.ToNodeID
-				break
-			}
-		}
-	}
-
-	// Priority 2: Policy Handler (on_denied)
-	if nextNodeID == "" && isRefusal && node.OnDenied != "" {
-		nextNodeID = node.OnDenied
-	}
-
-	// Priority 3: Unconditional Transitions ('to')
-	if nextNodeID == "" {
-		for _, t := range node.Transitions {
-			if t.Condition == "" {
-				nextNodeID = t.ToNodeID
-				break
-			}
-		}
-	}
-
-	// If we hit the reserved "rollback" target, initiate the saga compensation.
+	// 3. Process Resulting State
 	if strings.EqualFold(nextNodeID, "rollback") {
 		e.emitNodeLeave(ctx, node)
 		return e.startRollback(ctx, nextState)
 	}
 
-	// If no transitions are found, the state becomes Terminal.
-	// The runner should detect this and stop the loop.
-	if len(node.Transitions) == 0 {
+	if nextNodeID == "" && len(node.Transitions) == 0 {
 		nextState.Status = domain.StatusTerminated
-		nextState.Terminated = true // Deprecated
-
-		// Emit Leave Event for terminal node
+		nextState.Terminated = true
 		e.emitNodeLeave(ctx, node)
 	}
 
 	if nextNodeID != "" {
-		// Emit Leave Event for previous node
 		e.emitNodeLeave(ctx, node)
 		return e.transitionTo(nextState, nextNodeID)
 	}
@@ -750,31 +390,15 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 
 // applyInput handles the Update Phase: Creates new state and applies SaveTo logic.
 func (e *Engine) applyInput(currentState *domain.State, node *domain.Node, input any) (*domain.State, error) {
-	// Initialize next state with a copy of context to support SaveTo
-	nextState := *currentState
-	nextState.Context = make(map[string]any)
-	if currentState.Context != nil {
-		for k, v := range currentState.Context {
-			nextState.Context[k] = v
-		}
-	}
-	// Copy SystemContext (Host-controlled, but safe to propagate)
-	nextState.SystemContext = make(map[string]any)
-	if currentState.SystemContext != nil {
-		for k, v := range currentState.SystemContext {
-			nextState.SystemContext[k] = v
-		}
-	}
+	nextState := e.cloneState(currentState)
 
-	// Handle Data Binding (SaveTo)
 	if node.SaveTo != "" {
-		// Validating Namespace
 		if node.SaveTo == "sys" || strings.HasPrefix(node.SaveTo, "sys.") {
 			return nil, fmt.Errorf("security violation: cannot save to reserved namespace 'sys' in node %s", node.ID)
 		}
 		nextState.Context[node.SaveTo] = input
 	}
-	return &nextState, nil
+	return nextState, nil
 }
 
 // transitionTo handles the mechanics of moving the state to a new node ID.
