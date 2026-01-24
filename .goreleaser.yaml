@@ -59,3 +59,31 @@ changelog:
       order: 2
     - title: "Others"
       order: 999
+
+brews:
+  - repository:
+      owner: aretw0
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/aretw0/trellis"
+    description: "Deterministic state machine engine for CLIs and automation."
+    license: "AGPL-3.0"
+
+scoops:
+  - repository:
+      owner: aretw0
+      name: scoop-bucket
+    homepage: "https://github.com/aretw0/trellis"
+    description: "Deterministic state machine engine for CLIs and automation."
+    license: "AGPL-3.0"
+
+winget:
+  - publisher: aretw0
+    publisher_url: "https://github.com/aretw0"
+    publisher_support_url: "https://github.com/aretw0/trellis/issues"
+    package_identifier: "aretw0.trellis"
+    package_name: "trellis"
+    package_url: "https://github.com/aretw0/trellis"
+    license: "AGPL-3.0"
+    license_url: "https://github.com/aretw0/trellis/blob/main/LICENSE.txt"
+    short_description: "Deterministic state machine engine for CLIs and automation."
