@@ -60,10 +60,16 @@ func (e *Engine) handleToolResult(ctx context.Context, currentState *domain.Stat
 			return e.transitionTo(nextState, e.defaultErrorNodeID)
 		}
 
+		// Prepare Error Cause for reporting
+		cause := result.Error
+		if cause == "" {
+			cause = fmt.Sprintf("%v", result.Result)
+		}
+
 		return nil, &UnhandledToolError{
 			NodeID:   node.ID,
 			ToolName: result.ID,
-			Cause:    result.Result,
+			Cause:    cause,
 		}
 	}
 

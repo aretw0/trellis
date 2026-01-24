@@ -1,0 +1,5 @@
+tools:
+  - name: echo
+    command: go
+    args: ["version"] # Just a safe non-destructive placeholder for demonstration
+    description: A simple echo replacement for demonstration

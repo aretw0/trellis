@@ -65,6 +65,11 @@ Demonstrates the native confirmation UX. It shows how the engine follows standar
 **Concepts:** `x-exec`, `Tools`, `YAML Metadata`
 Demonstrates the power of Universal Action Semantics. This example shows how to define and execute dynamic OS processes (scripts) directly from node metadata without pre-compiling Go tools.
 
+### [Inline Tool Demo (Zero-Config)](./inline-tool-demo)
+
+**Concepts:** `Standalone Nodes`, `Dynamic x-exec`
+Demonstrates how to execute tools without any `tools.yaml` file. Everything is self-contained in the Markdown metadata, allowing for portable and easy-to-distribute flows.
+
 ---
 
 ## 4. Advanced Control
