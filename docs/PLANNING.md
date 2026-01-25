@@ -200,25 +200,31 @@ Foco: Expandir as fronteiras do Trellis para redes e alta escala (Distributed Sy
 - [x] **MCP Advanced**: (Moved to v0.7.1)
 - [x] **WASM/gRPC**: (Moved to v0.8)
 
-### 🚧 v0.7.1: Advanced IO & Performance (The "Optimization" Patch)
+### 🏗️ v0.7.1: Documentation & Installation (An "Polish" Patch)
 
-Foco: Melhorias de performance e targets avançados que não bloquearam o release v0.7.0.
+Foco: Melhorias de documentação que não bloquearam o release v0.7.0, além de suporte a gerenciadores de pacotes.
 
-- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
+- [x] **Installation Managers**: Suporte oficial a `scoop` (Windows) e `homebrew` (Linux/Mac).
+- [x] **Architectural Decisions**: Extração do log de decisões para `DECISIONS.md` para manter `TECHNICAL.md` focado.
+- [x] **GoDoc Server**: Ferramenta local para visualização de documentação de código.
+- [x] **Documentation & Identity Polish**: Consolidação do README e **PRODUCT.md** com foco em "Neuro-Symbolic", "Resiliência" (SAGA) e limites do sistema (Constraints).
+
+### 🏗️ v0.7.2: Developer Experience & Type Safety (The "DX" Patch)
+
+Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX) que estava prevista para v0.8, pois Agentes precisam de contratos firmes *agora*.
+
+- [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
+- [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
+- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance. (Moved from v0.7.1)
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
-- [ ] **Performance Optimizations**:
-  - `pkg/session`: Implement *Sharded Map* to reduce Global Mutex contention (from v0.6 analysis).
-  - `pkg/adapters/redis`: External GC worker for ZSET index (from v0.6 analysis).
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
 Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
 
 - [ ] **Module Encapsulation**: Escopo privado e contratos de entrada/saída para criar bibliotecas de nós reutilizáveis.
-- [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
 - [ ] **Developer Kit (SDK)**: `trellis new flow` generators e scaffolding para facilitar o início.
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
-- [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
 - [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração, eliminando a necessidade de código Go (`main.go`) para setups padrão.
   - *Refinement*: Internal middleware usage should be fully driven by this config.
