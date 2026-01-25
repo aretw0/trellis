@@ -47,25 +47,37 @@ O decisor (seja **IA** ou **Humano**) escolhe *qual* caminho tomar, mas o Trelli
 
 ## Como funciona?
 
-O Trellis define fluxos através de arquivos Markdown (Loam). Texto, Lógica e Dados vivem juntos:
+Coreografamos sua lógica em um **Grafo de Estados**. Você define **Nós** (Passos) e **Transições** (Regras), e o Trellis gerencia a navegação.
+
+Você pode definir esse grafo de duas formas:
+
+### 1. Declarativo (Arquivos)
+
+Ideal para prototipagem, visualização (Mermaid) e edição por LLMs. Suporta **Markdown** (Frontmatter), **YAML** ou **JSON** via [Loam](https://github.com/aretw0/loam).
 
 ```yaml
 # start.yaml
 type: question
-save_to: user_name  # Data Binding automático
-to: greeting # Transição explícita
 content: Olá! Qual é o seu nome?
+save_to: user_name  # Data Binding automático
+to: greeting        # Transição incondicional
 ```
 
-```yaml
-# greeting.yaml
-options: # Transições explícitas
-  - text: "Ver Menu"
-    to: "menu"
-  - text: "Sair"
-    to: "exit"
-content: Prazer, {{ .user_name }}! O que deseja fazer?
+### 2. Programático (Go Structs)
+
+Ideal para integração profunda em backends, performance crítica e type-safety total.
+
+```go
+&domain.Node{
+    ID: "start",
+    Type: "question",
+    Content: []byte("Olá! Qual é o seu nome?"),
+    SaveTo: "user_name",
+    Transitions: []domain.Transition{{ToNodeID: "greeting"}},
+}
 ```
+
+> **Nota**: Ambas as formas geram a mesma estrutura em memória e podem co-existir (ex: carregar arquivos e injetar nós via código).
 
 ## Funcionalidades Principais
 
