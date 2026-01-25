@@ -216,6 +216,7 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance. (Moved from v0.7.1)
+- [ ] **Contextual Tool Policy (Soft Firewall)**: Permitir definir `allowed_tools` ou `tool_hints` no nó para guiar Agentes. O Engine passa essa info no Render, permitindo que o Host filtre ou promova tools específicas.
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
