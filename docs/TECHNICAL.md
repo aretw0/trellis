@@ -130,7 +130,7 @@ trellis/
 
 ### 4. Princípios de Design (Constraints)
 
-Para evitar a "Complexidade Oculta", seguimos estas restrições:
+O sistema impõe restrições explícitas para prevenir a "Complexidade Oculta":
 
 #### 4.1. Logic-Data Decoupling
 
@@ -189,33 +189,30 @@ sequenceDiagram
 - **Validation Failure**: Pausa se novos `required_context` surgirem sem dados na sessão.
 - **Type Mismatch**: Reseta o status de `WaitingForTool` se o nó mudar de tipo.
 
-### 5. Design Constraints & Verified Limitations (v0.6)
+### 5. Arquitetura de Sessão (Trade-offs & Limites)
 
-This section maps the "Sober View" of the architectural trade-offs accepted in version 0.6.
+Esta seção mapeia os trade-offs arquiteturais assumidos na versão 0.6 para garantir leveza e robustez.
 
-#### 5.1. Session Concurrency (RefCounting Fragility)
+#### 5.1. Concorrência de Sessão (RefCounting)
 
-To solve memory leaks without a heavy Garbage Collector, `pkg/session` uses **Reference Counting**:
+Para resolver vazamentos de memória sem um Garbage Collector pesado, o pacote `pkg/session` utiliza **Reference Counting**:
 
-- **Risk**: Depends strictly on `Acquire/Release` pairing. A developer error (phantom panic or missing defer) creates a permanent leak for that ID.
-- **Bottleneck**: The `Manager` uses a **Global Mutex** (`mu`) to protect the lock map. In extreme concurrency (>100k Lock/Unlock ops/sec), this global lock becomes a contention point.
-- **Decision**: Acceptable for CLI/Agent use cases. For high-scale SaaS, sharding the Manager would be required:
-  - *Strategy*: Use `[ShardCount]*sync.Mutex` array.
-  - *Logic*: `shardID = hash(sessionID) % ShardCount`.
-  - *Benefit*: Reduces contention by factor of `ShardCount` (e.g., 256).
+- **Risco**: Depende estritamente do pareamento `Acquire/Release`. Um erro do desenvolvedor (panic fantasma ou defer ausente) pode criar um vazamento permanente para aquele ID.
+- **Gargalo**: O `Manager` usa um **Global Mutex** (`mu`) para proteger o mapa de locks. Em concorrência extrema (>100k Lock/Unlock ops/sec), este lock global torna-se um ponto de contenção.
+- **Decisão**: Adequado para casos de uso CLI/Agent. Para SaaS de alta escala, o `Manager` suportaria sharding (`ShardCount`).
 
-#### 5.2. Redis Lazy Indexing (Zombie Entries)
+#### 5.2. Redis Lazy Indexing (Entradas Zumbis)
 
-The Redis Adapter avoids background workers ("Serverless-friendliness"):
+O Adaptador Redis evita workers em background ("Serverless-friendliness"):
 
-- **Mechanism**: The `List()` method cleans up expired entries from the ZSET Index.
-- **Implication**: If `List()` is rarely called, the ZSET index may contain "Zombie Entries" (IDs whose actual keys have expired) until the next listing.
-- **Cost**: `List()` incurs a write penalty (`ZREMRANGEBYSCORE`).
+- **Mecanismo**: O método `List()` limpa entradas expiradas do Índice ZSET.
+- **Implicação**: Se `List()` for chamado raramente, o índice ZSET pode conter "Entradas Zumbis" (IDs cujas chaves reais já expiraram) até a próxima listagem.
+- **Custo**: `List()` incorre uma penalidade de escrita (`ZREMRANGEBYSCORE`).
 
-#### 5.3. file.Store Pruning (Manual Maintenance)
+#### 5.3. file.Store Pruning (Manutenção Manual)
 
-- **Constraint**: The local file store never deletes old `.json` sessions automatically.
-- **Mitigation**: Rely on manual hygiene (`trellis session rm`) or external OS-level cron jobs. No auto-pruning logic exists to keep the binary simple.
+- **Restrição**: O armazenamento local (`file.Store`) nunca deleta sessões `.json` antigas automaticamente.
+- **Mitigação**: Confia na higiene manual (`trellis session rm`) ou jobs externos (cron). Nenhuma lógica de auto-pruning existe dentro do binário para mantê-lo simples.
 
 ### 6. Estratégia de Testes
 
@@ -224,24 +221,20 @@ Para garantir a estabilidade do Core enquanto o projeto evolui, definimos uma pi
 #### 6.1. Níveis de Teste
 
 1. **Core/Logic (Unit)**:
-    - **Alvo**: `pkg/domain`, `internal/runtime`.
-    - **Estilo**: Table-Driven Tests extensivos.
-    - **Objetivo**: Garantir que a máquina de estados (Engine) transite corretamente dado um input, sem depender de IO ou Filesystem.
-    - **Strict Serialization**: Inclui testes de regressão (`tests/serialization_test.go`) para garantir consistência de `json.Number` e tipos.
+    - **Alvo**: `internal/runtime` (Engine), `internal/validator`, `pkg/session` (Concurrency), `pkg/runner` (Execution Loop).
+    - **Estilo**: Table-Driven Tests extensivos e testes de concorrência.
+    - **Objetivo**: Garantir que a lógica de estado, validação e orquestração funcione isoladamente.
 
 2. **Adapters (Contract Tests)**:
-    - **Alvo**: `loam.Loader` vs `memory.Loader`.
+    - **Alvo**: `pkg/adapters/*` (Abrangendo Loaders, Stores e Protocols).
+    - **Exemplos**: `loam` vs `memory` (Graph), `file` vs `redis` (State Store).
     - **Estilo**: Interface Compliance Tests (Contract Tests).
-    - **Objetivo**: Garantir que diferentes implementações da mesma porta (`GraphLoader` ou `StateStore`) se comportem de forma idêntica. Se o `memory.Loader` funciona, o `loam.Loader` (que lê arquivos reais) deve passar no mesmo suite de testes.
+    - **Objetivo**: Garantir que diferentes implementações das portas (`GraphLoader`, `StateStore`) respeitem o mesmo contrato comportamental.
 
-3. **Integration (E2E)**:
-    - **Alvo**: `cmd/trellis` (Blackbox).
-    - **Estilo**: CLI Runners / JSON In-Out.
-    - **Objetivo**: Simular um usuário real ou sistema externo interagindo com o binário. Verifica se a "cola" (Wiring) entre as camadas está funcionando.
-
-4. **Snapshot Testing**:
-    - **Alvo**: CLI Output / TUI.
-    - **Objetivo**: Garantir que a experiência de cada pixel na tela não regrediu (útil para detectar quebras de layout).
+3. **Integration (E2E/Certification)**:
+    - **Alvo**: `tests/` (exercita `cmd/trellis` externamente).
+    - **Estilo**: Blackbox Testing & Certification Suite.
+    - **Objetivo**: Simula um usuário real interagindo com o sistema completo, validando o fluxo ponta-a-ponta (`cmd` -> `runner` -> `engine` -> `fs`). O arquivo `tests/certification_test.go` é a fonte da verdade para a conformidade do engine.
 
 ---
 
@@ -455,16 +448,16 @@ flowchart TD
 2. **Cycle Detection**: Recursive imports are guarded against infinite loops (`visited` set).
 3. **Shadowing Policy**: Local definitions always override imported ones.
 
-### 8.6. Idempotency & Deduplication (v0.7)
+### 8.6. Idempotência e Deduplicação (v0.7)
 
-Trellis ensures **at-most-once** execution for Side-Effects (Tool Calls) using deterministic keys.
+O Trellis garante a execução **at-most-once** para Efeitos Colaterais (Tool Calls) usando chaves determinísticas.
 
-**The Contract:**
+**O Contrato:**
 
-1. **Determinism**: Re-running the same State + Node produces the exact same `IdempotencyKey`.
-2. **Scope**: Uniqueness is guaranteed by `SessionID + NodeID + StepIndex + ToolName`.
+1. **Determinismo**: Reexecutar o mesmo Estado + Nó produz exatamente a mesma `IdempotencyKey`.
+2. **Escopo**: A unicidade é garantida por `SessionID + NodeID + StepIndex + ToolName`.
 
-**Sequence Diagram:**
+**Diagrama de Sequência:**
 
 ```mermaid
 sequenceDiagram
@@ -479,32 +472,32 @@ sequenceDiagram
     Note over T: External System (e.g., API, DB)<br/>deduplicates using Key
 ```
 
-### 8.7. Native SAGA Orchestration (v0.7)
+### 8.7. Orquestração SAGA Nativa (v0.7)
 
-Trellis supports the **SAGA Pattern** natively, allowing for reliable distributed transactions without a central database coordinator.
+O Trellis suporta o **Padrão SAGA** nativamente, permitindo transações distribuídas confiáveis sem um coordenador de banco de dados central.
 
-#### 8.7.1. Concept: Do/Undo Symmetry
+#### 8.7.1. Conceito: Simetria Do/Undo
 
-Every "Action" (Side-Effect) can have a corresponding "Reversal" (Compensating Transaction) defined directly in the node.
+Toda "Ação" (Efeito Colateral) pode ter uma "Reversão" (Transação Compensatória) correspondente definida diretamente no nó.
 
 ```go
 type Node struct {
-    Do   *ToolCall // The Primary Action (e.g., Charge Card)
-    Undo *ToolCall // The Compensating Action (e.g., Refund Card)
+    Do   *ToolCall // A Ação Primária (ex: Cobrar Cartão)
+    Undo *ToolCall // A Ação Compensatória (ex: Estornar Cartão)
 }
 ```
 
-This ensures **Locality of Behavior**: the code that reverses an action sits right next to the action itself.
+Isso garante **Localidade de Comportamento**: o código que reverte uma ação reside ao lado da própria ação.
 
-#### 8.7.2. Rollback Lifecycle
+#### 8.7.2. Ciclo de Vida do Rollback
 
-When a tool fails with `on_error: rollback`, **OR** when a node explicitly transitions to `to: rollback`, the Engine enters **Rollback Mode**:
+Quando uma ferramenta falha com `on_error: rollback`, **OU** quando um nó transita explicitamente para `to: rollback`, o Engine entra em **Modo Rollback**:
 
-1. **Unwind**: The Engine pops the history stack one by one.
-2. **Compensate**: If a popped node has an `undo` definition, the Engine executes it.
-3. **Continue**: The rollback continues until the history is empty or a savepoint is reached (Start).
+1. **Unwind (Desempilhar)**: O Engine desempilha o histórico um a um.
+2. **Compensate (Compensar)**: Se um nó desempilhado tiver uma definição `undo`, o Engine a executa.
+3. **Continue**: O rollback continua até que o histórico esteja vazio ou um savepoint seja alcançado (Start).
 
-> **Lifecycle Guarantee**: The Engine guarantees that `OnNodeLeave` is emitted for the node initiating the rollback (whether via error or explicit transition) *before* the rollback sequence begins, ensuring consistent observability.
+> **Garantia de Ciclo de Vida**: O Engine garante que `OnNodeLeave` seja emitido para o nó que iniciou o rollback (seja por erro ou transição) *antes* que a sequência de rollback comece, assegurando observabilidade consistente.
 
 ```mermaid
 sequenceDiagram
@@ -528,15 +521,15 @@ sequenceDiagram
     Note over Engine: State: Terminated
 ```
 
-### 8.8. Metadata Flattening Strategy (Loader Adapter)
+### 8.8. Estratégia de Achatamento de Metadata (Loader Adapter)
 
-To support rich UX in YAML (nested objects) while keeping the Core Domain simple (`map[string]string`), the `loam.Loader` implements a **Flattening Strategy**.
+Para suportar UX rica em YAML (objetos aninhados) mantendo o Domínio Core simples (`map[string]string`), o `loam.Loader` implementa uma **Estratégia de Achatamento (Flattening)**.
 
-**Problem**: The Core `domain.ToolCall.Metadata` is strictly a `map[string]string` to ensure flat serialization protocols (HTTP Headers, simple JSON). However, users want to define complex configs like `x-exec` naturally in YAML.
+**Problema**: O `domain.ToolCall.Metadata` do Core é estritamente um `map[string]string` para garantir protocolos de serialização planos (HTTP Headers, JSON simples). No entanto, usuários querem definir configurações complexas como `x-exec` naturalmente no YAML.
 
-**Solution**: The Adapter accepts `map[string]any` and recursively flattens it using dot-notation (or dash-notation for specific prefixes) before creating the Domain Node.
+**Solução**: O Adaptador aceita `map[string]any` e o achata recursivamente usando notação de ponto (ou traço para prefixos específicos) antes de criar o Nó de Domínio.
 
-**Example**:
+**Exemplo**:
 
 *YAML Input:*
 
@@ -556,13 +549,13 @@ Metadata: {
 }
 ```
 
-### 9. Runner & IO Architecture
+### 9. Arquitetura do Runner & IO
 
-The `Runner` serves as the bridge between the Core Engine and the outside world. It manages the execution loop, handles middleware, and delegates IO to an `IOHandler`.
+O `Runner` serve como a ponte entre o Engine Core e o mundo externo. Ele gerencia o loop de execução, lida com middleware e delega IO para um `IOHandler`.
 
-It delegates signal handling to a dedicated **SignalManager** (`pkg/runner/signal_manager.go`) which ensures race-free context cancellation and signal resetting.
+Ele delega o tratamento de sinais para um **SignalManager** dedicado (`pkg/runner/signal_manager.go`) que garante cancelamento de contexto livre de condições de corrida.
 
-#### 9.1. Session Cycle
+#### 9.1. Ciclo da Sessão
 
 ```mermaid
 sequenceDiagram
@@ -601,19 +594,19 @@ sequenceDiagram
 
 #### 9.2. Stateless & Async IO
 
-Trellis supports two primary modes of operation:
+O Trellis suporta dois modos primários de operação:
 
-1. **Text Mode** (`TextHandler`): For interactive TUI/CLI usage. Blocks on user input.
-2. **JSON Mode** (`JSONHandler`): For headless automation and API integration.
+1. **Text Mode** (`TextHandler`): Para uso interativo TUI/CLI. Bloqueia no input do usuário.
+2. **JSON Mode** (`JSONHandler`): Para automação headless e integração de API.
 
-**Key constraint for JSON Mode:**
+**Restrição Chave para Modo JSON:**
 
-- **Strict JSON Lines (JSONL)**: All inputs to the `JSONHandler` must be single-line JSON strings.
-- **Async/Non-Blocking**: The handler reads from Stdin in a background goroutine, allowing cancellation (timeout/interrupt).
-- **Signal Mapping (Context-Aware)**: The Runner monitors:
-  - `signals.Context().Done()`: Explicit User Signal (SIGINT). Maps to `"interrupt"`.
-  - `ctx.Done()` (Parent): External Orchestrator (Watch Reload). Treated as Clean Exit (no signal mapping).
-  - `inputCtx.Done()` (Deadline): Maps to `"timeout"`.
+- **Strict JSON Lines (JSONL)**: Todos os inputs para o `JSONHandler` devem ser strings JSON de linha única.
+- **Async/Non-Blocking**: O handler lê de Stdin em uma goroutine em background, permitindo cancelamento (timeout/interrupt).
+- **Mapeamento de Sinais (Context-Aware)**: O Runner monitora:
+  - `signals.Context().Done()`: Sinal de Usuário Explícito (SIGINT). Mapeia para `"interrupt"`.
+  - `ctx.Done()` (Parent): Orquestrador Externo (Watch Reload). Tratado como Saída Limpa (sem mapeamento de sinal).
+  - `inputCtx.Done()` (Deadline): Mapeia para `"timeout"`.
 
 #### 9.3. Semântica de Texto e Bloqueio
 
@@ -649,13 +642,13 @@ flowchart TD
     Result -- Active --> Next([Next State - Loop])
 ```
 
-#### 9.5. Pattern: Stdin Pump (IO Safety)
+#### 9.5. Padrão: Stdin Pump (IO Safety)
 
-Input handling in Go, especially with `os.Stdin`, is blocking by nature. To support **Timeouts** (cancelable reads) without blocking the main event loop or leaking "ghost readers" (race conditions where a stale goroutine eats input intended for the next step), `TextHandler` implements the **Stdin Pump** pattern.
+O tratamento de input em Go, especialmente com `os.Stdin`, é bloqueante por natureza. Para suportar **Timeouts** (leitura cancelável) sem bloquear o loop de evento principal ou vazar "leitores fantasmas" (race conditions onde uma goroutine estagnada consome input destinado ao próximo passo), o `TextHandler` implementa o padrão **Stdin Pump**.
 
-- **Single Producer**: A persistent goroutine (`pump`) reads from the underlying Reader loop forever.
-- **Buffered Channel**: Results (`string` or `error`) are sent to `inputChan`.
-- **Select-based Consumption**: The `Input(ctx)` method listens to `inputChan`. If `ctx` times out, it stops listening, but the pump **remains active**, ready to serve the next call (type-ahead support).
+- **Produtor Único**: Uma goroutine persistente (`pump`) lê do Reader subjacente eternamente.
+- **Canal Bufferizado**: Resultados (`string` ou `error`) são enviados para `inputChan`.
+- **Consumo via Select**: O método `Input(ctx)` escuta o `inputChan`. Se `ctx` estourar o tempo, ele para de escutar, mas o pump **permanece ativo**, pronto para servir a próxima chamada (suporte a type-ahead).
 
 ```mermaid
 flowchart LR
@@ -672,12 +665,12 @@ flowchart LR
 
 > **Stewardship Note**: This pattern prevents multiple goroutines from fighting over `bufio.Reader`. The `Runner` automatically memoizes the handler instance to ensure that reusing a `Runner` instance also reuses the single Pump goroutine.
 
-#### 9.5.1. Windows Console Strategy (CONIN$)
+#### 9.5.1. Estratégia Windows Console (CONIN$)
 
-On Windows, standard `os.Stdin` behavior differs significantly from Unix. Pressing `Ctrl+C` often closes the `Stdin` stream immediately (sending `io.EOF`) before the OS signal handler can intercept the interrupt. This leads to a race condition where the application treats the interrupt as a simple End-Of-File or "User Quit" rather than a signal.
+No Windows, o comportamento padrão do `os.Stdin` difere significativamente do Unix. Pressionar `Ctrl+C` frequentemente fecha o stream `Stdin` imediatamente (enviando `io.EOF`) antes que o handler de sinal do SO possa interceptar a interrupção. Isso leva a uma condição de corrida onde a aplicação trata a interrupção como um simples End-Of-File ou "User Quit" em vez de um sinal.
 
-**The Solution:**
-To mitigate this, the `TextHandler` detects if it is running on a Windows Terminal and, if so, opens `CONIN$` directly. `CONIN$` is a special Windows file handle that remains open even when `Ctrl+C` is pressed, allowing the `SignalManager` to trap the signal correctly and protecting the input stream from premature closure.
+**A Solução:**
+Para mitigar isso, o `TextHandler` detecta se está rodando em um Terminal Windows e, se sim, abre `CONIN$` diretamente. `CONIN$` é um file handle especial do Windows que permanece aberto mesmo quando `Ctrl+C` é pressionado, permitindo que o `SignalManager` capture o sinal corretamente e protegendo o stream de input de fechamento prematuro.
 
 #### 9.6. Architectural Insight: Engine-bound vs Runner-bound
 
@@ -713,15 +706,15 @@ Essa camada é crucial para operações de longa duração, onde "desligar e lig
 
 > **Maintenance Note**: O file.Store não implementa *Auto-Pruning* (limpeza automática) de sessões antigas. Cabe ao administrador ou desenvolvedor executar `trellis session rm` periodicamente ou configurar scripts externos de limpeza (cron) se o diretório de sessões crescer excessivamente.
 
-#### 9.9. File Store Semantics (Baton Passing)
+#### 9.9. Semântica do File Store (Passagem de Bastão)
 
-While the File Store enables durability, it imposes specific architectural constraints:
+Embora o File Store permita durabilidade, ele impõe restrições arquiteturais específicas:
 
-- **Passive Storage**: The file storage is passive. It does not push updates to running processes.
-- **Baton Passing Model**:
-  - If **Process A** is running and waiting for input, and **Process B** updates the state file (e.g., via a Signal), **Process A will not automatically wake up**.
-  - Process A is effectively a "Zombie" regarding the new state until it is restarted or explicitly polls (polling is not implemented in v0.6).
-  - This model supports **"Stop-and-Resume"** (Baton Passing) but not real-time **"Remote Control"**.
+- **Armazenamento Passivo**: O file storage é passivo. Ele não empurra atualizações para processos em execução.
+- **Modelo Baton Passing**:
+  - Se o **Processo A** está rodando e aguardando input, e o **Processo B** atualiza o arquivo de estado (ex: via Sinal), o **Processo A não acordará automaticamente**.
+  - O Processo A é efetivamente um "Zumbi" em relação ao novo estado até que seja reiniciado ou faça polling explícito (polling não implementado na v0.6).
+  - Este modelo suporta **"Stop-and-Resume"** (Passagem de Bastão), mas não **"Controle Remoto"** em tempo real.
 
 #### 10. Fluxo de Dados e Serialização
 
@@ -754,9 +747,9 @@ O Trellis força **Strict Mode** em todos os adaptadores para resolver o problem
 
 #### 10.4. Data Contracts (Validation & Defaults)
 
-**Standard Serialization (Snake Case):**
+**Serialização Padrão (Snake Case):**
 
-To ensure interoperability, the Engine serializes its state to JSON using `snake_case` keys (e.g., `current_node_id`, `pending_tool_call`), regardless of the internal Go struct naming. This allows for cleaner integration with external tools and manual session inspection.
+Para garantir interoperabilidade, o Engine serializa seu estado para JSON usando chaves em `snake_case` (ex: `current_node_id`, `pending_tool_call`), independentemente da nomeação interna das structs em Go. Isso permite integração mais limpa com ferramentas externas e inspeção manual de sessão.
 
 **Fail Fast (Required Context):**
 
@@ -931,15 +924,15 @@ flowchart TD
     style Exit fill:#f00,stroke:#333,color:#fff
 ```
 
-#### 12.7. Input Sanitization & Limits
+#### 12.7. Sanitização de Input & Limites
 
-To ensure robust operation in production (especially in shared-memory environments like Kubernetes Pods), Trellis enforces limits on user input at the Runner layer. This applies globally to **all adapters** (CLI, HTTP, MCP).
+Para garantir operação robusta em produção (especialmente em ambientes de memória compartilhada como Pods Kubernetes), o Trellis impõe limites no input do usuário na camada do Runner. Isso se aplica globalmente a **todos os adaptadores** (CLI, HTTP, MCP).
 
-- **Max Input Size**: Defaults to 4KB. Configurable via `TRELLIS_MAX_INPUT_SIZE`.
-- **Control Characters**: Automatically strips dangerous ANSI/Control codes to prevent log poisoning.
-- **Behavior**: Inputs exceeding the limit are **Rejected** (returning an error) rather than silently truncated, preserving state integrity ("Deterministic State").
+- **Tamanho Máximo de Input**: Padrão de 4KB. Configurável via `TRELLIS_MAX_INPUT_SIZE`.
+- **Caracteres de Controle**: Automaticamente remove códigos ANSI/Control perigosos para prevenir envenenamento de log.
+- **Comportamento**: Inputs excedendo o limite são **Rejeitados** (retornando erro) em vez de truncados silenciosamente, preservando a integridade do estado ("Estado Determinístico").
 
-See [Deployment Strategies](../docs/guides/deployment_strategies.md) for provisioning advice.
+Veja [Deployment Strategies](../docs/guides/deployment_strategies.md) para conselhos de provisionamento.
 
 ### 13. Adapters & Interfaces
 
@@ -1016,15 +1009,15 @@ Expõe o Trellis como um servidor MCP (Model Context Protocol).
 
 - **Tools Expostas**: `navigate`, `render_state`.
 
-#### 13.4. Redis Persistence Model
+#### 13.4. Modelo de Persistência Redis
 
-To support scalable persistent sessions, the Redis adapter implements a specialized indexing strategy.
+Para suportar sessões persistentes escaláveis, o adaptador Redis implementa uma estratégia de indexação especializada.
 
-- **Storage**: Sessions are stored as JSON blobs in strict keys (`trellis:session:<id>`) with an optional TTL.
-- **Indexing**: A `ZSET` (`trellis:session:index`) tracks active sessions using the expiration timestamp as the score.
-- **Lazy Cleanup**: The `List()` operation performs maintenance. It removes expired entries from the index (*ZREMRANGEBYSCORE*) before returning valid sessions.
+- **Armazenamento**: Sessões são armazenadas como blobs JSON em chaves estritas (`trellis:session:<id>`) com um TTL opcional.
+- **Indexação**: Um `ZSET` (`trellis:session:index`) rastreia sessões ativas usando o timestamp de expiração como score.
+- **Manutenção Preguiçosa**: A operação `List()` realiza a manutenção. Ela remove entradas expiradas do índice (*ZREMRANGEBYSCORE*) antes de retornar sessões válidas.
 
-> **Trade-off**: This design keeps the adapter stateless (no background workers required), aligning with Serverless architectures. However, it means `List()` incurs a write cost. For high-throughput environments requiring read-only listing, this behavior can be disabled in favor of an external garbage collector (Future Work).
+> **Trade-off**: Este design mantém o adaptador stateless (sem necessidade de workers em background), alinhando-se com arquiteturas Serverless. No entanto, significa que `List()` incorre um custo de escrita. Para ambientes de alto throughput exigindo listagem somente leitura, este comportamento pode ser desabilitado em favor de um garbage collector externo (Trabalho Futuro).
 
 ```mermaid
 sequenceDiagram
@@ -1077,16 +1070,16 @@ Um middleware separado permite a sanitização de dados sensíveis (Personally I
 - **Caveat**: Se o processo falhar e for reiniciado, os dados persistidos estarão mascarados (`***`), o que pode impedir a retomada se o fluxo depender desses dados. Use este middleware para Compliance de Logs ou quando a durabilidade do dado sensível não for crítica.
 - **Resources**: `trellis://graph`.
 
-### 14. Observability
+### 14. Observabilidade (Observability)
 
-Trellis fornece **Lifecycle Hooks** para instrumentação externa.
+O Trellis fornece **Lifecycle Hooks** para instrumentação externa.
 
 - **Hooks**: `OnNodeEnter`, `OnNodeLeave`, `OnToolReturn`, etc.
-- **Log Standard**: Events use consistent keys.
-  - `node_id`: ID of the node.
-  - `tool_name`: Name of the tool (never empty).
-  - `type`: Event type (`node_enter`, `node_leave`, `tool_call`, `tool_return`).
-  - **Note**: The event type `tool_call` is preserved for historical observability stability, even though the Node field is now `Do`.
+- **Padrão de Log**: Eventos usam chaves consistentes.
+  - `node_id`: ID do nó.
+  - `tool_name`: Nome da ferramenta (nunca vazio).
+  - `type`: Tipo do evento (`node_enter`, `node_leave`, `tool_call`, `tool_return`).
+  - **Nota**: O tipo de evento `tool_call` é preservado para estabilidade histórica de observabilidade, mesmo que o campo do Nó agora seja `Do`.
 - **Integração**: Pode ser usado com `log/slog` e `Prometheus` sem acoplar essas dependências ao Core (ex: `examples/structured-logging`).
 
 #### 14.1 Diagrama de Eventos (Lifecycle Hooks)
@@ -1119,12 +1112,12 @@ sequenceDiagram
     Engine->>Engine: Resolve Transition -> Node B
 ```
 
-#### 15. Process Adapter (Local Script Execution)
+#### 15. Process Adapter (Execução de Script Local)
 
 O `ProcessAdapter` permite que o Trellis orquestre scripts locais (`.sh`, `.py`, `.js`, etc.) como ferramentas de primeira classe.
 
-- **Objective**: "Glue Code". Permitir que o Trellis automatize tarefas de infraestrutura sem reimplementar a lógica em Go.
-- **Architecture**: `Engine -> ToolCall -> ProcessAdapter -> os/exec`.
+- **Objetivo**: "Glue Code". Permitir que o Trellis automatize tarefas de infraestrutura sem reimplementar a lógica em Go.
+- **Arquitetura**: `Engine -> ToolCall -> ProcessAdapter -> os/exec`.
 
 **Security Model (v0.7 - Strict Registry):**
 
