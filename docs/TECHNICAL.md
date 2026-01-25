@@ -4,6 +4,8 @@
 
 Esta seção define os pilares arquiteturais, regras de design e estratégias que governam todo o projeto.
 
+> **Nota**: Para o histórico evolutivo e justificativas de design (Log de Decisões), consulte [DECISIONS.md](./DECISIONS.md).
+
 ### 1. Definição Formal (Identity)
 
 Tecnicamente, o Trellis é um **Reentrant Deterministic Finite Automaton (DFA) with Controlled Side-Effects**.

@@ -1,0 +1,26 @@
+# Architectural Decision Log (ADR)
+
+This document tracks the evolution of Trellis's architecture, preserving the context, pivots, and trade-offs made during development. Ideally, this serves as a primary source for academic analysis of the project's history.
+
+## Chronological Log
+
+- **2025-12-11**: *Presentation Layer Responsibility*. Decidido que a limpeza de whitespace (sanitização de output) é responsabilidade da camada de apresentação (CLI), não do Storage (Loam) ou do Domain (Engine).
+- **2025-12-11**: *Loam Integration*. Adotado `TypedRepository` para mapear frontmatter automaticamente, tratando o Loam como fonte da verdade para formatos.
+- **2025-12-13**: *Logic Decoupling*. Adotada estratégia de "Delegated Logic". O Markdown declara *intenções* de lógica, o Host implementa.
+- **2025-12-13**: *Encapsulation*. `NodeMetadata` e `LoaderTransition` mantidos como DTOs públicos em `loam_loader` por conveniência experimental. (Resolvido em 2025-12-16 movendo para `internal/dto`).
+- **2025-12-16**: *Refactoring*. Extração de `NodeMetadata` e `LoaderTransition` para `internal/dto` para limpar a API do adapter e centralizar definições.
+- **2025-12-14**: *Test Strategy*. Decidido que a cobertura de testes deve ser explícita em cada fase crítica.
+- **2026-01-11**: *Interpolation Strategy*. Adotada Interface `Interpolator` para permitir plugabilidade de estratégias de template (o usuário pode escolher entre Go Template, Legacy ou outros), mantendo o Core agnóstico.
+- **2026-01-13**: *Tool Definition Strategy*. Adotada abordagem polimórfica para a chave `tools`. Aceita tanto definições inline (Maps) quanto referências (Strings). Decidido aceitar o trade-off de tipagem em `[]any` em troca de DX superior, mitigando riscos com validação manual e detecção de ciclos no Loader.
+- **2026-01-14**: *Context Security*. Implementado namespace reservado `sys.*` no Engine. Escrita via `save_to` é bloqueada para prevenir injeção de estado. Leitura via templates é permitida para introspecção e error handling.
+- **2026-01-14**: *Execution Lifecycle*. Refatorado `Engine.Navigate` para seguir estritamente `applyInput` (Update) -> `resolveTransition` (Resolve) -> `Transition`. Adicionado Deep Interpolation para argumentos de ferramenta em `Engine.Render`.
+- **2026-01-15**: *Strategic Pivot*. Roadmap v0.5.2 reorientado de "Ops" para "Control & Safety". Decidido que instrumentação (Prometheus/Log) é responsabilidade do Host via Lifecycle Hooks, mantendo o Core leve. "Instrumented Adapters" removido do roadmap, com `examples/structured-logging` servindo como referência canônica.
+- **2026-01-15**: *Sober Refactor*. Consolidação da confiabilidade do Runner. Unificada a lógica de nós terminais (garantindo logs de saída) e extraído `SignalManager` para isolar complexidade de concorrência. Adotado `log/slog` padronizado em todo o CLI.
+- **2026-01-16**: *Roadmap Pivot*. v0.6 redefinida de "DX/Ergonomics" para "Integration & Persistence". Reconhecimento de que a gestão de estado persistente e concorrência é o "Elo Perdido" para adoção em ChatOps reais, priorizando-o sobre features de luxo (LSP/DSL).
+- **2026-01-16**: *Future Phases*. Roadmap v0.7 e v0.8 reestruturados para separar preocupações de Runtime/Escala (v0.7 - Network) das preocupações de Ferramental/Ecossistema (v0.8 - Modularity).
+- **2026-01-16**: *Runner Refactor Decision*. Decidido refatorar o `Runner` para usar **Functional Options Pattern**. Motivo: A injeção de `Store` e `SessionID` via argumentos/propriedades tornou a API frágil e inconsistente ("bêbada"). A configuração deve ser imutável no momento da construção.
+- **2026-01-22**: *Runner Loop Simplification*. Removida otimização prematura ("Short Circuit") para nós terminais. Decisão: O `Runner` deve sempre delegar ao `Engine.Navigate` para garantir que eventos de ciclo de vida (`OnNodeLeave`) sejam disparados consistentemente, mesmo na saída.
+- **2026-01-22**: *Explicit Naming Strategy*. Adotada convenção "Manual X" (`manual-saga`, `manual-security`) para exemplos que demonstram wiring explícito de features que futuramente serão nativas/automáticas. Isso preserva o espaço semântico e educa o usuário sobre a diferença entre "Padrão Nativo" e "Implementação via Código".
+- **2026-01-23**: *Library-First Architecture*. Movidos adaptadores de infraestrutura (`file`, `redis`, `loam`) e DTOs para `pkg` a fim de permitir o uso do Trellis como biblioteca. `internal/dto` foi consolidado em `pkg/adapters/loam` para aumentar a coesão, revertendo a extração de 2025-12-16.
+- **2026-01-23**: *Loader Adapter Strategy*. Implementado "Metadata Flattening" no adaptador Loam (`LoaderToolCall`) para suportar YAML rico (`x-exec` aninhado) enquanto mantém o Core Domain estrito (`map[string]string`). Isso resolve a discrepância de UX vs Arquitetura mantendo o core puro.
+- **2026-01-24**: *Release v0.7.0*. Fechado o escopo da v0.7 focado em "Polyglot Integration" (Process Adapter finalizado). Itens de otimização (SSE Granular, Sharding) e targets exóticos (WASM) foram movidos para v0.7.1 e v0.8 para não bloquear o release estável das novas features de Processo e SAGA.
