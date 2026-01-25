@@ -104,3 +104,11 @@ Estamos na fronteira (Frontier Tech).
 | **Trellis Gateway** | **Protocol Gateway** | **Stateful (Business Process)** |
 
 O Trellis Gateway permite definir regras de segurança baseadas no **Processo de Negócio**, agnósticas de linguagem ou modelo.
+
+## 7. Inspiração: Colang 2.0 (NeMo Guardrails)
+
+A análise do **Colang 2.0** valida a tese do Trellis de que **Guardrails são Processos**.
+
+Assim como o Colang usa fluxos (`flow`) para restringir quais eventos são aceitos num dado momento, o Trellis usa o Estado Atual para restringir quais ferramentas podem ser chamadas (Contextual Firewall).
+
+> **Nota**: A discussão sobre como o Trellis adotará a sintaxe compacta do Colang (Macro Nodes) e a arquitetura do **Graph Compiler** foi movida para [dsl_compiler.md](./dsl_compiler.md).

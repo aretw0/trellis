@@ -322,6 +322,8 @@ Na versão 0.7, o Engine adotou a semântica de "Actions Universais", removendo 
 * **Input Node**: Se possui `wait` ou `input_type`, aguarda input do usuário.
 * **Content Node**: Se possui `content` (ou corpo Markdown), renderiza texto.
 
+> **Futuro (DSL)**: Para ver como o Trellis evoluirá para suportar "Macro Nodes" (`type: flow`) e sintaxe mais compacta via um Compilador de Grafo, consulte [docs/architecture/dsl_compiler.md](../architecture/dsl_compiler.md).
+
 **Padrões e Restrições:**
 
 1. **Text + Action (The "Zero Fatigue" Pattern)**:
