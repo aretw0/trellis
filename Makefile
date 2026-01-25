@@ -39,3 +39,8 @@ vet:
 # Verify server endpoints (requires server running in another terminal)
 verify:
 	curl.exe -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
+
+
+# Run local Go documentation server (pkgsite)
+serve-docs:
+	go tool godoc -http=:6060
