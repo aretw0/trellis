@@ -1,32 +1,72 @@
 /*
-Package trellis is a state machine engine designed for building text-based adventure games, interactive stories, and complex conversational flows.
+Package trellis is a deterministic state machine engine (DFA) designed for building robust conversational agents, CLIs, and automation workflows.
 
-It provides a flexible runtime that separates the narrative graph definition from the execution state, enabling rich, logic-driven navigation.
+It implements a "Reentrant DFA with Controlled Side-Effects" architecture, separating the narrative graph (Logic) from the execution state (Context) and side-effects (Tools).
+
+# Concept
+
+Trellis treats your application flow as a graph of nodes. The engine manages the state transitions, data binding, and persistence, while your application ("Host") manages the I/O and external tool execution. This Hexagonal Architecture allows Trellis to be embedded in any interface: CLI, HTTP Server, or AI Agent infrastructure.
 
 # Key Features
 
-  - Graph-based State Machine: Define complex flows with nodes and transitions.
-  - Pluggable Loaders: Load graphs from the filesystem (Markdown/Frontmatter) or in-memory structures.
-  - Conditional Logic: Dynamic transitions based on custom evaluators.
-  - State Management: Serializable state for long-running sessions.
+  - Deterministic Execution: Given the same state and input, the transition is always reproducible.
+  - Hexagonal Architecture: Core logic is decoupled from adapters (Storage, UI, Tools).
+  - State Persistence: Built-in support for long-running sessions ("Durable Execution").
+  - Strict Contracts: Validates graph integrity and data types to prevent runtime surprises.
 
-# Basic Usage
+# Usage
 
-Initialize the engine seamlessly using the filesystem loader (powered by Loam):
+Initialize the engine using the "Start" entrypoint. You can use the default filesystem loader (Loam) or inject a custom one.
 
-	eng, err := trellis.New("./story-data")
-	if err != nil {
-	    log.Fatal(err)
+	package main
+
+	import (
+		"context"
+		"log"
+
+		"github.com/aretw0/trellis"
+	)
+
+	func main() {
+		// Initialize Engine with default settings (reads from ./my-flow)
+		eng, err := trellis.New("./my-flow")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Start a new session
+		ctx := context.Background()
+		state, err := eng.Start(ctx, "session-123", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Main Loop: Render -> Input -> Navigate
+		for {
+			// 1. Render View (What to show/do?)
+			actions, terminal, valErr := eng.Render(ctx, state)
+			if valErr != nil {
+				log.Printf("Error: %v", valErr)
+				break
+			}
+
+			// Handle Actions (Print text, Call tools...)
+			for _, act := range actions {
+				log.Println("Action:", act)
+			}
+
+			if terminal {
+				log.Println("End of flow.")
+				break
+			}
+
+			// 2. Navigate (Next Step)
+			// In a real app, this input comes from User or Tool Result
+			state, err = eng.Navigate(ctx, state, "user input")
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
-
-	state := eng.Start()
-
-	// Render the initial view
-	actions, _, err := eng.Render(context.Background(), state)
-
-	// Navigate based on input
-	nextState, err := eng.Navigate(context.Background(), state, "open door")
-
-For advanced usage, including custom loaders or conditional logic, refer to the examples and sub-packages.
 */
 package trellis
