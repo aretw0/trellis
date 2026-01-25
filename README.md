@@ -5,13 +5,45 @@
 [![License](https://img.shields.io/github/license/aretw0/trellis.svg)](LICENSE.txt)
 [![Release](https://img.shields.io/github/release/aretw0/trellis.svg?branch=main)](https://github.com/aretw0/trellis/releases)
 
-> **Resilience by Design.**
+> **The Neuro-Symbolic Backbone for Agents & Automation.**
 
 **Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) para a construção de CLIs, **ChatOps** resilientes e Guardrails para Agentes de IA (**Neuro-Symbolic**).
 
 Atuando como a espinha dorsal lógica do sistema, ele impõe estritamente as regras de negócio e transições permitidas, enquanto sua interface (ou LLM) gerencia apenas a apresentação.
 
 Mais do que um engine, é uma plataforma de **Durable Execution** que permite a suspensão e retomada de processos longos, habilitando padrões avançados como **SAGA** (Orquestração de Transações e Compensação).
+
+> **Hybrid Nature**: Use como **Framework** (CLI + Markdown) para prototipagem rápida, ou como **Biblioteca** (Go) para controle total em seu backend. *"Opinionated by default, flexible under the hood."*
+
+## O Conceito Neuro-Simbólico & Automação
+
+O Trellis preenche a lacuna entre a **Rigidez dos Processos** e a **Flexibilidade da Inteligência**:
+
+* **Para Agentes de IA**: Atua como o "Córtex Pré-Frontal" (Simbólico), impedindo alucinações e garantindo que o agente siga regras de negócio estritas.
+* **Para Humanos**: Funciona como um motor de **Workflow as Code** (similar a um n8n/Zapier, mas compilado e versionável), ideal para CLIs complexas, scripts de Ops e automação.
+
+```mermaid
+graph TD
+    %% Nodes
+    Brain["🧠 Cérebro (LLM) ou<br/>👤 Humano (CLI)"] -->|Intenção / Input| Trellis["🛡️ Espinha Dorsal<br/>(Trellis Engine)"]
+    
+    subgraph "Mundo Simbólico (Determinístico)"
+        Trellis -->|Validação| Rules["📜 Regras de Negócio<br/>(State Machine)"]
+        Rules -->|Ok / Block| Trellis
+    end
+    
+    Trellis -->|Execução Segura| Tools["⚡ Ferramentas<br/>(API / DB / Scripts)"]
+    Tools -->|Resultado| Trellis
+    Trellis -->|Contexto Atualizado| Brain
+
+    %% Styles
+    style Brain fill:#f9f,stroke:#333,stroke-width:2px,color:black
+    style Trellis fill:#9cf,stroke:#333,stroke-width:2px,color:black
+    style Rules fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:black
+    style Tools fill:#9f9,stroke:#333,stroke-width:2px,color:black
+```
+
+O decisor (seja **IA** ou **Humano**) escolhe *qual* caminho tomar, mas o Trellis garante que ele *existe* e é *válido*.
 
 ## Como funciona?
 
@@ -37,14 +69,14 @@ content: Prazer, {{ .user_name }}! O que deseja fazer?
 
 ## Funcionalidades Principais
 
-- **Data Binding & Contexto**: Capture inputs (`save_to`) e use variáveis (`{{ .name }}`) nativamente.
-- **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`), escalando sua arquitetura.
-- **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, Cursor, etc.).
-- **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação (Zero "undefined" errors).
-- **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core é desacoplado de IO e Persistência (Hexagonal).
-- **Error Handling**: Mecanismo nativo de recuperação (`on_error`) para ferramentas que falham.
-- **Native SAGA Support**: Orquestração de transações distribuídas com `undo` e `rollback` automático.
-- **Hot Reload**: Desenvolva com feedback instantâneo (SSE) ao salvar seus arquivos.
+* **Data Binding & Contexto**: Capture inputs (`save_to`) e use variáveis (`{{ .name }}`) nativamente.
+* **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`), escalando sua arquitetura.
+* **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, Cursor, etc.).
+* **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação (Zero "undefined" errors).
+* **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core é desacoplado de IO e Persistência (Hexagonal).
+* **Error Handling**: Mecanismo nativo de recuperação (`on_error`) para ferramentas que falham.
+* **Native SAGA Support**: Orquestração de transações distribuídas com `undo` e `rollback` automático.
+* **Hot Reload**: Desenvolva com feedback instantâneo (SSE) ao salvar seus arquivos.
 
 ## Quick Start
 
@@ -70,10 +102,18 @@ Instale via **Homebrew**:
 brew install aretw0/tap/trellis
 ```
 
-#### Via Go (Desenvolvedores)
+#### Via Go (Library Mode)
+
+Para usar o Trellis como biblioteca dentro do seu backend (sem arquivos, puramente em memória):
 
 ```bash
-go install github.com/aretw0/trellis/cmd/trellis@latest
+go get github.com/aretw0/trellis
+```
+
+```go
+// Exemplo: Instanciando o Engine sem ler arquivos
+loader, _ := memory.NewFromNodes(myNodes...)
+eng, _ := trellis.New("", trellis.WithLoader(loader))
 ```
 
 ### Rodando o Golden Path (Demo)
@@ -141,12 +181,13 @@ O engine monitorará seus arquivos `.md`, `.json`, `.yaml`. Ao salvar, a sessão
 
 ## Documentação
 
-- [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
-- [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
-- [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
-- [🎮 Guide: Interactive Inputs](./docs/guides/interactive_inputs.md)
-- [💾 Guide: Session Management (Chaos Control)](./docs/guides/session_management.md)
-- [📅 Roadmap & Planning](./docs/PLANNING.md)
+* [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
+* [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
+* [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
+* [🎮 Guide: Interactive Inputs](./docs/guides/interactive_inputs.md)
+* [💾 Guide: Session Management (Chaos Control)](./docs/guides/session_management.md)
+* [📅 Roadmap & Planning](./docs/PLANNING.md)
+* [⚖️ Decisões de Arquitetura](./docs/DECISIONS.md)
 
 ## Estrutura
 
@@ -160,11 +201,6 @@ trellis/
 └── tests/         # Testes de Integração (Certification Suite)
 ```
 
-## Library vs Framework
+## Licença
 
-O Trellis foi desenhado para ser usado de duas formas:
-
-1. **Como Framework (CLI)**: Use o executável `trellis` para rodar pastas de Markdown (`loam`). Ótimo para scripts rapidos e prototipagem.
-2. **Como Biblioteca (Go)**: Importe `github.com/aretw0/trellis` e instancie o Engine dentro do seu binário. Você pode injetar grafos em memória, usar banco de dados ou qualquer outra fonte, sem depender de arquivos ou do Loam.
-
-> "Opinionated by default (Loam), flexible under the hood (Memory/Custom)."
+[AGPL-3.0](LICENSE.txt)
