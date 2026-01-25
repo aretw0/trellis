@@ -1,49 +1,55 @@
-# Product: Trellis
+# Produto: Trellis
 
-> "Faça uma coisa e faça bem feita. Trabalhe com fluxos de texto." - Filosofia Unix
+> "Agentes de IA sem Estado são apenas chatbots criativos. Agentes com Estado são Sistemas de Automação."
 
-**Trellis** é o "Cérebro Lógico" de um sistema de automação. Projetada como uma **Função Pura de Transição de Estado**, ela opera isolada de efeitos colaterais, processando apenas estruturas de dados e retornando intenções.
+**Trellis** é o "Neuro-Symbolic Backbone" (Espinha Dorsal Neuro-Simbólica) para Automação e Agentes de IA.
+
+> **Analogy**: Assim como o **React** gerencia a complexidade da UI através de um DOM Virtual, o **Trellis** gerencia a complexidade do Comportamento do Agente através de uma Máquina de Estados Virtual.
+
+Projetada como uma **Função Pura de Transição de Estado**, ela opera isolada de efeitos colaterais, garantindo que "O que deveria acontecer" sempre corresponda ao "O que aconteceu".
 
 ## Filosofia e Identidade
 
-### Por que "Fluxos de Texto"?
+### Por que "Máquinas de Estado"?
 
-Embora o **Loam** guarde os arquivos, é o **Trellis** que dá *vida* e *fluxo* a eles. Uma conversa não é estática; é um fluxo de intenções textuais. O Trellis é o filtro que transforma esse texto bruto em próximo passo lógico.
+Embora o **Loam** guarde os arquivos, é o **Trellis** que garante a integridade do processo. Agentes de IA não precisam apenas processar texto; precisam respeitar *regras*.
 
-### O "Unix Way"
+O Trellis transforma a "Conversa Probabilística" (LLM) em "Transição Determinística" (DFA). Ele garante que o sistema só transite de "Pagamento" para "Envio" se o pagamento for confirmado, independente do quão persuasivo o LLM seja.
 
-Trellis não é um framework monolítico; é um **filtro**.
+### Arquitetura: The Pure Kernel
 
-- **Input**: Estado Atual + Grafo de Decisão + Input do Usuário.
-- **Processamento**: Determinação determinística do próximo passo.
-- **Output**: Novo Estado + Ações Solicitadas.
+Trellis não é um framework monolítico; é um **Kernel Puro**.
 
-### Estratégia: O que o Trellis NÃO É
+- **Input**: Estado Atual + Intenção (LLM/User) + Regras.
+- **Process**: Computação determinística da próxima transição.
+- **Output**: Novo Estado Auditável.
 
-Para manter a sanidade do projeto, definimos limites claros:
+### Estratégia: Limites de Design (Constraints)
+
+Para manter o foco do projeto, definimos o que ele **NÃO É**:
 
 1. **Não é uma Linguagem de Programação**: Não haverá loops complexos, definição de funções ou matemática arbitrária no Markdown.
 2. **Não é um Template Engine Genérico**: Evitaremos recriar o Jinja2/Liquid. A lógica deve ser delegada, não embutida.
-3. **Não é um Banco de Dados**: O Trellis consome estado, mas não gerencia persistência complexa (isso é trabalho do Loam ou do Host).
+3. **Não é o Banco de Dados da Aplicação**: O Trellis persiste o **Estado de Execução** (Durable Execution), mas não substitui seu banco de dados de negócio. Ele armazena "Onde estou e contexto temporário", não "O histórico de pedidos da empresa".
 
 ### Escalabilidade & Organização
 
 À medida que os fluxos crescem, a organização se torna crítica. O Trellis suporta **Sub-Grafos e Namespaces** nativamente. Isso permite que equipes dividam grandes fluxos monolíticos em pequenos módulos independentes (pastas), conectados via `jump_to`.
 
-### Posicionamento: The Toolmaker's Tool
+### Posicionamento: Critical Infrastructure
 
-Para responder onde o Trellis quer chegar: **Ele deve ser a ferramenta que os criadores de ferramentas usam.**
+Para responder onde o Trellis quer chegar: **Ele deve ser a infraestrutura crítica que Toolmakers confiam.**
 
-Seja para criar um CLI interativo, um bot de WhatsApp, ou um wizard de instalação, o problema é sempre o mesmo: *Gerenciar o fluxo de conversa*. O Trellis resolve isso de forma agnóstica.
+Seja para criar um CLI interativo, um bot de WhatsApp, ou um Agente Autônomo Enterprise, o problema é sempre o mesmo: *Garantir que o fluxo siga as regras*.
 
 **O Trellis é o Guarda de Trânsito, não o Motor do Carro.**
 
 - Ele apenas diz *para onde ir* (Próximo Nó).
 - Ele não *dirige o carro* (não faz chamadas de API, não processa pagamentos).
 
-### Durable Execution (Vision)
+### Durable Execution (Reality)
 
-Embora o Core seja stateless, a plataforma Trellis almeja ser um sistema de **Durable Execution** (inspirado em Temporal/Cadence). O objetivo é que, através de Adapters de Persistência, um fluxo Trellis possa "dormir" por dias e acordar exatamente onde parou, permitindo padrões **SAGA** (transações longas compensatórias) de forma visual.
+O Trellis é uma plataforma de **Durable Execution** (v0.6+). Ele permite que fluxos "durmam" por dias e acordem exatamente onde pararam (Time-Travel), habilitando padrões **SAGA** (transações longas com rollback automático).
 
 Isso permite que ele seja usado tanto em um script bash simples quanto em um backend Go complexo para Telegram com requisitos de missão crítica.
 
@@ -62,3 +68,6 @@ O Trellis ocupa um espaço crítico na arquitetura de **Agentes de IA (LLMs)**, 
 ## Related Guides
 
 - [Running HTTP Server](./guides/running_http_server.md): Guide for using Trellis as a stateless backend for Agents.
+- [Running MCP Server](./guides/running_mcp_server.md): Connect Trellis to Claude/Cursor as a Tool Provider.
+- [Manual SAGA Pattern](./guides/manual_saga_pattern.md): How to implement transactions and undo logic.
+- [Interactive Inputs](./guides/interactive_inputs.md): Patterns for Human-in-the-loop workflows.

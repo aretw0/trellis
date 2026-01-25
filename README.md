@@ -19,8 +19,8 @@ Mais do que um engine, é uma plataforma de **Durable Execution** que permite a 
 
 O Trellis preenche a lacuna entre a **Rigidez dos Processos** e a **Flexibilidade da Inteligência**:
 
-* **Para Agentes de IA**: Atua como o "Córtex Pré-Frontal" (Simbólico), impedindo alucinações e garantindo que o agente siga regras de negócio estritas.
-* **Para Humanos**: Funciona como um motor de **Workflow as Code** (similar a um n8n/Zapier, mas compilado e versionável), ideal para CLIs complexas, scripts de Ops e automação.
+* **Para Agentes de IA**: Substitua "If/Else" frágeis e Prompts gigantes por um grafo de estados auditável. O Trellis impede alucinações de fluxo.
+* **Para Humanos**: Funciona como um motor de **Workflow as Code** (similar a um n8n/Zapier, mas compilado e versionável), ideal para CLIs complexas e automação de Ops.
 
 ```mermaid
 graph TD
