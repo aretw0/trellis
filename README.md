@@ -5,13 +5,13 @@
 [![License](https://img.shields.io/github/license/aretw0/trellis.svg)](LICENSE.txt)
 [![Release](https://img.shields.io/github/release/aretw0/trellis.svg?branch=main)](https://github.com/aretw0/trellis/releases)
 
-> "Simplifique o Caos. Construa fluxos determinísticos." - Filosofia Trellis
+> **Resilience by Design.**
 
-**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) projetado para a construção de CLIs, **ChatOps** resilientes e Guardrails para Agentes de IA (**Neuro-Symbolic**).
+**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) para a construção de CLIs, **ChatOps** resilientes e Guardrails para Agentes de IA (**Neuro-Symbolic**).
 
-Ele atua como a espinha dorsal lógica do seu sistema: enquanto sua interface (ou LLM) gerencia a conversa, o Trellis impõe estritamente as regras de negócio, o contexto e as transições permitidas.
+Atuando como a espinha dorsal lógica do sistema, ele impõe estritamente as regras de negócio e transições permitidas, enquanto sua interface (ou LLM) gerencia apenas a apresentação.
 
-> **Visão**: O Trellis almeja ser o "Temporal Visual" — uma plataforma de **Durable Execution** que permite fluxos de longa duração (SAGA) e recuperação de falhas.
+Mais do que um engine, é uma plataforma de **Durable Execution** que permite a suspensão e retomada de processos longos, habilitando padrões avançados como **SAGA** (Orquestração de Transações e Compensação).
 
 ## Como funciona?
 
