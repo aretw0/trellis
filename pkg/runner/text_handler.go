@@ -66,19 +66,8 @@ func NewTextHandler(r io.Reader, w io.Writer, opts ...TextHandlerOption) *TextHa
 	}
 
 	// Windows Specific: Check if we are running in a terminal.
-	// If so, we MUST use CONIN$ to read input.
-	// Standard os.Stdin on Windows closes immediately on Ctrl+C (EOF),
-	// which creates a race condition with the SignalManager.
-	// CONIN$ stays open, allowing the SignalManager to catch the Interrupt first.
-	if runtime.GOOS == "windows" {
-		if f, ok := r.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
-			conin, err := os.Open("CONIN$")
-			if err == nil {
-				h.source = conin
-				h.interactive = true
-			}
-		}
-	}
+	// If so, we MUST use CONIN$ to read input to support graceful signal handling.
+	h.source, h.interactive = resolveInputReader(r)
 
 	h.Reader = bufio.NewReader(h.source)
 
@@ -225,4 +214,18 @@ func (h *TextHandler) SystemOutput(ctx context.Context, msg string) error {
 	// Let's use "[System]" prefix for now.
 	fmt.Fprintf(h.Writer, "\n[System] %s\n", msg)
 	return nil
+}
+
+// resolveInputReader attempts to open a platform-specific terminal reader (e.g., CONIN$ on Windows).
+// Returns the reader to use and a boolean indicating if it is an interactive terminal handled specially.
+func resolveInputReader(defaultReader io.Reader) (io.Reader, bool) {
+	if runtime.GOOS == "windows" {
+		if f, ok := defaultReader.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+			conin, err := os.Open("CONIN$")
+			if err == nil {
+				return conin, true
+			}
+		}
+	}
+	return defaultReader, false
 }
