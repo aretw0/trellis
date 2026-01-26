@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/trellis)](https://goreportcard.com/report/github.com/aretw0/trellis)
 [![Go Doc](https://godoc.org/github.com/aretw0/trellis?status.svg)](https://godoc.org/github.com/aretw0/trellis)
-[![License](https://img.shields.io/github/license/aretw0/trellis.svg)](LICENSE.txt)
+[![License](https://img.shields.io/github/license/aretw0/trellis.svg?color=red)](LICENSE.txt)
 [![Release](https://img.shields.io/github/release/aretw0/trellis.svg?branch=main)](https://github.com/aretw0/trellis/releases)
 
 > **The Neuro-Symbolic Backbone for Agents & Automation.**
