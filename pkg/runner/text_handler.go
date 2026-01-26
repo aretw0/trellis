@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	"golang.org/x/term"
-
+	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/registry"
 )
@@ -216,16 +214,16 @@ func (h *TextHandler) SystemOutput(ctx context.Context, msg string) error {
 	return nil
 }
 
-// resolveInputReader attempts to open a platform-specific terminal reader (e.g., CONIN$ on Windows).
+// resolveInputReader attempts to open a platform-specific terminal reader (e.g., CONIN$ on Windows) via lifecycle library.
 // Returns the reader to use and a boolean indicating if it is an interactive terminal handled specially.
 func resolveInputReader(defaultReader io.Reader) (io.Reader, bool) {
-	if runtime.GOOS == "windows" {
-		if f, ok := defaultReader.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
-			conin, err := os.Open("CONIN$")
-			if err == nil {
-				return conin, true
-			}
-		}
+	// UpgradeTerminal (lifecycle) handles the checks:
+	// 1. Is it a file?
+	// 2. Is it a terminal?
+	// 3. If so, return OpenTerminal() (CONIN$ on Windows)
+	// Otherwise returns defaultReader.
+	if r, err := lifecycle.UpgradeTerminal(defaultReader); err == nil && r != defaultReader {
+		return r, true
 	}
 	return defaultReader, false
 }

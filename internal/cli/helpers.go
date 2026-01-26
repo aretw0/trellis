@@ -2,14 +2,12 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+
+	"github.com/aretw0/lifecycle"
+	"github.com/aretw0/lifecycle/pkg/signal"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/logging"
@@ -23,58 +21,13 @@ import (
 	"github.com/aretw0/trellis/pkg/session"
 )
 
-// SignalContext wraps a context and captures the signal that cancelled it.
-type SignalContext struct {
-	context.Context
-	Cancel func()
-	start  sync.Once
-	stop   sync.Once
-	sigCh  chan os.Signal
-	sigVal os.Signal
-	mu     sync.Mutex
-}
+type SignalContext = signal.Context
 
 // NewSignalContext creates a context that is cancelled on SIGTERM (standard termination).
 // It captures SIGINT (Interrupt) separately to allow the state machine to handle it.
+// Delegated to lifecycle library.
 func NewSignalContext(parent context.Context) *SignalContext {
-	ctx, cancel := context.WithCancel(parent)
-	sc := &SignalContext{
-		Context: ctx,
-		Cancel:  cancel,
-		sigCh:   make(chan os.Signal, 1),
-	}
-
-	sc.start.Do(func() {
-		// We only cancel the context on SIGTERM.
-		// SIGINT is captured but NOT automatically cancel the context here,
-		// because we want the Engine/Runner to have first dibs on handling it.
-		signal.Notify(sc.sigCh, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			select {
-			case sig := <-sc.sigCh:
-				sc.mu.Lock()
-				sc.sigVal = sig
-				sc.mu.Unlock()
-				if sig == syscall.SIGTERM {
-					sc.Cancel()
-				}
-			case <-sc.Context.Done():
-				// Context cancelled elsewhere
-			}
-			sc.stop.Do(func() {
-				signal.Stop(sc.sigCh)
-			})
-		}()
-	})
-
-	return sc
-}
-
-// Signal returns the signal that caused the context to be cancelled, or nil.
-func (sc *SignalContext) Signal() os.Signal {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	return sc.sigVal
+	return lifecycle.NewSignalContext(parent)
 }
 
 // createLogger configures the application logger.
@@ -150,48 +103,8 @@ func createDebugHooks(logger *slog.Logger) domain.LifecycleHooks {
 	}
 }
 
-// InterruptibleReader wraps an io.Reader (like os.Stdin) and checks for a cancellation signal.
-type InterruptibleReader struct {
-	base   io.Reader
-	cancel <-chan struct{}
-}
-
-func NewInterruptibleReader(base io.Reader, cancel <-chan struct{}) *InterruptibleReader {
-	return &InterruptibleReader{
-		base:   base,
-		cancel: cancel,
-	}
-}
-
-func (r *InterruptibleReader) Read(p []byte) (n int, err error) {
-	// Check before blocking
-	select {
-	case <-r.cancel:
-		return 0, errors.New("interrupted")
-	default:
-	}
-
-	// Read (This blocks!)
-	n, err = r.base.Read(p)
-
-	// Check after returning
-	select {
-	case <-r.cancel:
-		return 0, errors.New("interrupted")
-	default:
-	}
-	return n, err
-}
-
 func isInterrupted(err error) bool {
-	if err == nil {
-		return false
-	}
-	return errors.Is(err, context.Canceled) ||
-		err.Error() == "interrupted" ||
-		err.Error() == "input error: interrupted" ||
-		errors.Is(err, io.EOF) ||
-		(errors.Unwrap(err) != nil && isInterrupted(errors.Unwrap(err)))
+	return lifecycle.IsInterrupted(err)
 }
 
 func handleExecutionError(err error) error {
