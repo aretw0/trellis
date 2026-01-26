@@ -1,4 +1,4 @@
-.PHONY: all gen build test vet serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify
+.PHONY: all gen build test vet serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify use-local use-local-all use-pub use-pub-all
 
 # Default target
 all: gen build
@@ -42,3 +42,35 @@ inspect-tour-sse:
 # Verify server endpoints (requires server running in another terminal)
 verify:
 	curl.exe -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
+
+# --- Dependency Management (Dev vs Prod) ---
+
+# Switch a specific dependency to local version
+# Usage: make use-local mod=lifecycle
+use-local:
+	@if [ "$(mod)" = "" ]; then echo "Error: mod argument required (e.g. make use-local mod=lifecycle)"; exit 1; fi
+	@echo "Switching $(mod) to local..."
+	@go mod edit -replace github.com/aretw0/$(mod)=../$(mod)
+	@go mod tidy
+
+# Switch ALL known aretw0 dependencies to default local paths (siblings)
+use-local-all:
+	@echo "Switching all aretw0 deps to local (siblings)..."
+	@go mod edit -replace github.com/aretw0/lifecycle=../lifecycle
+	@go mod edit -replace github.com/aretw0/loam=../loam
+	@go mod tidy
+
+# Revert a specific dependency to published version
+# Usage: make use-pub mod=lifecycle
+use-pub:
+	@if [ "$(mod)" = "" ]; then echo "Error: mod argument required"; exit 1; fi
+	@echo "Reverting $(mod) to published..."
+	@go mod edit -dropreplace github.com/aretw0/$(mod)
+	@go mod tidy
+
+# Revert ALL aretw0 dependencies to published versions
+use-pub-all:
+	@echo "Reverting all aretw0 deps to published..."
+	@go mod edit -dropreplace github.com/aretw0/lifecycle
+	@go mod edit -dropreplace github.com/aretw0/loam
+	@go mod tidy
