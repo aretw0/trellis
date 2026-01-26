@@ -1,4 +1,4 @@
-.PHONY: all gen build test vet serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify use-local use-local-all use-pub use-pub-all
+.PHONY: all gen build test vet serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify use-local-lifecycle use-local-loam use-local-all use-pub-lifecycle use-pub-loam use-pub-all
 
 # Default target
 all: gen build
@@ -45,12 +45,15 @@ verify:
 
 # --- Dependency Management (Dev vs Prod) ---
 
-# Switch a specific dependency to local version
-# Usage: make use-local mod=lifecycle
-use-local:
-	@if [ "$(mod)" = "" ]; then echo "Error: mod argument required (e.g. make use-local mod=lifecycle)"; exit 1; fi
-	@echo "Switching $(mod) to local..."
-	@go mod edit -replace github.com/aretw0/$(mod)=../$(mod)
+# Switch specific dependencies to local version
+use-local-lifecycle:
+	@echo "Switching lifecycle to local..."
+	@go mod edit -replace github.com/aretw0/lifecycle=../lifecycle
+	@go mod tidy
+
+use-local-loam:
+	@echo "Switching loam to local..."
+	@go mod edit -replace github.com/aretw0/loam=../loam
 	@go mod tidy
 
 # Switch ALL known aretw0 dependencies to default local paths (siblings)
@@ -60,12 +63,15 @@ use-local-all:
 	@go mod edit -replace github.com/aretw0/loam=../loam
 	@go mod tidy
 
-# Revert a specific dependency to published version
-# Usage: make use-pub mod=lifecycle
-use-pub:
-	@if [ "$(mod)" = "" ]; then echo "Error: mod argument required"; exit 1; fi
-	@echo "Reverting $(mod) to published..."
-	@go mod edit -dropreplace github.com/aretw0/$(mod)
+# Revert specific dependencies to published version
+use-pub-lifecycle:
+	@echo "Reverting lifecycle to published..."
+	@go mod edit -dropreplace github.com/aretw0/lifecycle
+	@go mod tidy
+
+use-pub-loam:
+	@echo "Reverting loam to published..."
+	@go mod edit -dropreplace github.com/aretw0/loam
 	@go mod tidy
 
 # Revert ALL aretw0 dependencies to published versions
