@@ -236,17 +236,17 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 
 Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
 
-- [ ] **Module Encapsulation**: Escopo privado e contratos de entrada/saída para criar bibliotecas de nós reutilizáveis.
+- [ ] **Ecosystem Convergence (Modules & Manifests)**: Adaptação para o "Lobster Way".
+  - [ ] **Loam Manifest Support**: Suporte a `trellis.yaml` na raiz para definir metadados e configs unificadas (Substituindo necessidade de múltiplos arquivos).
+  - [ ] **Lifecycle Supervisor Integration**: Delegar gestão de processos (Sub-Agentes) para a lib `lifecycle` (Supervisor Pattern).
+  - [ ] **Spawn Protocol**: Definir contrato de mensagens para iniciar/controlar sub-agentes via Stdout/Events.
 - [ ] **SQLite Adapter**: Implementação de referência para `ports.StateStore` usando `database/sql`. Permite infraestrutura "Single-File" compartilhada com outras libs (ex: `whatsmeow`).
 - [ ] **Developer Kit (SDK)**: `trellis new flow` generators e scaffolding para facilitar o início.
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
-- [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração, eliminando a necessidade de código Go (`main.go`) para setups padrão.
+- [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração.
   - *Refinement*: Internal middleware usage should be fully driven by this config.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
-- [ ] **Process Supervisor (Daemon Mode)**:
-  - Capacidade do Trellis (via adaptador ou subcomando) de spawnar e monitorar sidecars de longa duração.
-  - Reagir a eventos de processo (`sys.process_exit`) e manter "Tools as Services" rodando.
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
 
 ---
