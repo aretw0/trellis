@@ -217,6 +217,9 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance. (Moved from v0.7.1)
 - [ ] **Contextual Tool Policy (Soft Firewall)**: Permitir definir `allowed_tools` ou `tool_hints` no nó para guiar Agentes. O Engine passa essa info no Render, permitindo que o Host filtre ou promova tools específicas.
+- [ ] **Async Tool Protocol ("The Callback Pattern")**: Padronizar como uma ferramenta indica "Iniciei, me chame de volta depois" (Status Pending).
+  - *Fluxo*: Engine entra em `WaitingForCallback`. Runner pode dormir.
+  - *Resume*: `trellis resume --session <id> --tool-output <json>`.
 - [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
@@ -230,6 +233,9 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração, eliminando a necessidade de código Go (`main.go`) para setups padrão.
   - *Refinement*: Internal middleware usage should be fully driven by this config.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
+- [ ] **Process Supervisor (Daemon Mode)**:
+  - Capacidade do Trellis (via adaptador ou subcomando) de spawnar e monitorar sidecars de longa duração.
+  - Reagir a eventos de processo (`sys.process_exit`) e manter "Tools as Services" rodando.
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
 
 ---

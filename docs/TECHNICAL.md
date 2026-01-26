@@ -552,7 +552,24 @@ sequenceDiagram
     Note over Engine: State: Terminated
 ```
 
-### 8.8. Estratégia de Achatamento de Metadata (Loader Adapter)
+### 8.8. Estratégias Async & Long-Running (v0.7+)
+
+O Trellis suporta nativamente a orquestração de processos assíncronos sem violar seu modelo determinístico, delegando a gestão temporal ao Host/Runner.
+
+1. **Fire-and-Forget (Non-Blocking)**:
+    * **Cenário**: Disparar um webhook ou log sem esperar resposta.
+    * **Implementação**: O Runner despacha a goroutine e retorna imediatamente `Success: true` para o Engine. O Engine não bloqueia.
+
+2. **Async/Await (The Callback Pattern)**:
+    * **Cenário**: "Human-in-the-Loop" ou "Deploy de 30 min".
+    * **Protocolo**: Ferramenta retorna status `PENDING`. O Engine entra em estado `WaitingForCallback` (novo estado proposto) ou permanece em `WaitingForTool` com flag de persistência.
+    * **Ciclo**: Sessão é hibernada. Host externo acorda a sessão via `Navigate(ToolResult)` quando o evento ocorre.
+
+3. **Process Supervisor (Daemon Strategy)**:
+    * **Conceito**: O Trellis pode atuar como "Kernel" monitorando processos satélites (`sidecars`).
+    * **Mecanismo**: Um `ProcessAdapter` avançado mantém subprocessos vivos e converte `sys.exit` ou `stdout` em eventos (`signals`) que transicionam o grafo (ex: `on_signal: process_crash -> restart`).
+
+### 8.9. Estratégia de Achatamento de Metadata (Loader Adapter)
 
 Para suportar UX rica em YAML (objetos aninhados) mantendo o Domínio Core simples (`map[string]string`), o `loam.Loader` implementa uma **Estratégia de Achatamento (Flattening)**.
 
