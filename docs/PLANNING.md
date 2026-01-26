@@ -209,9 +209,19 @@ Foco: Melhorias de documentação que não bloquearam o release v0.7.0, além de
 - [x] **GoDoc Server**: Ferramenta local para visualização de documentação de código.
 - [x] **Documentation & Identity Polish**: Consolidação do README e **PRODUCT.md** com foco em "Neuro-Symbolic", "Resiliência" (SAGA) e limites do sistema (Constraints).
 
-### 🏗️ v0.7.2: Developer Experience & Type Safety (The "DX" Patch)
+### ✅ v0.7.2: Ecosystem Unification (The "Core" Refactor)
 
-Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX) que estava prevista para v0.8, pois Agentes precisam de contratos firmes *agora*.
+Foco: Centralizar lógica repetitiva entre projetos do ecossistema (`trellis`, `tobot`, `fiscus`) para evitar duplicação e garantir consistência de comportamento (especialmente em Sinais e IO).
+
+- [x] **Lifecycle Library**: Criação da lib `github.com/aretw0/lifecycle` para centralizar:
+  - **SignalContext**: Lógica de duplo sinal (SIGINT vs SIGTERM).
+  - **Terminal IO**: Abstração cross-platform (`CONIN$` no Windows) para leitura segura de input.
+- [x] **Trellis Adoption**: Refatoração do Trellis para delegar essa responsabilidade à nova lib (Removed ~100 LOC).
+- [x] **Dependency Switching**: Makefile targets (`use-local`, `use-pub`) para facilitar o desenvolvimento simultâneo de libs e cosumidores.
+
+### 🏗️ v0.7.3: Developer Experience & Type Safety (The "DX" Patch)
+
+Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX).
 
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
