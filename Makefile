@@ -1,4 +1,4 @@
-.PHONY: all gen build serve test verify
+.PHONY: all gen build test vet serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify
 
 # Default target
 all: gen build
@@ -10,6 +10,18 @@ gen:
 # Build the Trellis CLI
 build:
 	go build -o trellis.exe ./cmd/trellis
+
+# Run all tests
+test:
+	go test ./...
+
+# Run vet tool in all files
+vet:
+	go vet ./...
+
+# Run local Go documentation server (pkgsite)
+serve-docs:
+	go tool godoc -http=:6060
 
 # Run the Stateless Server in dev mode (requires `tour` example)
 serve-tour: gen
@@ -27,20 +39,6 @@ inspect-tour:
 inspect-tour-sse:
 	npx @modelcontextprotocol/inspector --server-url http://localhost:8080/sse
 
-
-# Run all tests
-test:
-	go test ./...
-
-# Run vet tool in all files
-vet:
-	go vet ./...
-
 # Verify server endpoints (requires server running in another terminal)
 verify:
 	curl.exe -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
-
-
-# Run local Go documentation server (pkgsite)
-serve-docs:
-	go tool godoc -http=:6060
