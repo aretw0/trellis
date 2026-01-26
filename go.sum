@@ -9,8 +9,6 @@ github.com/alicebob/miniredis/v2 v2.36.0 h1:yKczg+ez0bQYsG/PrgqtMMmCfl820RPu27kV
 github.com/alicebob/miniredis/v2 v2.36.0/go.mod h1:TcL7YfarKPGDAthEtl5NBeHZfeUQj6OXMm/+iu5cLMM=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
-github.com/aretw0/lifecycle v0.1.0 h1:Zq3nKIg/WsUWOZXjZM/NbFVgfbuS3bM8eyRyJEO7JoM=
-github.com/aretw0/lifecycle v0.1.0/go.mod h1:UTG5CyMplb3jT4dxh7QVabKHpleLIqEQ+608rf9hgqw=
 github.com/aretw0/lifecycle v0.1.1 h1:pP0Jj3qfHGuaze0PoQhH17qqNeHbvgrhaQ5V9ENWH5k=
 github.com/aretw0/lifecycle v0.1.1/go.mod h1:UTG5CyMplb3jT4dxh7QVabKHpleLIqEQ+608rf9hgqw=
 github.com/aretw0/loam v0.10.6 h1:z98uxwhiM1NzYGZwFmgY1V2bNF2Fm+6SEHqlIDkS2Nw=
