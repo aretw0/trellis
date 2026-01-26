@@ -227,6 +227,7 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
 
 - [ ] **Module Encapsulation**: Escopo privado e contratos de entrada/saída para criar bibliotecas de nós reutilizáveis.
+- [ ] **SQLite Adapter**: Implementação de referência para `ports.StateStore` usando `database/sql`. Permite infraestrutura "Single-File" compartilhada com outras libs (ex: `whatsmeow`).
 - [ ] **Developer Kit (SDK)**: `trellis new flow` generators e scaffolding para facilitar o início.
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
