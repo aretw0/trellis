@@ -236,10 +236,14 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 
 Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
 
-- [ ] **Ecosystem Convergence (Modules & Manifests)**: Adaptação para o "Lobster Way".
-  - [ ] **Loam Manifest Support**: Suporte a `trellis.yaml` na raiz para definir metadados e configs unificadas (Substituindo necessidade de múltiplos arquivos).
-  - [ ] **Lifecycle Supervisor Integration**: Delegar gestão de processos (Sub-Agentes) para a lib `lifecycle` (Supervisor Pattern).
-  - [ ] **Spawn Protocol**: Definir contrato de mensagens para iniciar/controlar sub-agentes via Stdout/Events.
+- [ ] **Ecosystem Convergence (The "Lobster Way")**: Adaptação para modelos de pipelines tipados e resilientes.
+  - [ ] **Loam Project Integration**: Utilizar `loam.Project` para carregar `trellis.yaml` (Manifest) e validar inputs/configs de forma unificada.
+  - [ ] **Lifecycle Integration**:
+    - [ ] **Supervisor Mount**: Tornar o Trellis um "Worker" compatível com o Supervisor do `lifecycle` (Gestão de Agentes).
+    - [ ] **Unified Observability**: Integrar Introspecção (`State()`) e Telemetria (`pkg/metrics`) ao padrão do `lifecycle`.
+  - [ ] **Resumable Protocols**:
+    - [ ] **Native Approval Gates**: Implementar `type: approval` com serialização de estado/token e Exit Code limpo (Safe Halt).
+    - [ ] **Resume/Spawn Protocol**: Suporte a reidratação (`--resume <token>`) e contrato de mensagens para controle via Stdout.
 - [ ] **SQLite Adapter**: Implementação de referência para `ports.StateStore` usando `database/sql`. Permite infraestrutura "Single-File" compartilhada com outras libs (ex: `whatsmeow`).
 - [ ] **Developer Kit (SDK)**: `trellis new flow` generators e scaffolding para facilitar o início.
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
