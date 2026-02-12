@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/aretw0/lifecycle"
-	"github.com/aretw0/lifecycle/pkg/signal"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/logging"
@@ -21,14 +20,7 @@ import (
 	"github.com/aretw0/trellis/pkg/session"
 )
 
-type SignalContext = signal.Context
-
-// NewSignalContext creates a context that is cancelled on SIGTERM (standard termination).
-// It captures SIGINT (Interrupt) separately to allow the state machine to handle it.
-// Delegated to lifecycle library.
-func NewSignalContext(parent context.Context) *SignalContext {
-	return lifecycle.NewSignalContext(parent)
-}
+type SignalContext = lifecycle.Context
 
 // createLogger configures the application logger.
 // In debug mode, it writes to Stderr (to separate from Stdout flow UI).
@@ -59,11 +51,15 @@ func logSessionStatus(logger *slog.Logger, sessionID, nodeID string, loaded, qui
 }
 
 // createRunnerOptions prepares the functional options for the Runner.
-func createRunnerOptions(logger *slog.Logger, headless bool, sessionID string, store ports.StateStore, jsonMode bool, ioHandler *runner.IOHandler) []runner.Option {
+func createRunnerOptions(logger *slog.Logger, headless bool, sessionID string, store ports.StateStore, ioHandler runner.IOHandler, interruptSource <-chan struct{}) []runner.Option {
 
 	opts := []runner.Option{
 		runner.WithLogger(logger),
 		runner.WithHeadless(headless),
+	}
+
+	if interruptSource != nil {
+		opts = append(opts, runner.WithInterruptSource(interruptSource))
 	}
 
 	if sessionID != "" {
@@ -71,11 +67,10 @@ func createRunnerOptions(logger *slog.Logger, headless bool, sessionID string, s
 		opts = append(opts, runner.WithStore(store))
 	}
 
-	if jsonMode {
-		opts = append(opts, runner.WithInputHandler(runner.NewJSONHandler(os.Stdin, os.Stdout)))
-	} else if ioHandler != nil {
-		opts = append(opts, runner.WithInputHandler(*ioHandler))
+	if ioHandler != nil {
+		opts = append(opts, runner.WithInputHandler(ioHandler))
 	} else if !headless {
+		// Default to generic renderer if no handler provided (legacy fallback)
 		opts = append(opts, runner.WithRenderer(tui.NewRenderer()))
 	}
 
@@ -117,7 +112,7 @@ func handleExecutionError(err error) error {
 	return err
 }
 
-func logCompletion(nodeID string, err error, debug bool, promptActive bool, quiet bool, sig os.Signal) {
+func logCompletion(nodeID string, err error, quiet bool, sig os.Signal) {
 	if quiet {
 		return
 	}
@@ -127,20 +122,8 @@ func logCompletion(nodeID string, err error, debug bool, promptActive bool, quie
 	}
 
 	if isInterrupted(err) {
-		// Aesthetic: Print [CTRL+C] simulation if likely from user via SIGINT
+		// Aesthetic: UI handling is now done via Lifecycle Events (Signal/ClearLine)
 		if sig == os.Interrupt {
-			if debug {
-				// Debug mode: Logs likely interrupted the prompt line. Restore context.
-				fmt.Printf("> [CTRL+C]\n")
-			} else {
-				if promptActive {
-					// Normal mode, Input active: Clean UI, append to existing prompt.
-					fmt.Printf("[CTRL+C]\n")
-				} else {
-					// Normal mode, Idle: Create prompt for consistency.
-					fmt.Printf("> [CTRL+C]\n")
-				}
-			}
 			printSystemMessage("Interrupted at '%s' node.", nodeID)
 		} else if sig != nil {
 			// SIGTERM or others

@@ -3,7 +3,10 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/internal/presentation/tui"
 	"github.com/aretw0/trellis/pkg/adapters/process"
@@ -11,71 +14,103 @@ import (
 )
 
 // RunSession executes a single session of Trellis.
-func RunSession(opts RunOptions, initialContext map[string]any) error {
+func RunSession(ctx context.Context, opts RunOptions, initialContext map[string]any) error {
 	logger := createLogger(opts.Debug)
 
-	if !opts.JSON && !opts.Headless {
-		tui.PrintBanner(trellis.Version)
-	}
+	// Unified Logging
+	lifecycle.SetLogger(logger)
 
-	// Initialize Engine
-	engine, err := createEngine(opts, logger)
-	if err != nil {
-		return err
-	}
+	// Wrap execution in Lifecycle Job
+	return lifecycle.Run(lifecycle.Job(func(ctx context.Context) error {
+		// Initialize Engine
+		engine, err := createEngine(opts, logger)
+		if err != nil {
+			return err
+		}
 
-	// Setup Persistence
-	store, sessionManager := setupPersistence(opts, logger)
+		// ---------------------------------------------------------
+		// 1. Setup IO Handler (The "Sink")
+		// ---------------------------------------------------------
+		var ioHandler runner.IOHandler
 
-	// Setup signal handling
-	// Use the unified SignalContext helper
-	sigCtx := NewSignalContext(context.Background())
-	defer sigCtx.Cancel()
+		if opts.JSON {
+			ioHandler = runner.NewJSONHandler(os.Stdout)
+		} else if !opts.Headless {
+			tui.PrintBanner(trellis.Version)
+			ioHandler = runner.NewTextHandler(os.Stdout,
+				runner.WithTextHandlerRenderer(tui.NewRenderer()),
+			)
+		}
 
-	// Hydrate State
-	state, loaded, err := hydrateAndValidateState(sigCtx, engine, opts.SessionID, initialContext, sessionManager)
-	if err != nil {
-		return fmt.Errorf("failed to init session: %w", err)
-	}
+		// ---------------------------------------------------------
+		// 2. Lifecycle Integration (The "Source")
+		// ---------------------------------------------------------
+		var mode string
+		if opts.Headless && !opts.JSON {
+			mode = "headless"
+		} else if opts.JSON {
+			mode = "json"
+		} else {
+			mode = "interactive"
+		}
 
-	logSessionStatus(logger, opts.SessionID, state.CurrentNodeID, loaded, opts.JSON || opts.Headless)
+		// Prepare Interrupt Bridge
+		interruptSource := make(chan struct{}, 1)
 
-	// Setup Process Runner (Tooling)
-	toolConfig, err := process.LoadTools(opts.ToolsPath)
-	if err != nil {
-		// Only fail if user explicitly pointed to a file that is broken.
-		// If default missing, LoadTools returns empty.
-		// However, process.LoadTools logic I implemented returns error for any read failure except IsNotExist.
-		// Let's assume critical failure if config is bad.
-		logger.Warn("Failed to load tools config", "path", opts.ToolsPath, "error", err)
-	}
+		mux := createInteractiveRouter(ctx, ioHandler, mode, interruptSource)
 
-	procRunner := process.NewRunner(
-		process.WithRegistry(toolConfig),
-		process.WithInlineExecution(opts.UnsafeInline),
-	)
+		// Start Lifecycle in Background
+		lifecycle.Go(ctx, func(ctx context.Context) error {
+			return mux.Start(ctx)
+		})
 
-	// Setup Runner
-	runnerOpts := createRunnerOptions(logger, opts.Headless, opts.SessionID, store, opts.JSON, nil)
-	runnerOpts = append(runnerOpts, runner.WithToolRunner(procRunner))
+		// ---------------------------------------------------------
+		// 5. App Initialization
+		// ---------------------------------------------------------
 
-	r := runner.NewRunner(runnerOpts...)
+		// Setup Persistence
+		store, sessionManager := setupPersistence(opts, logger)
 
-	// Execute
-	finalState, runErr := r.Run(sigCtx, engine, state)
+		// Hydrate State
+		state, loaded, err := hydrateAndValidateState(ctx, engine, opts.SessionID, initialContext, sessionManager)
+		if err != nil {
+			return fmt.Errorf("failed to init session: %w", err)
+		}
 
-	// Log Completion
-	completionNodeID := state.CurrentNodeID
-	if finalState != nil {
-		completionNodeID = finalState.CurrentNodeID
-	}
+		logSessionStatus(logger, opts.SessionID, state.CurrentNodeID, loaded, opts.JSON || opts.Headless)
 
-	// If context was canceled (signal received), ensure runErr reflects it if it doesn't already
-	if sigCtx.Err() != nil && runErr == nil {
-		runErr = sigCtx.Err()
-	}
+		// Setup Process Runner
+		toolConfig, err := process.LoadTools(opts.ToolsPath)
+		if err != nil {
+			logger.Warn("Failed to load tools configuration", "path", opts.ToolsPath, "err", err)
+		}
 
-	logCompletion(completionNodeID, runErr, opts.Debug, true, opts.JSON || opts.Headless, sigCtx.Signal())
+		procRunner := process.NewRunner(
+			process.WithRegistry(toolConfig),
+			process.WithInlineExecution(opts.UnsafeInline),
+			process.WithBaseDir(filepath.Dir(opts.ToolsPath)),
+		)
 
-	return handleExecutionError(runErr)
+		// Setup Runner
+		runnerOpts := createRunnerOptions(logger, opts.Headless, opts.SessionID, store, ioHandler, interruptSource)
+		runnerOpts = append(runnerOpts, runner.WithToolRunner(procRunner))
+
+		r := runner.NewRunner(runnerOpts...)
+
+		// Execute
+		finalState, runErr := r.Run(ctx, engine, state)
+
+		// Log Completion
+		completionNodeID := state.CurrentNodeID
+		if finalState != nil {
+			completionNodeID = finalState.CurrentNodeID
+		}
+		if ctx.Err() != nil && runErr == nil {
+			runErr = ctx.Err()
+		}
+		sig := lifecycle.Signal(ctx)
+		logCompletion(completionNodeID, runErr, opts.JSON || opts.Headless, sig)
+
+		return handleExecutionError(runErr)
+	}), lifecycle.WithCancelOnInterrupt(false))
 }

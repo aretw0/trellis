@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -23,7 +24,7 @@ type RunOptions struct {
 }
 
 // Execute handles the 'run' command logic, dispatching to Session or Watch mode.
-func Execute(opts RunOptions) error {
+func Execute(ctx context.Context, opts RunOptions) error {
 	// Smart Default for Tools: If not explicitly set by user, check local repo
 	if opts.ToolsPath == "tools.yaml" {
 		candidate := filepath.Join(opts.RepoPath, "tools.yaml")
@@ -44,7 +45,7 @@ func Execute(opts RunOptions) error {
 		if opts.Headless {
 			return fmt.Errorf("--watch and --headless cannot be used together")
 		}
-		RunWatch(opts)
+		RunWatch(ctx, opts)
 		return nil
 	}
 
@@ -54,5 +55,5 @@ func Execute(opts RunOptions) error {
 		ResetSession(opts.SessionID)
 	}
 
-	return RunSession(opts, initialContext)
+	return RunSession(ctx, opts, initialContext)
 }
