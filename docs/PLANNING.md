@@ -219,18 +219,26 @@ Foco: Centralizar lógica repetitiva entre projetos do ecossistema (`trellis`, `
 - [x] **Trellis Adoption**: Refatoração do Trellis para delegar essa responsabilidade à nova lib (Removed ~100 LOC).
 - [x] **Dependency Switching**: Makefile targets (`use-local`, `use-pub`) para facilitar o desenvolvimento simultâneo de libs e cosumidores.
 
-### 🏗️ v0.7.3: Developer Experience & Type Safety (The "DX" Patch)
+### ✅ v0.7.3: Polishing Lifecycle Synergy
+
+Foco: Refinar o comportamento da CLI e ferramentas externas após a integração com a lib `lifecycle`.
+
+- [x] **Input Goroutine Stability**: Corrigido vazamento de goroutines (`handleInput`) que causava "bloqueio" de input após interrupções (`Ctrl+C`).
+- [x] **Tool Path Resolution**: Implementado `BaseDir` no `ProcessRunner`. Ferramentas externas (Scripts Python/Node) agora são resolvidas relativas ao diretório do fluxo, não do CWD.
+- [x] **CLI Ergonomics**: Promoção de flags para o `rootCmd` e suporte a subcomando default. Permite rodar `trellis ./flow --debug` de forma intuitiva.
+- [x] **Registry & Inline Unified**: Limpeza da lógica de carregamento de ferramentas e re-habilitação de logs de debug limpos.
+- [x] **Atomic Commits**: Organização de todo o trabalho acumulado em 11 commits semânticos e atômicos.
+
+### 🏗️ v0.7.4: Developer Experience & Type Safety (The "DX" Patch)
 
 Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX).
 
+- [ ] **Lifecycle Workers & Supervisors**: Avaliar se o `trellis.Runner` deve ser implementado como um `Worker` nativo da lib `lifecycle` para melhor gestão de pools.
+- [ ] **Unified Observability**: Integrar a introspecção do Engine com os coletores de métricas e introspecção da lib `lifecycle`.
+- [ ] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
-- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance. (Moved from v0.7.1)
-- [ ] **Contextual Tool Policy (Soft Firewall)**: Permitir definir `allowed_tools` ou `tool_hints` no nó para guiar Agentes. O Engine passa essa info no Render, permitindo que o Host filtre ou promova tools específicas.
-- [ ] **Async Tool Protocol ("The Callback Pattern")**: Padronizar como uma ferramenta indica "Iniciei, me chame de volta depois" (Status Pending).
-  - *Fluxo*: Engine entra em `WaitingForCallback`. Runner pode dormir.
-  - *Resume*: `trellis resume --session <id> --tool-output <json>`.
-- [ ] **MCP Advanced**: Suporte a Prompts (Templates gerenciados), Sampling (controle de custos) e Docker Containerized Tools.
+- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
