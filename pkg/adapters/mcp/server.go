@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
@@ -68,10 +69,11 @@ func (s *Server) ServeSSE(ctx context.Context, port int) error {
 	// Channel to listen for errors coming from the listener.
 	serverErrors := make(chan error, 1)
 
-	go func() {
+	lifecycle.Go(ctx, func(ctx context.Context) error {
 		slog.Info("MCP Server listening (SSE)", "address", addr)
 		serverErrors <- httpServer.ListenAndServe()
-	}()
+		return nil
+	})
 
 	select {
 	case err := <-serverErrors:

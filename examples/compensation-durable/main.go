@@ -84,7 +84,7 @@ func main() {
 	ctx := context.Background()
 
 	// Tool Middleware setup
-	handler := runner.NewTextHandler(os.Stdin, os.Stdout)
+	handler := runner.NewTextHandler(os.Stdout)
 	toolHandler := &ToolMiddleware{Next: handler, Tools: tools}
 
 	r := runner.NewRunner(
@@ -201,6 +201,9 @@ func (m *ToolMiddleware) Input(ctx context.Context) (string, error) { return m.N
 func (m *ToolMiddleware) SystemOutput(ctx context.Context, msg string) error {
 	return m.Next.SystemOutput(ctx, msg)
 }
+func (m *ToolMiddleware) Signal(ctx context.Context, name string, args map[string]any) error {
+	return m.Next.Signal(ctx, name, args)
+}
 func (m *ToolMiddleware) HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error) {
 	fn, ok := m.Tools[call.Name]
 	if !ok {
@@ -225,6 +228,9 @@ func (m *AutoInputMiddleware) Output(ctx context.Context, a []domain.ActionReque
 }
 func (m *AutoInputMiddleware) SystemOutput(ctx context.Context, msg string) error {
 	return m.Next.SystemOutput(ctx, msg)
+}
+func (m *AutoInputMiddleware) Signal(ctx context.Context, name string, args map[string]any) error {
+	return m.Next.Signal(ctx, name, args)
 }
 func (m *AutoInputMiddleware) HandleTool(ctx context.Context, c domain.ToolCall) (domain.ToolResult, error) {
 	return m.Next.HandleTool(ctx, c)

@@ -85,7 +85,6 @@ func main() {
 
 	// 4. Setup Handler with Registry
 	handler := runner.NewTextHandler(
-		os.Stdin,
 		os.Stdout,
 		runner.WithTextHandlerRegistry(reg),
 	)

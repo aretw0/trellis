@@ -43,7 +43,7 @@ func main() {
 	}
 
 	// 3. Create Custom Tool Handler
-	handler := runner.NewTextHandler(os.Stdin, os.Stdout)
+	handler := runner.NewTextHandler(os.Stdout)
 	// We wrap the default handler to inject our tools
 	toolHandler := &ToolMiddleware{
 		Next:  handler,
@@ -100,6 +100,9 @@ func (m *ToolMiddleware) Input(ctx context.Context) (string, error) {
 }
 func (m *ToolMiddleware) SystemOutput(ctx context.Context, msg string) error {
 	return m.Next.SystemOutput(ctx, msg)
+}
+func (m *ToolMiddleware) Signal(ctx context.Context, name string, args map[string]any) error {
+	return m.Next.Signal(ctx, name, args)
 }
 
 func (m *ToolMiddleware) HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error) {

@@ -1,5 +1,11 @@
 package main
 
+import (
+	"os"
+)
+
 func main() {
-	Execute()
+	if err := Execute(); err != nil {
+		os.Exit(1)
+	}
 }

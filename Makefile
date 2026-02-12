@@ -12,8 +12,9 @@ build:
 	go build -o trellis.exe ./cmd/trellis
 
 # Run all tests
+# Note: -race is mandatory for verifying behavioral logic and concurrency safety.
 test:
-	go test ./...
+	go test -race -timeout 90s ./...
 
 # Run vet tool in all files
 vet:

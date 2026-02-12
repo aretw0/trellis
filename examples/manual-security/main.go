@@ -62,7 +62,7 @@ func main() {
 		runner.WithStore(sessionMgr),
 		runner.WithSessionID(sessionID),
 		runner.WithLogger(logger),
-		runner.WithInputHandler(runner.NewTextHandler(os.Stdin, os.Stdout)),
+		runner.WithInputHandler(runner.NewTextHandler(os.Stdout)),
 	)
 
 	// Initialize context with sensitive data
