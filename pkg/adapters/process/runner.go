@@ -16,6 +16,7 @@ import (
 type Runner struct {
 	registry    map[string]RegisteredProcess
 	allowInline bool
+	baseDir     string
 }
 
 // RegisteredProcess defines a allowed command execution.
@@ -40,6 +41,13 @@ func WithRegistry(tools map[string]ProcessConfig) RunnerOption {
 func WithInlineExecution(allow bool) RunnerOption {
 	return func(r *Runner) {
 		r.allowInline = allow
+	}
+}
+
+// WithBaseDir sets the working directory for executed processes.
+func WithBaseDir(dir string) RunnerOption {
+	return func(r *Runner) {
+		r.baseDir = dir
 	}
 }
 
@@ -122,6 +130,7 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 	// This prevents flag injection attacks (e.g. passing "; rm -rf /").
 
 	cmd := exec.CommandContext(ctx, proc.Command, proc.Args...)
+	cmd.Dir = r.baseDir
 
 	// Prepare Environment
 	env := []string{}
