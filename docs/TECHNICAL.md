@@ -601,7 +601,7 @@ Metadata: {
 
 O `Runner` serve como a ponte entre o Engine Core e o mundo externo. Ele gerencia o loop de execução, lida com middleware e delega IO para um `IOHandler`.
 
-Ele delega o tratamento de sinais para um **SignalManager** dedicado (`pkg/runner/signal_manager.go`) que garante cancelamento de contexto livre de condições de corrida.
+Na v2.0, o **Lifecycle Router** (`pkg/events`) assume a responsabilidade pela captura de **Sinais (OS)** e **Input (Stdin)**, unificando-os em um fluxo de eventos. O Runner agora consome um Contexto gerenciado pelo Lifecycle (`signal.Context`) e inputs roteados via ponte.
 
 #### 9.1. Ciclo da Sessão
 
@@ -614,6 +614,10 @@ sequenceDiagram
     participant Store
 
     Note over CLI: PrintBanner() (Branding)
+    
+    CLI->>Router: Start(Background)
+    Note right of Router: Captures Signal & Input
+    
     CLI->>Runner: Run(sessionID)
     Runner->>SessionManager: LoadOrStart(sessionID)
     SessionManager->>Store: Load(sessionID)
@@ -630,6 +634,7 @@ sequenceDiagram
         Runner->>Engine: Render(State)
         Engine-->>Runner: Actions (Text/Tools)
         Runner->>CLI: Output / Wait Input
+        Note right of CLI: Router feeds Input Event
         CLI-->>Runner: Input
         Runner->>Engine: Navigate(State, Input)
         Engine-->>Runner: NewState
@@ -692,11 +697,11 @@ flowchart TD
 
 #### 9.5. Padrão: Stdin Pump (IO Safety)
 
-O tratamento de input em Go, especialmente com `os.Stdin`, é bloqueante por natureza. Para suportar **Timeouts** (leitura cancelável) sem bloquear o loop de evento principal ou vazar "leitores fantasmas" (race conditions onde uma goroutine estagnada consome input destinado ao próximo passo), o `TextHandler` implementa o padrão **Stdin Pump**.
+O tratamento de input em Go, especialmente com `os.Stdin`, é bloqueante por natureza. O pacote `lifecycle`, através do `InputSource`, abstrai o padrão **Stdin Pump**, garantindo que leituras sejam não-bloqueantes e canceláveis via Contexto, evitando "leitores fantasmas". O `TextHandler` do Trellis agora atua apenas como consumidor desses eventos pré-processados.
 
 * **Produtor Único**: Uma goroutine persistente (`pump`) lê do Reader subjacente eternamente.
-* **Canal Bufferizado**: Resultados (`string` ou `error`) são enviados para `inputChan`.
-* **Consumo via Select**: O método `Input(ctx)` escuta o `inputChan`. Se `ctx` estourar o tempo, ele para de escutar, mas o pump **permanece ativo**, pronto para servir a próxima chamada (suporte a type-ahead).
+* **Canal Bufferizado**: Resultados (`string` ou `error`) são enviados para `events.Router`.
+* **Consumo via Router**: O `NewInteractiveRouter` despacha esses eventos para os handlers registrados.
 
 ```mermaid
 flowchart LR
@@ -718,7 +723,7 @@ flowchart LR
 No Windows, o comportamento padrão do `os.Stdin` difere significativamente do Unix. Pressionar `Ctrl+C` frequentemente fecha o stream `Stdin` imediatamente (enviando `io.EOF`) antes que o handler de sinal do SO possa interceptar a interrupção. Isso leva a uma condição de corrida onde a aplicação trata a interrupção como um simples End-Of-File ou "User Quit" em vez de um sinal.
 
 **A Solução:**
-Para mitigar isso, o `TextHandler` detecta se está rodando em um Terminal Windows e, se sim, abre `CONIN$` diretamente. `CONIN$` é um file handle especial do Windows que permanece aberto mesmo quando `Ctrl+C` é pressionado, permitindo que o `SignalManager` capture o sinal corretamente e protegendo o stream de input de fechamento prematuro.
+Para mitigar isso, a biblioteca `lifecycle` (`pkg/termio`) detecta se está rodando em um Terminal Windows e, se sim, abre `CONIN$` diretamente. Isso é feito transparentemente pelo `NewInteractiveRouter`, garantindo robustez de sinais e input em todas as plataformas.
 
 #### 9.6. Architectural Insight: Engine-bound vs Runner-bound
 
