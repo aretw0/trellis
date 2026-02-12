@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/trellis/internal/cli"
 	"github.com/spf13/cobra"
 )
@@ -43,10 +45,21 @@ var runCmd = &cobra.Command{
 			UnsafeInline: unsafeInline,
 		}
 
-		if err := cli.Execute(opts); err != nil {
+		var lifecycleOpts []any
+		if !watchMode {
+			// In session/REPL mode, we want the runner to handle SIGINT (Ctrl+C) to interrupt generation
+			// without killing the application context immediately.
+			lifecycleOpts = append(lifecycleOpts, lifecycle.WithCancelOnInterrupt(false))
+			// Set ForceExit to 0: We give Trellis (via InteractiveRouter) full control over the exit strategy.
+			lifecycleOpts = append(lifecycleOpts, lifecycle.WithForceExit(0))
+		}
+
+		err := lifecycle.Run(lifecycle.Job(func(ctx context.Context) error {
+			return cli.Execute(ctx, opts)
+		}), lifecycleOpts...)
+
+		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			// Ensure we exit 1 on actual errors, but handle clean interruptions gracefully
-			// Note: cli.Execute already filters standard interruptions (returning nil)
 			os.Exit(1)
 		}
 	},
@@ -54,17 +67,6 @@ var runCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-
-	runCmd.Flags().Bool("headless", false, "Run in headless mode (no prompts, strict IO)")
-	runCmd.Flags().Bool("json", false, "Run in JSON mode (NDJSON input/output)")
-	runCmd.Flags().Bool("debug", false, "Enable verbose debug logging (observability hooks)")
-	runCmd.Flags().StringP("context", "c", "", "Initial context JSON string (e.g. '{\"user\": \"Alice\"}')")
-	runCmd.Flags().StringP("session", "s", "", "Session ID for durable execution (resumes if exists)")
-	runCmd.Flags().BoolP("watch", "w", false, "Run in development mode with hot-reload")
-	runCmd.Flags().Bool("fresh", false, "Start with a clean session (deletes existing session data)")
-	runCmd.Flags().String("redis-url", "", "Redis connection URL (e.g. redis://localhost:6379) for distributed state & locking")
-	runCmd.Flags().String("tools", "tools.yaml", "Path to the tool registry file")
-	runCmd.Flags().Bool("unsafe-inline", false, "Allow inline execution of scripts defined in Markdown (Dangerous)")
 
 	// Make 'run' the default subcommand if no other command is provided.
 	// This allows users to type 'trellis .' instead of 'trellis run .'
