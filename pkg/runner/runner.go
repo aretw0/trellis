@@ -2,12 +2,14 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"time"
 
+	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
@@ -17,19 +19,16 @@ import (
 // This allows for easy testing and integration with different frontends (CLI, TUI, etc).
 // Runner handler the execution loop of the Trellis engine.
 type Runner struct {
-	Handler     IOHandler
-	Store       ports.StateStore
-	Logger      *slog.Logger
-	Headless    bool
-	SessionID   string
-	Renderer    ContentRenderer
-	Interceptor ToolInterceptor
-	ToolRunner  ToolRunner
+	Handler         IOHandler
+	Store           ports.StateStore
+	Logger          *slog.Logger
+	Headless        bool
+	SessionID       string
+	Renderer        ContentRenderer
+	Interceptor     ToolInterceptor
+	ToolRunner      ToolRunner
+	InterruptSource <-chan struct{}
 }
-
-// ContentRenderer is a function that transforms the content before outputting it.
-// This allows for TUI rendering (markdown to ANSI) without coupling the core package.
-type ContentRenderer func(string) (string, error)
 
 // NewRunner creates a new Runner with options.
 func NewRunner(opts ...Option) *Runner {
@@ -55,9 +54,6 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		return nil, err
 	}
 
-	signals := NewSignalManager()
-	defer signals.Stop()
-
 	lastRenderedID := ""
 
 	// 2. Execution Loop
@@ -69,30 +65,18 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		default:
 		}
 
-		// currentCtx combines signals and the runner context
-		currentCtx, currentCancel := context.WithCancel(ctx)
-		go func() {
-			select {
-			case <-signals.Context().Done():
-				currentCancel()
-			case <-ctx.Done():
-				currentCancel()
-			}
-		}()
-		defer currentCancel()
-
 		// A. Render
-		actions, _, err := engine.Render(currentCtx, state)
+		actions, _, err := engine.Render(ctx, state)
 		if err != nil {
 			return state, fmt.Errorf("render error: %w", err)
 		}
 
 		// B. Output
 		stepTimeout := r.detectTimeout(actions)
-		inputCtx, inputCancel := r.createInputContext(currentCtx, stepTimeout)
+		inputCtx, inputCancel := r.createInputContext(ctx, stepTimeout)
 		defer inputCancel()
 
-		needsInput, err := handler.Output(currentCtx, actions)
+		needsInput, err := handler.Output(ctx, actions)
 		if err != nil {
 			return state, fmt.Errorf("output error: %w", err)
 		}
@@ -107,14 +91,13 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 
 		// If no input requested by actions (needsInput=false) and not waiting for tool,
 		// we treat this as an auto-transition (pass-through).
-		// We skip the Handler.Input blocking call entirely.
 		if !needsInput && state.Status != domain.StatusWaitingForTool && state.Status != domain.StatusRollingBack {
 			// Auto-transition with empty input
 			nextInput = ""
 		} else if state.Status == domain.StatusWaitingForTool || state.Status == domain.StatusRollingBack {
-			nextInput, err = r.handleTool(currentCtx, actions, state, handler, interceptor)
+			nextInput, err = r.handleTool(ctx, actions, state, handler, interceptor)
 		} else {
-			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, signals, engine, state)
+			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, engine, state)
 		}
 
 		if err != nil {
@@ -128,22 +111,24 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		if nextState != nil {
 			state = nextState
 			// Auto-Save on Signal Transition
-			if err := r.saveState(currentCtx, r.SessionID, state); err != nil {
+			if err := r.saveState(ctx, r.SessionID, state); err != nil {
 				return state, err
 			}
 			continue
 		}
 
 		// 4. Navigate Phase (Controller)
-		// nextInput is valid here.
-		// Always call Navigate to ensure lifecycle hooks (Leave) are triggered and state is updated.
-		nextState, err = engine.Navigate(currentCtx, state, nextInput)
+		nextState, err = engine.Navigate(ctx, state, nextInput)
 		if err != nil {
 			return state, fmt.Errorf("navigation error: %w", err)
 		}
 
+		if nextState.CurrentNodeID != state.CurrentNodeID {
+			r.Logger.Debug("Runner: transition", "from", state.CurrentNodeID, "to", nextState.CurrentNodeID, "input", nextInput)
+		}
+
 		// 5. Commit Phase (Persistence)
-		if err := r.saveState(currentCtx, r.SessionID, nextState); err != nil {
+		if err := r.saveState(ctx, r.SessionID, nextState); err != nil {
 			return nextState, fmt.Errorf("critical persistence error: %w", err)
 		}
 
@@ -177,7 +162,7 @@ func (r *Runner) resolveHandler() IOHandler {
 	if r.Handler != nil {
 		return r.Handler
 	}
-	th := NewTextHandler(os.Stdin, os.Stdout)
+	th := NewTextHandler(os.Stdout)
 	th.Renderer = r.Renderer
 
 	// Memoize to prevent creating new Pumps on subsequent Run() calls
@@ -269,16 +254,10 @@ func (r *Runner) handleTool(
 	return result, nil
 }
 
-// handleInput manages standard user interaction and signal recovery.
-// Returns:
-// - input: The value to pass to Navigate (if success)
-// - nextState: A new state if a signal caused a transition (input should be ignored)
-// - error: If input failed or signal execution failed
 func (r *Runner) handleInput(
 	ctx context.Context,
 	handler IOHandler,
 	needsInput bool,
-	signals *SignalManager,
 	engine *trellis.Engine,
 	currentState *domain.State,
 ) (any, *domain.State, error) {
@@ -289,73 +268,66 @@ func (r *Runner) handleInput(
 		return "", nil, nil
 	}
 
-	// We pass ctx to Input. If signal received, Input implies cancellation.
-	// Note: TextHandler's Input (standard fmt.Scan) might not respect context immediately.
-	val, err := handler.Input(ctx)
-	if err != nil {
-		// Check if error is due to signal cancellation
-		signals.CheckRace()
+	// Result channels for the input goroutine
+	type inputResult struct {
+		val any
+		err error
+	}
+	resChan := make(chan inputResult, 1)
 
-		if ctx.Err() != nil {
-			if ctx.Err() == context.Canceled {
-				// Check if this cancellation came from the SignalManager (SIGINT) or external (Reload)
-				if signals.Context().Err() != nil {
-					r.Logger.Debug("Runner input: Interrupted (Clean Exit)")
-				} else {
-					// This means ctx was cancelled by the parent (e.g. Watcher reload), not by SIGINT.
-					// We should not treat this as a signal that needs 'on_signal' handling.
-					r.Logger.Debug("Runner input: Context Cancelled (Reload/Stop)")
-					return nil, nil, fmt.Errorf("interrupted")
-				}
-			} else if ctx.Err() == context.DeadlineExceeded {
-				r.Logger.Debug("Runner input: Context Expired (Timeout)")
-			} else {
-				r.Logger.Debug("Runner input: Context Error", "err", ctx.Err())
-			}
+	// Create a cancelable context for the input goroutine
+	// This allows us to cancel the goroutine when an interrupt happens
+	inputCtx, cancelInput := context.WithCancel(ctx)
+	defer cancelInput() // Always clean up
 
-			// Determine cause: Global Interrupt vs Local Timeout
-			signalName := domain.SignalInterrupt
-			if ctx.Err() == context.DeadlineExceeded {
-				signalName = domain.SignalTimeout
-			}
+	// Launch blocking input in a separate goroutine
+	go func() {
+		val, err := handler.Input(inputCtx)
+		resChan <- inputResult{val, err}
+	}()
 
-			// Attempt Signal Transition
-			nextState, sigErr := engine.Signal(context.Background(), currentState, signalName)
-			if sigErr == nil {
-				r.Logger.Debug("Runner input: Signal transition success", "signal", signalName)
-				// Re-arm signals for the new state
-				signals.Reset()
-				return nil, nextState, nil
-			}
+	var val any
+	var err error
+	var intercepted bool
 
-			// Default Behavior: If no custom handler is defined for the signal, we break execution gracefully.
-			// For known signals like 'interrupt' or 'timeout', we log a helpful hint.
-			switch signalName {
-			case domain.SignalInterrupt:
-				r.Logger.Debug("Runner input: Stopping (Default Exit)", "signal", signalName, "help", "Define 'on_signal: interrupt' to override")
-				return nil, nil, fmt.Errorf("interrupted")
-			case domain.SignalTimeout:
-				r.Logger.Debug("Runner input: Stopping (Default Exit)", "signal", signalName, "help", "Define 'on_signal: timeout' to override")
-				return nil, nil, fmt.Errorf("timeout exceeded and no 'on_signal.timeout' handler defined")
+	// Wait for input, interruption, or context cancellation
+	select {
+	case res := <-resChan:
+		val, err = res.val, res.err
+		// If handler returned context error, treat as a signal situation
+		if err != nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded)) {
+			return r.handleSignal(context.Background(), engine, currentState, domain.SignalTimeout)
+		}
+		if err != nil && (errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled)) {
+			// Check if this was an Intercept or just regular cancel
+			select {
+			case <-r.InterruptSource:
+				intercepted = true
 			default:
-				r.Logger.Debug("Runner input: Stopping (Unhandled Signal)", "signal", signalName)
-				return nil, nil, fmt.Errorf("interrupted")
+				return nil, nil, err
 			}
 		}
+	case <-r.InterruptSource:
+		// CRITICAL: Cancel the input goroutine's context to prevent it from consuming the next input
+		cancelInput()
+		intercepted = true
+	case <-ctx.Done():
+		// CRITICAL: Cancel the input goroutine's context
+		cancelInput()
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return r.handleSignal(context.Background(), engine, currentState, domain.SignalTimeout)
+		}
+		return nil, nil, ctx.Err()
+	}
 
+	// Handle Interception (Lifecycle InterceptEvent)
+	if intercepted {
+		return r.handleSignal(context.Background(), engine, currentState, domain.SignalInterrupt)
+	}
+
+	// Handle Input Result
+	if err != nil {
 		if err == io.EOF {
-			// Special Case: On some platforms/terminals (e.g. Windows), Ctrl+C might trigger EOF.
-			// If a signal is active, we should prioritize the signal transition logic.
-			if signals.Context().Err() != nil {
-				signalName := domain.SignalInterrupt
-				nextState, sigErr := engine.Signal(context.Background(), currentState, signalName)
-				if sigErr == nil {
-					r.Logger.Debug("Runner input: Signal transition success (EOF override)", "signal", signalName)
-					signals.Reset()
-
-					return nil, nextState, nil
-				}
-			}
 			return nil, nil, err
 		}
 		return nil, nil, fmt.Errorf("input error: %w", err)
@@ -366,4 +338,27 @@ func (r *Runner) handleInput(
 	}
 
 	return val, nil, nil
+}
+
+// handleSignal encapsulates the logic for triggering a signal and handling fallbacks.
+func (r *Runner) handleSignal(ctx context.Context, engine *trellis.Engine, state *domain.State, signalName string) (any, *domain.State, error) {
+	r.Logger.Debug("Runner: Triggering signal", "signal", signalName)
+	nextState, sigErr := engine.Signal(ctx, state, signalName)
+	if sigErr == nil {
+		r.Logger.Debug("Runner: Signal transition success", "signal", signalName)
+		if signalName == domain.SignalInterrupt {
+			lifecycle.ResetSignalCount(ctx)
+		}
+		return nil, nextState, nil
+	}
+
+	// Fallback messages for unhandled signals
+	switch signalName {
+	case domain.SignalTimeout:
+		return nil, nil, fmt.Errorf("timeout exceeded and no 'on_signal.timeout' handler defined")
+	case domain.SignalInterrupt:
+		return nil, nil, fmt.Errorf("interrupted")
+	default:
+		return nil, nil, fmt.Errorf("signal %s failed: %w", signalName, sigErr)
+	}
 }

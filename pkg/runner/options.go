@@ -6,6 +6,9 @@ import (
 	"github.com/aretw0/trellis/pkg/ports"
 )
 
+// DefaultInputBufferSize is the default number of lines to buffer for input handlers.
+const DefaultInputBufferSize = 64
+
 // Option defines a functional option for configuring the Runner.
 type Option func(*Runner)
 
@@ -63,5 +66,12 @@ func WithInterceptor(interceptor ToolInterceptor) Option {
 func WithToolRunner(tr ToolRunner) Option {
 	return func(r *Runner) {
 		r.ToolRunner = tr
+	}
+}
+
+// WithInterruptSource sets a channel that signals the runner to interrupt current execution.
+func WithInterruptSource(ch <-chan struct{}) Option {
+	return func(r *Runner) {
+		r.InterruptSource = ch
 	}
 }
