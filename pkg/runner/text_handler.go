@@ -1,31 +1,27 @@
 package runner
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/registry"
 )
 
+// ContentRenderer transforms a raw string (e.g. markdown) into a rendered string (e.g. ANSI).
+type ContentRenderer func(content string) (string, error)
+
 // TextHandler implements the standard text-based interface.
 type TextHandler struct {
-	source      io.Reader
-	interactive bool // true if reading from CONIN$ (Windows) where EOF should be ignored
-	Reader      *bufio.Reader
-	Writer      io.Writer
-	Renderer    ContentRenderer
-	Registry    *registry.Registry
+	Writer   io.Writer
+	Renderer ContentRenderer
+	Registry *registry.Registry
 
 	inputChan chan inputResult
-	startOnce sync.Once
+	buffer    int
 }
 
 type inputResult struct {
@@ -50,68 +46,39 @@ func WithTextHandlerRenderer(renderer ContentRenderer) TextHandlerOption {
 	}
 }
 
-// NewTextHandler creates a handler for standard text IO.
-func NewTextHandler(r io.Reader, w io.Writer, opts ...TextHandlerOption) *TextHandler {
-	if r == nil {
-		r = os.Stdin
+// WithTextInputBufferSize sets the size of the input buffer.
+func WithTextInputBufferSize(size int) TextHandlerOption {
+	return func(h *TextHandler) {
+		h.buffer = size
 	}
+}
+
+// NewTextHandler creates a handler for standard text IO.
+func NewTextHandler(w io.Writer, opts ...TextHandlerOption) *TextHandler {
 	if w == nil {
 		w = os.Stdout
 	}
 	h := &TextHandler{
-		source: r,
 		Writer: w,
+		buffer: DefaultInputBufferSize,
 	}
-
-	// Windows Specific: Check if we are running in a terminal.
-	// If so, we MUST use CONIN$ to read input to support graceful signal handling.
-	h.source, h.interactive = resolveInputReader(r)
-
-	h.Reader = bufio.NewReader(h.source)
 
 	for _, opt := range opts {
 		opt(h)
 	}
 
+	h.inputChan = make(chan inputResult, h.buffer)
+
 	return h
 }
 
-func (h *TextHandler) initPump() {
-	h.startOnce.Do(func() {
-		h.inputChan = make(chan inputResult)
-		go h.pump()
-	})
-}
-
-func (h *TextHandler) pump() {
-	for {
-		text, err := h.Reader.ReadString('\n')
-
-		// If we got text (even with EOF), send it
-		if text != "" {
-			h.inputChan <- inputResult{text: text, err: nil}
-		}
-
-		if err != nil {
-			if err == io.EOF {
-				if h.interactive {
-					// In interactive mode (e.g. Windows CONIN$), EOF might mean
-					// a signal interrupted the read, but the stream is still valid regarding the OS.
-					// We pass the EOF to the consumer so they know the current read failed (likely due to signal),
-					// but we DO NOT close the channel so future reads can happen (e.g. after signal handling).
-					h.inputChan <- inputResult{text: "", err: io.EOF}
-					// Prevent busy loop if EOFs are generated rapidly (e.g. holding Ctrl+C)
-					time.Sleep(50 * time.Millisecond)
-					continue
-				}
-				close(h.inputChan)
-				return
-			}
-			// Send non-EOF errors
-			h.inputChan <- inputResult{text: "", err: err}
-			// Backoff for non-fatal errors to prevent CPU spikes on persistent failure
-			time.Sleep(50 * time.Millisecond)
-		}
+// FeedInput feeds a line of input into the handler.
+// This is called by the bridge when lifecycle detects input.
+func (h *TextHandler) FeedInput(text string, err error) {
+	select {
+	case h.inputChan <- inputResult{text: text, err: err}:
+	default:
+		// Drop if blocked (shouldn't happen with proper buffer/flow)
 	}
 }
 
@@ -138,9 +105,6 @@ func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest
 }
 
 func (h *TextHandler) Input(ctx context.Context) (string, error) {
-	// Ensure the pump is running
-	h.initPump()
-
 	for {
 		// Only show prompt if context is not yet done
 		select {
@@ -214,16 +178,10 @@ func (h *TextHandler) SystemOutput(ctx context.Context, msg string) error {
 	return nil
 }
 
-// resolveInputReader attempts to open a platform-specific terminal reader (e.g., CONIN$ on Windows) via lifecycle library.
-// Returns the reader to use and a boolean indicating if it is an interactive terminal handled specially.
-func resolveInputReader(defaultReader io.Reader) (io.Reader, bool) {
-	// UpgradeTerminal (lifecycle) handles the checks:
-	// 1. Is it a file?
-	// 2. Is it a terminal?
-	// 3. If so, return OpenTerminal() (CONIN$ on Windows)
-	// Otherwise returns defaultReader.
-	if r, err := lifecycle.UpgradeTerminal(defaultReader); err == nil && r != defaultReader {
-		return r, true
+func (h *TextHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	// Visual feedback for signals (e.g. "thinking")
+	if name == "interrupt" {
+		fmt.Fprint(h.Writer, "[CTRL+C]\n")
 	}
-	return defaultReader, false
+	return nil
 }
