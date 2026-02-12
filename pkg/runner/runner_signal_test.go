@@ -40,6 +40,11 @@ func (m *MockSignalHandler) SystemOutput(ctx context.Context, msg string) error 
 	return args.Error(0)
 }
 
+func (m *MockSignalHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	callArgs := m.Called(ctx, name, args)
+	return callArgs.Error(0)
+}
+
 // MockLoader for testing signal handling
 type MockLoader struct {
 	mock.Mock
@@ -128,7 +133,6 @@ func TestRunner_HandleInput_Signal(t *testing.T) {
 			engine, err := trellis.New("", trellis.WithLoader(loader))
 			assert.NoError(t, err)
 
-			signals := NewSignalManager()
 			state := &domain.State{
 				CurrentNodeID: "start",
 				Context:       make(map[string]any),
@@ -142,11 +146,13 @@ func TestRunner_HandleInput_Signal(t *testing.T) {
 			handler.On("Input", mock.Anything).Return("", context.DeadlineExceeded)
 
 			// Execute
+			interruptSource := make(chan struct{})
+			runner.InterruptSource = interruptSource
+
 			_, nextState, err := runner.handleInput(
 				ctx,
 				handler,
 				true, // needsInput
-				signals,
 				engine,
 				state,
 			)

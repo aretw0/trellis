@@ -15,9 +15,7 @@ import (
 func TestJSONHandler_AsyncInput(t *testing.T) {
 	// 1. Test Cancellation
 	t.Run("ContextCancellation", func(t *testing.T) {
-		r, w := io.Pipe()
-		defer w.Close()
-		handler := NewJSONHandler(r, nil)
+		handler := NewJSONHandler(nil) // Output to discard
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 		defer cancel()
@@ -33,11 +31,15 @@ func TestJSONHandler_AsyncInput(t *testing.T) {
 
 	// 2. Test Success
 	t.Run("Success", func(t *testing.T) {
-		input := "\"Valid JSON String\"\n"
-		r := bytes.NewBufferString(input)
-		handler := NewJSONHandler(r, nil)
+		input := "Valid JSON String"
+		handler := NewJSONHandler(nil)
 
-		ctx := context.Background() // No timeout needed for byte buffer as it's immediate
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			handler.FeedInput(input, nil)
+		}()
+
+		ctx := context.Background()
 		val, err := handler.Input(ctx)
 		if err != nil {
 			t.Fatalf("Input failed: %v", err)
@@ -49,18 +51,18 @@ func TestJSONHandler_AsyncInput(t *testing.T) {
 
 	// 3. Test EOF
 	t.Run("EOF", func(t *testing.T) {
-		r := bytes.NewBufferString("")
-		handler := NewJSONHandler(r, nil)
+		handler := NewJSONHandler(nil)
 
-		// We need to wait a small bit for the goroutine to process the EOF
-		// But cleaner is to just call Input
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			handler.FeedInput("", io.EOF)
+		}()
+
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 
 		_, err := handler.Input(ctx)
 		if err != io.EOF {
-			// Note: bytes.Buffer returns EOF immediately.
-			// The scanner loop should catch it and send to errCh.
 			t.Errorf("Expected EOF, got: %v", err)
 		}
 	})
@@ -69,11 +71,9 @@ func TestJSONHandler_AsyncInput(t *testing.T) {
 func TestJSONHandler_AsyncHandleTool(t *testing.T) {
 	// 1. Test Cancellation
 	t.Run("Cancellation", func(t *testing.T) {
-		r, w := io.Pipe()
-		defer w.Close()
 		// Capture output to avoid noise
 		outBuf := &bytes.Buffer{}
-		handler := NewJSONHandler(r, outBuf)
+		handler := NewJSONHandler(outBuf)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 		defer cancel()
@@ -95,11 +95,16 @@ func TestJSONHandler_AsyncHandleTool(t *testing.T) {
 			Result: "Success Result",
 		}
 		resultJSON, _ := json.Marshal(result)
-		input := string(resultJSON) + "\n"
+		input := string(resultJSON)
 
-		r := bytes.NewBufferString(input)
 		outBuf := &bytes.Buffer{}
-		handler := NewJSONHandler(r, outBuf)
+		handler := NewJSONHandler(outBuf)
+
+		// Mock the user response (which in JSON mode is just a JSON line)
+		go func() {
+			time.Sleep(20 * time.Millisecond)
+			handler.FeedInput(input, nil)
+		}()
 
 		ctx := context.Background()
 		call := domain.ToolCall{ID: "1", Name: "test"}

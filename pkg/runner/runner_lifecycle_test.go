@@ -39,6 +39,11 @@ func (m *LifecycleMockHandler) SystemOutput(ctx context.Context, msg string) err
 	return args.Error(0)
 }
 
+func (m *LifecycleMockHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	callArgs := m.Called(ctx, name, args)
+	return callArgs.Error(0)
+}
+
 func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 	// 1. Case: Terminal Node, No Wait (Should Skip)
 	termNode := domain.Node{

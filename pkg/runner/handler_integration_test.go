@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTextHandler_Input_Sanitization_Retry(t *testing.T) {
@@ -13,13 +14,23 @@ func TestTextHandler_Input_Sanitization_Retry(t *testing.T) {
 	// so we'll rely on generating a huge string > 4096 default,
 	// OR we assume the default 4096. Let's use > 4096.
 
-	badInput := strings.Repeat("A", 5000) + "\n"
-	goodInput := "Small valid input\n"
+	// Setup
+	badInput := strings.Repeat("A", 5000)
+	goodInput := "Small valid input"
 
-	inBuf := bytes.NewBufferString(badInput + goodInput)
 	outBuf := &bytes.Buffer{}
+	handler := NewTextHandler(outBuf)
 
-	handler := NewTextHandler(inBuf, outBuf)
+	// Feed inputs in background
+	go func() {
+		// Wait for Input() to be called and ready
+		time.Sleep(50 * time.Millisecond)
+		handler.FeedInput(badInput, nil)
+
+		// Wait for the retry prompt to be printed and Input() to run again
+		time.Sleep(50 * time.Millisecond)
+		handler.FeedInput(goodInput, nil)
+	}()
 
 	// Execute
 	val, err := handler.Input(context.Background())
@@ -45,10 +56,16 @@ func TestTextHandler_Input_Sanitization_Retry(t *testing.T) {
 
 func TestJSONHandler_Input_Sanitization_Error(t *testing.T) {
 	// Setup: Input contains just bad line. JSONHandler should fail immediately.
-	badInput := strings.Repeat("A", 5000) + "\n"
+	// Setup
+	badInput := strings.Repeat("A", 5000)
 
-	inBuf := bytes.NewBufferString(badInput)
-	handler := NewJSONHandler(inBuf, nil)
+	// outBuf := &bytes.Buffer{} // Optional for JSON handler?
+	handler := NewJSONHandler(nil) // Discard output
+
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		handler.FeedInput(badInput, nil)
+	}()
 
 	// Execute
 	val, err := handler.Input(context.Background())

@@ -44,6 +44,11 @@ func (m *MockIOHandler) SystemOutput(ctx context.Context, msg string) error {
 	return nil
 }
 
+func (m *MockIOHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	// Capture signal if needed
+	return nil
+}
+
 func TestConfirmationMiddleware_Allow(t *testing.T) {
 	mock := &MockIOHandler{
 		InputBehavior: func() (string, error) { return "y\n", nil },

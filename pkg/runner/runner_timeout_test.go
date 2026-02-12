@@ -50,6 +50,11 @@ func (m *MockHandler) SystemOutput(ctx context.Context, msg string) error {
 	return args.Error(0)
 }
 
+func (m *MockHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	callArgs := m.Called(ctx, name, args)
+	return callArgs.Error(0)
+}
+
 func TestRunner_Timeout(t *testing.T) {
 	// Define flow: Start (Timeout: 10ms) -> (on_signal: timeout) -> TimeoutNode
 	startNode := domain.Node{

@@ -17,6 +17,10 @@ type IOHandler interface {
 	// Input reads a response from the user.
 	Input(ctx context.Context) (string, error)
 
+	// Signal notifies the handler of an event (e.g. "thinking", "typing").
+	// This is used for visual feedback without blocking input.
+	Signal(ctx context.Context, name string, args map[string]any) error
+
 	// HandleTool executes a side-effect requested by the engine.
 	// In a text/CLI context, this might just log the request or ask for confirmation.
 	HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error)

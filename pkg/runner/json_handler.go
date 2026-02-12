@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,6 +22,7 @@ type JSONHandler struct {
 	// Async reading fields
 	linesCh chan string
 	errCh   chan error
+	buffer  int
 }
 
 // JSONHandlerOption defines configuration for JSONHandler.
@@ -35,12 +35,15 @@ func WithJSONHandlerRegistry(reg *registry.Registry) JSONHandlerOption {
 	}
 }
 
-// NewJSONHandler creates a handler for JSON IO.
-// It starts a background goroutine to read from r.
-func NewJSONHandler(r io.Reader, w io.Writer, opts ...JSONHandlerOption) *JSONHandler {
-	if r == nil {
-		r = os.Stdin
+// WithJSONInputBufferSize sets the size of the input buffer.
+func WithJSONInputBufferSize(size int) JSONHandlerOption {
+	return func(h *JSONHandler) {
+		h.buffer = size
 	}
+}
+
+// NewJSONHandler creates a handler for JSON IO.
+func NewJSONHandler(w io.Writer, opts ...JSONHandlerOption) *JSONHandler {
 	if w == nil {
 		w = os.Stdout
 	}
@@ -48,33 +51,32 @@ func NewJSONHandler(r io.Reader, w io.Writer, opts ...JSONHandlerOption) *JSONHa
 	h := &JSONHandler{
 		Writer:  w,
 		Encoder: json.NewEncoder(w),
-		linesCh: make(chan string),
-		errCh:   make(chan error),
+		buffer:  DefaultInputBufferSize,
 	}
 
 	for _, opt := range opts {
 		opt(h)
 	}
 
-	// Start background reader
-	go h.startReadLoop(r)
+	h.linesCh = make(chan string, h.buffer)
+	h.errCh = make(chan error, h.buffer)
 
 	return h
 }
 
-func (h *JSONHandler) startReadLoop(r io.Reader) {
-	scanner := bufio.NewReader(r)
-	for {
-		line, err := scanner.ReadString('\n')
-		if line != "" {
-			// Send non-empty lines (even if err != nil, e.g. EOF with partial line)
-			h.linesCh <- line
+// FeedInput feeds a line of input into the handler.
+// This is called by the bridge when lifecycle detects input.
+func (h *JSONHandler) FeedInput(line string, err error) {
+	if err != nil {
+		select {
+		case h.errCh <- err:
+		default:
 		}
-		if err != nil {
-			// If EOF or error, send error and exit loop
-			h.errCh <- err
-			return
-		}
+		return
+	}
+	select {
+	case h.linesCh <- line:
+	default:
 	}
 }
 
@@ -187,4 +189,13 @@ func (h *JSONHandler) SystemOutput(ctx context.Context, msg string) error {
 		},
 	}
 	return h.Encoder.Encode(actions)
+}
+
+func (h *JSONHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	// Emit signal as a JSON event
+	return h.Encoder.Encode(map[string]any{
+		"type":    "signal",
+		"name":    name,
+		"payload": args,
+	})
 }

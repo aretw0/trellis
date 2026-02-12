@@ -30,7 +30,7 @@ func TestToolRegistryIntegration(t *testing.T) {
 	})
 
 	// 2. Setup Handler with Registry
-	handler := runner.NewTextHandler(nil, nil) // Discard output
+	handler := runner.NewTextHandler(nil) // Discard output
 	handler.Registry = reg
 
 	// 3. Create Tool Call
@@ -58,7 +58,7 @@ func TestToolRegistryIntegration(t *testing.T) {
 
 func TestToolRegistryNotFound(t *testing.T) {
 	reg := registry.NewRegistry()
-	handler := runner.NewTextHandler(nil, nil)
+	handler := runner.NewTextHandler(nil)
 	handler.Registry = reg
 
 	call := domain.ToolCall{
@@ -88,9 +88,8 @@ func TestJSONHandlerLocalRegistry(t *testing.T) {
 
 	// 2. Setup JSON Handler
 	// We pass empty buffers because we expect NO IO if local tool is found.
-	var inBuf bytes.Buffer
 	var outBuf bytes.Buffer
-	handler := runner.NewJSONHandler(&inBuf, &outBuf)
+	handler := runner.NewJSONHandler(&outBuf)
 	handler.Registry = reg
 
 	// 3. Exec
@@ -130,11 +129,15 @@ func TestJSONHandlerFallbackHelper(t *testing.T) {
 	}
 	resultJSON, _ := json.Marshal(expectedResult)
 
-	inBuf := bytes.NewBuffer(resultJSON) // Pre-fill input
 	var outBuf bytes.Buffer
 
-	handler := runner.NewJSONHandler(inBuf, &outBuf)
+	handler := runner.NewJSONHandler(&outBuf)
 	handler.Registry = reg
+
+	// Pre-fill input asynchronously
+	go func() {
+		handler.FeedInput(string(resultJSON), nil)
+	}()
 
 	call := domain.ToolCall{
 		ID:   "call_remote",

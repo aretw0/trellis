@@ -11,7 +11,7 @@ import (
 
 func TestTextHandler_Output(t *testing.T) {
 	outBuf := &bytes.Buffer{}
-	handler := NewTextHandler(nil, outBuf)
+	handler := NewTextHandler(outBuf)
 
 	// Mock Renderer (optional)
 	handler.Renderer = func(s string) (string, error) {
@@ -41,11 +41,15 @@ func TestTextHandler_Output(t *testing.T) {
 }
 
 func TestTextHandler_Input(t *testing.T) {
-	inputStr := "my user input\n"
-	inBuf := bytes.NewBufferString(inputStr)
+	inputStr := "my user input"
 	outBuf := &bytes.Buffer{}
 
-	handler := NewTextHandler(inBuf, outBuf)
+	handler := NewTextHandler(outBuf)
+
+	// Feed input asynchronously to simulate bridge
+	go func() {
+		handler.FeedInput(inputStr, nil)
+	}()
 
 	val, err := handler.Input(context.Background())
 	if err != nil {

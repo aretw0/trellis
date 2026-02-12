@@ -39,18 +39,22 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 		t.Fatalf("Failed to create engine: %v", err)
 	}
 
-	// 2. Setup Runner with TextHandler (Inputs pre-filled)
-	inputBuf := bytes.NewBufferString("\n\n") // Enter for start
+	// 2. Setup Runner with TextHandler (Inputs pre-filled via FeedInput)
 	outputBuf := &bytes.Buffer{}
+	handler := NewTextHandler(outputBuf)
+
+	// Feed inputs asynchronously
+	go func() {
+		handler.FeedInput("", nil)     // Enter for start
+		handler.FeedInput("exit", nil) // Ensure we exit at the end
+	}()
 
 	r := NewRunner(
-		WithInputHandler(NewTextHandler(inputBuf, outputBuf)),
+		WithInputHandler(handler),
 		WithInterceptor(AutoApproveMiddleware()),
 	)
 
 	// 3. Run in a goroutine to prevent deadlock
-	inputBuf.WriteString("exit\n") // Ensure we exit at the end
-
 	done := make(chan error)
 	go func() {
 		_, err := r.Run(t.Context(), engine, nil)
@@ -88,11 +92,16 @@ func TestRunner_Run_Headless(t *testing.T) {
 	engine, _ := trellis.New("", trellis.WithLoader(loader))
 
 	// 2. Setup Runner (Headless)
-	inBuf := bytes.NewBufferString("\"exit\"\n")
 	outBuf := &bytes.Buffer{}
+	handler := NewJSONHandler(outBuf)
+
+	// Feed input asynchronously
+	go func() {
+		handler.FeedInput("\"exit\"", nil)
+	}()
 
 	r := NewRunner(
-		WithInputHandler(NewJSONHandler(inBuf, outBuf)),
+		WithInputHandler(handler),
 		WithHeadless(true),
 	)
 
@@ -208,6 +217,9 @@ func (m *MockToolHandler) Input(ctx context.Context) (string, error) {
 	return "", nil
 }
 func (m *MockToolHandler) SystemOutput(ctx context.Context, msg string) error {
+	return nil
+}
+func (m *MockToolHandler) Signal(ctx context.Context, name string, args map[string]any) error {
 	return nil
 }
 func (m *MockToolHandler) HandleTool(ctx context.Context, call domain.ToolCall) (domain.ToolResult, error) {

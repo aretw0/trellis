@@ -100,3 +100,8 @@ func (m *MockHandler) SystemOutput(ctx context.Context, msg string) error {
 	m.T.Logf("[System] %s", msg)
 	return nil
 }
+
+func (m *MockHandler) Signal(ctx context.Context, name string, args map[string]any) error {
+	m.T.Logf("[Signal] %s", name)
+	return nil
+}

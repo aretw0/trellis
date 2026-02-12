@@ -12,7 +12,7 @@ import (
 
 func TestJSONHandler_Output(t *testing.T) {
 	buf := &bytes.Buffer{}
-	handler := NewJSONHandler(nil, buf)
+	handler := NewJSONHandler(buf)
 
 	actions := []domain.ActionRequest{
 		{Type: domain.ActionRenderContent, Payload: "Hello Intent"},
@@ -50,8 +50,12 @@ func TestJSONHandler_Output(t *testing.T) {
 
 func TestJSONHandler_Input(t *testing.T) {
 	// Test Case 1: JSON String
-	input := "\"Hello World\"\n"
-	handler := NewJSONHandler(bytes.NewBufferString(input), nil)
+	input := "\"Hello World\""
+	handler := NewJSONHandler(nil)
+
+	go func() {
+		handler.FeedInput(input, nil)
+	}()
 
 	val, err := handler.Input(context.Background())
 	if err != nil {
@@ -62,8 +66,13 @@ func TestJSONHandler_Input(t *testing.T) {
 	}
 
 	// Test Case 2: Plain Text
-	input2 := "just plain text\n"
-	handler2 := NewJSONHandler(bytes.NewBufferString(input2), nil)
+	input2 := "just plain text"
+	handler2 := NewJSONHandler(nil)
+
+	go func() {
+		handler2.FeedInput(input2, nil)
+	}()
+
 	val2, err := handler2.Input(context.Background())
 	if err != nil {
 		t.Fatalf("Input2 failed: %v", err)
@@ -75,7 +84,7 @@ func TestJSONHandler_Input(t *testing.T) {
 
 func TestJSONHandler_SystemOutput(t *testing.T) {
 	buf := &bytes.Buffer{}
-	handler := NewJSONHandler(nil, buf)
+	handler := NewJSONHandler(buf)
 
 	err := handler.SystemOutput(context.Background(), "System Status")
 	if err != nil {
