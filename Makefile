@@ -1,4 +1,4 @@
-.PHONY: all gen build test vet serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify use-local-lifecycle use-local-loam use-local-all use-pub-lifecycle use-pub-loam use-pub-all
+.PHONY: all gen build test vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-off-lifecycle work-off-loam work-off-procio work-off-all
 
 # Default target
 all: gen build
@@ -19,6 +19,10 @@ test:
 # Run vet tool in all files
 vet:
 	go vet ./...
+
+# Ensure dependencies are clean
+tidy:
+	go mod tidy
 
 # Run local Go documentation server (pkgsite)
 serve-docs:
@@ -47,37 +51,53 @@ verify:
 # --- Dependency Management (Dev vs Prod) ---
 
 # Switch specific dependencies to local version
-use-local-lifecycle:
-	@echo "Switching lifecycle to local..."
-	@go mod edit -replace github.com/aretw0/lifecycle=../lifecycle
-	@go mod tidy
 
-use-local-loam:
-	@echo "Switching loam to local..."
-	@go mod edit -replace github.com/aretw0/loam=../loam
-	@go mod tidy
+# Enable local development mode for lifecycle by creating/updating go.work
+# Usage: make work-on-lifecycle [WORK_PATH=../lifecycle]
+work-on-lifecycle:
+	@echo "Enabling local lifecycle..."
+	@if not exist go.work ( echo "Initializing go.work..." & go work init . )
+	@if "$(WORK_PATH)"=="" ( go work use ../lifecycle ) else ( go work use $(WORK_PATH) )
 
-# Switch ALL known aretw0 dependencies to default local paths (siblings)
-use-local-all:
-	@echo "Switching all aretw0 deps to local (siblings)..."
-	@go mod edit -replace github.com/aretw0/lifecycle=../lifecycle
-	@go mod edit -replace github.com/aretw0/loam=../loam
-	@go mod tidy
+# Enable local development mode for loam by creating/updating go.work
+# Usage: make work-on-loam [WORK_PATH=../loam]
+work-on-loam:
+	@echo "Enabling local loam..."
+	@if not exist go.work ( echo "Initializing go.work..." & go work init . )
+	@if "$(WORK_PATH)"=="" ( go work use ../loam ) else ( go work use $(WORK_PATH) )
 
-# Revert specific dependencies to published version
-use-pub-lifecycle:
-	@echo "Reverting lifecycle to published..."
-	@go mod edit -dropreplace github.com/aretw0/lifecycle
-	@go mod tidy
+# Enable local development mode for procio by creating/updating go.work
+# Usage: make work-on-procio [WORK_PATH=../procio]
+work-on-procio:
+	@echo "Enabling local procio..."
+	@if not exist go.work ( echo "Initializing go.work..." & go work init . )
+	@if "$(WORK_PATH)"=="" ( go work use ../procio ) else ( go work use $(WORK_PATH) )
 
-use-pub-loam:
-	@echo "Reverting loam to published..."
-	@go mod edit -dropreplace github.com/aretw0/loam
-	@go mod tidy
+# Disable local lifecycle (remove from go.work)
+# Usage: make work-off-lifecycle [WORK_PATH=../lifecycle]
+work-off-lifecycle:
+	@echo "Disabling local lifecycle..."
+	@if exist go.work ( \
+		if "$(WORK_PATH)"=="" ( go work edit -dropuse ../lifecycle ) else ( go work edit -dropuse $(WORK_PATH) ) \
+	)
 
-# Revert ALL aretw0 dependencies to published versions
-use-pub-all:
-	@echo "Reverting all aretw0 deps to published..."
-	@go mod edit -dropreplace github.com/aretw0/lifecycle
-	@go mod edit -dropreplace github.com/aretw0/loam
-	@go mod tidy
+# Disable local loam (remove from go.work)
+# Usage: make work-off-loam [WORK_PATH=../loam]
+work-off-loam:
+	@echo "Disabling local loam..."
+	@if exist go.work ( \
+		if "$(WORK_PATH)"=="" ( go work edit -dropuse ../loam ) else ( go work edit -dropuse $(WORK_PATH) ) \
+	)
+
+# Disable local procio (remove from go.work)
+# Usage: make work-off-procio [WORK_PATH=../procio]
+work-off-procio:
+	@echo "Disabling local procio..."
+	@if exist go.work ( \
+		if "$(WORK_PATH)"=="" ( go work edit -dropuse ../procio ) else ( go work edit -dropuse $(WORK_PATH) ) \
+	)
+
+# Disable local development mode by removing go.work (nuclear option)
+work-off-all:
+	@echo "Disabling local workspace mode..."
+	@if exist go.work ( del go.work )
