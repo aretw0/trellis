@@ -1,7 +1,26 @@
-*.exe
+# Binaries
+/**/*.exe
+
+# Test Output
+*test*.txt
+
+# Coverage
+*coverage*.txt
+*coverage*.out
+
+# Examples
+examples/**/config.json
+
+# Trellis
 .loam/
 .trellis/
-.gemini/
 .sessions/
+
+# Gemini
+.gemini/
 gha-creds-*.json
 secure-*.json
+
+# Go Workspace
+go.work
+go.work.sum
