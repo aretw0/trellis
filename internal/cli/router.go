@@ -60,6 +60,12 @@ func createInteractiveRouter(ctx context.Context, ioHandler runner.IOHandler, mo
 		})))
 	}
 
+	// C. Shutdown Bridge: Lifecycle -> Context Cancellation
+	// When "q", "quit", or "exit" is triggered, we need to explicitly shut down the context.
+	routerOpts = append(routerOpts, lifecycle.WithShutdown(func() {
+		lifecycle.Shutdown(ctx)
+	}))
+
 	// ---------------------------------------------------------
 	// 2. Mode-Specific Input Configuration
 	// ---------------------------------------------------------
@@ -87,6 +93,7 @@ func createInteractiveRouter(ctx context.Context, ioHandler runner.IOHandler, mo
 				lifecycle.WithInputMappings(map[string]lifecycle.Event{
 					"q":    lifecycle.ShutdownEvent{Reason: "manual"},
 					"quit": lifecycle.ShutdownEvent{Reason: "manual"},
+					"exit": lifecycle.ShutdownEvent{Reason: "manual"},
 				}),
 			),
 		)

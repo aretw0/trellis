@@ -132,7 +132,7 @@ func logCompletion(nodeID string, err error, quiet bool, sig os.Signal) {
 		} else {
 			// clean exit without specific signal (e.g. context cancel during reload)
 			// usually handled elsewhere, but if we get here:
-			fmt.Printf("\n")
+			// fmt.Printf("\n") // Removed to avoid extra newline after interactive input
 			printSystemMessage("Interrupted at '%s' node.", nodeID)
 		}
 	}
