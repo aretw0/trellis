@@ -333,10 +333,6 @@ func (r *Runner) handleInput(
 		return nil, nil, fmt.Errorf("input error: %w", err)
 	}
 
-	if val == "exit" || val == "quit" {
-		return nil, nil, io.EOF
-	}
-
 	return val, nil, nil
 }
 
