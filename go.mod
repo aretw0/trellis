@@ -98,5 +98,3 @@ tool (
 	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 	golang.org/x/tools/cmd/godoc
 )
-
-replace github.com/aretw0/lifecycle => ../lifecycle
