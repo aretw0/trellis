@@ -43,11 +43,8 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 	outputBuf := &bytes.Buffer{}
 	handler := NewTextHandler(outputBuf)
 
-	// Feed inputs asynchronously
-	go func() {
-		handler.FeedInput("", nil)     // Enter for start
-		handler.FeedInput("exit", nil) // Ensure we exit at the end
-	}()
+	// Feed input for the 'start' node (since it asks for input by default in interactive mode)
+	go handler.FeedInput("", nil)
 
 	r := NewRunner(
 		WithInputHandler(handler),
@@ -63,7 +60,8 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if err != nil {
+		// We expect nil OR context.Canceled/DeadlineExceeded since we removed "exit" command support
+		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("Runner failed: %v", err)
 		}
 	case <-time.After(2 * time.Second):
@@ -95,11 +93,6 @@ func TestRunner_Run_Headless(t *testing.T) {
 	outBuf := &bytes.Buffer{}
 	handler := NewJSONHandler(outBuf)
 
-	// Feed input asynchronously
-	go func() {
-		handler.FeedInput("\"exit\"", nil)
-	}()
-
 	r := NewRunner(
 		WithInputHandler(handler),
 		WithHeadless(true),
@@ -114,7 +107,7 @@ func TestRunner_Run_Headless(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if err != nil {
+		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("Runner failed: %v", err)
 		}
 	case <-time.After(1 * time.Second):
