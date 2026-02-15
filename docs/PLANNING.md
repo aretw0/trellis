@@ -229,7 +229,7 @@ Foco: Refinar o comportamento da CLI e ferramentas externas após a integração
 - [x] **Registry & Inline Unified**: Limpeza da lógica de carregamento de ferramentas e re-habilitação de logs de debug limpos.
 - [x] **Atomic Commits**: Organização de todo o trabalho acumulado em 11 commits semânticos e atômicos.
 
-### 🚧 v0.7.4: Infrastructure & Interoperability
+### ✅ v0.7.4: Infrastructure & Interoperability
 
 Foco: Estabilizar o ambiente de desenvolvimento e preparar a integração com ferramentas de diagnóstico.
 
@@ -240,9 +240,9 @@ Foco: Estabilizar o ambiente de desenvolvimento e preparar a integração com fe
 - [x] **Introspection Strategy Analysis**:
   - [x] **Technical Audit**: Análise de compatibilidade entre o gerador Mermaid interno e a lib `introspection`.
   - [x] **Strategy**: Manter visualização interna para grafos complexos; adotar `introspection` para snapshots de estado (v0.7.5).
-- [x] **Lifecycle 2.0**: Avaliar se esta tudo estável para liberar a lifecycle ser publicada na v2.
+- [x] **Lifecycle 1.5**: Avaliar se esta tudo estável para liberar a lifecycle ser publicada na v1.5.
   - **Verdict**: ✅ Estável. A suíte de testes passou (`make test`) utilizando as versões locais (`go.work`) das libs `lifecycle` (`main`), `procio` (`main`) e `introspection` (`main`). Nenhuma regressão detectada.
-  - [ ] **Release v2.0**: Publicar `lifecycle` v2.0.0 com breaking changes (SignalContext, Terminal IO) e atualizar dependências no `go.mod`.
+  - [x] **Release v1.5**: Publicar `lifecycle` v1.5.0 com breaking changes (SignalContext, Terminal IO) e atualizar dependências no `go.mod`.
 
 ### 🏗️ v0.7.5: Developer Experience & Type Safety (The "DX" Patch)
 
@@ -278,6 +278,74 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
   - *Refinement*: Internal middleware usage should be fully driven by this config.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
+
+---
+
+## 2. Breaking Changes & Versioning Strategy {#breaking-changes-141-150}
+
+### Estratégia de Versionamento
+
+O Trellis adota **Semantic Versioning** (SemVer) dentro da **série v1.x**. Isto significa:
+
+- **v1.0.0 → v1.x.y**: Mudanças backwards-compatible (novos recursos, patches).
+- **v1.x.0 → v1.(x+1).0**: Podem incluir breaking changes **documentados**, mas o module path permanece `github.com/aretw0/trellis`.
+
+> **Decisão sobre v2**: Para evitar a fadiga de migração de módulos Go (que requereria `github.com/aretw0/trellis/v2` no `go.mod`), optamos por **permanecer na v1** durante todo o lifecycle principal do projeto. Breaking changes significativos serão documentados explicitamente entre minor versions.
+
+### Breaking Changes: v1.4.1 → v1.5.0
+
+A versão **v1.5.0** introduz mudanças significativas na arquitetura de gerenciamento de ciclo de vida e IO:
+
+#### 🔄 Lifecycle Router (Signals & Input Unification)
+
+**Antes (≤ v1.4.1)**:
+
+- O `Runner` capturava sinais POSIX (`SIGINT`, `SIGTERM`) diretamente.
+- A leitura de input (`Stdin`) era bloqueante e tratada no loop principal.
+- Diferentes estratégias entre plataformas (Windows vs POSIX).
+
+**Depois (≥ v1.5.0)**:
+
+- Introdução da biblioteca externa **`github.com/aretw0/lifecycle`**.
+- O `Runner` delega captura de sinais e input para o **Lifecycle Router**.
+- Uso de `signal.Context` do `lifecycle` para tratamento unificado cross-platform.
+- Input é consumido via eventos roteados, desacoplando do loop de execução.
+
+**Impacto de Migração**:
+
+- **Consumidores da CLI**: Sem mudanças visíveis ao usuário final.
+- **Library Users**: Se você instancia `Runner` diretamente em Go, pode ser necessário ajustar a inicialização de contextos. Consulte exemplos atualizados em `examples/low-level-api`.
+
+#### 📦 Dependências Externas
+
+A integração com `lifecycle` introduz novas dependências:
+
+- `github.com/aretw0/lifecycle` (v1.5.0+)
+- `github.com/aretw0/procio` (transitivo)
+
+**Recomendação**: Rode `go mod tidy` após atualizar para v1.5.0.
+
+#### 🧪 Guia de Migração
+
+Para projetos que usam Trellis como biblioteca:
+
+```go
+// ANTES (v1.4.1)
+runner := runner.New(
+    runner.WithEngine(engine),
+    runner.WithHandler(ioHandler),
+)
+
+// DEPOIS (v1.5.0)
+ctx := lifecycle.SignalContext(context.Background())
+runner := runner.New(
+    runner.WithEngine(engine),
+    runner.WithHandler(ioHandler),
+)
+runner.Run(ctx) // Passa o contexto gerenciado
+```
+
+Consulte a documentação completa em [TECHNICAL.md](TECHNICAL.md#9-arquitetura-do-runner--io) para detalhes sobre a nova arquitetura.
 
 ---
 
