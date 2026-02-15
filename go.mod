@@ -4,6 +4,7 @@ go 1.25.4
 
 require (
 	github.com/alicebob/miniredis/v2 v2.36.0
+	github.com/aretw0/procio v0.1.2
 	github.com/aretw0/lifecycle v1.5.1
 	github.com/aretw0/loam v0.10.6
 	github.com/charmbracelet/glamour v0.10.0
