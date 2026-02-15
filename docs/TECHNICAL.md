@@ -601,9 +601,11 @@ Metadata: {
 
 O `Runner` serve como a ponte entre o Engine Core e o mundo externo. Ele gerencia o loop de execução, lida com middleware e delega IO para um `IOHandler`.
 
-Na v2.0, o **Lifecycle Router** (`pkg/events`) assume a responsabilidade pela captura de **Sinais (OS)** e **Input (Stdin)**, unificando-os em um fluxo de eventos. O Runner agora consome um Contexto gerenciado pelo Lifecycle (`signal.Context`) e inputs roteados via ponte.
+A partir da **v1.5.0**, o **Lifecycle Router** assume a responsabilidade pela captura de **Sinais (OS)** e **Input (Stdin)**, unificando-os em um fluxo de eventos. O Runner agora consome um Contexto gerenciado pelo Lifecycle (`signal.Context`) e inputs roteados via ponte.
 
 #### 9.1. Ciclo da Sessão
+
+> **Nota sobre Breaking Changes**: A arquitetura do Lifecycle Router (descrita abaixo) foi introduzida na **v1.5.0**, representando uma mudança significativa em relação à v1.4.1. Consulte [PLANNING.md](PLANNING.md#breaking-changes-141-150) para detalhes sobre migração.
 
 ```mermaid
 sequenceDiagram
