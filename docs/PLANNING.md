@@ -241,6 +241,7 @@ Foco: Estabilizar o ambiente de desenvolvimento e preparar a integração com fe
   - [x] **Technical Audit**: Análise de compatibilidade entre o gerador Mermaid interno e a lib `introspection`.
   - [x] **Strategy**: Manter visualização interna para grafos complexos; adotar `introspection` para snapshots de estado (v0.7.5).
 - [ ] **Lifecycle 2.0**: Avaliar se esta tudo estável para liberar a lifecycle ser publicada na v2. No estado atual depois da fechada das extrações da lifecycle, i.e. procio e introspecção, precisamos avaliar se nada quebrou aqui.
+  - [ ] **Release v2.0**: Se tudo estiver estável, publicar `lifecycle` v2.0.0 com breaking changes (SignalContext, Terminal IO) e atualizar dependências.
 
 ### 🏗️ v0.7.5: Developer Experience & Type Safety (The "DX" Patch)
 
