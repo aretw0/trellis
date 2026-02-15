@@ -1127,7 +1127,15 @@ Um middleware separado permite a sanitização de dados sensíveis (Personally I
 
 ### 15. Observabilidade (Observability)
 
-O Trellis fornece **Lifecycle Hooks** para instrumentação externa.
+O Trellis fornece **três camadas** de observabilidade, cada uma com propósitos distintos:
+
+1. **Lifecycle Hooks** → Eventos de transição assíncronos
+2. **Graph Visualization** → Representação estrutural (Mermaid)
+3. **Introspection** → Snapshots do estado de execução em tempo real
+
+---
+
+#### 15.1 Lifecycle Hooks (Event Streaming)
 
 * **Hooks**: `OnNodeEnter`, `OnNodeLeave`, `OnToolReturn`, etc.
 * **Padrão de Log**: Eventos usam chaves consistentes.
@@ -1137,7 +1145,7 @@ O Trellis fornece **Lifecycle Hooks** para instrumentação externa.
   * **Nota**: O tipo de evento `tool_call` é preservado para estabilidade histórica de observabilidade, mesmo que o campo do Nó agora seja `Do`.
 * **Integração**: Pode ser usado com `log/slog` e `Prometheus` sem acoplar essas dependências ao Core (ex: `examples/structured-logging`).
 
-#### 15.1 Diagrama de Eventos (Lifecycle Hooks)
+##### Diagrama de Eventos (Lifecycle Hooks)
 
 O diagrama abaixo ilustra onde cada evento é emitido durante o ciclo `Navigate`:
 
@@ -1166,6 +1174,113 @@ sequenceDiagram
     
     Engine->>Engine: Resolve Transition -> Node B
 ```
+
+---
+
+#### 15.2 Introspection (State Snapshots)
+
+O **Runner** implementa a interface `TypedWatcher[*domain.State]` da biblioteca [`github.com/aretw0/introspection`](https://github.com/aretw0/introspection), permitindo observação do estado interno do Engine durante a execução.
+
+##### Assinatura do Contrato
+
+```go
+type TypedWatcher[T any] interface {
+    State() T                           // Retorna snapshot do estado atual
+    Watch(ctx context.Context) <-chan StateChange[T]  // Stream de mudanças de estado
+}
+```
+
+##### Implementação no Runner
+
+1. **`State() *domain.State`**:
+   * Retorna um **snapshot isolado** do estado atual (via `State.Snapshot()`).
+   * **Thread-safe**: Protegido por `sync.RWMutex` para acesso concorrente.
+   * **Zero-copy para leituras**: Retorna a referência ao `lastState` já capturado.
+
+2. **`Watch(ctx context.Context) <-chan StateChange`**:
+   * Cria um canal de observação registrado no Runner.
+   * Cada mudança de estado é transmitida via broadcast **não-bloqueante**.
+   * **Auto-cleanup**: Goroutine de monitoramento remove o watcher quando o contexto é cancelado (usando padrão **copy-and-swap** para evitar race conditions).
+   * **Backpressure handling**: Watchers lentos resultam em eventos descartados (contabilizados em `droppedCount` para futura instrumentação).
+
+##### Exemplo: Monitoramento em Tempo Real
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    
+    "github.com/aretw0/trellis/pkg/runner"
+    "github.com/aretw0/trellis/pkg/observability"
+)
+
+func main() {
+    r := runner.NewRunner(/* ... */)
+    
+    ctx := context.Background()
+    
+    // Agregador consolida múltiplos watchers
+    agg := observability.NewAggregator()
+    agg.AddWatcher(r)  // Runner implementa TypedWatcher
+    
+    changes := agg.Watch(ctx)
+    
+    go func() {
+        for change := range changes {
+            state := change.NewState
+            fmt.Printf("Node: %s | Context: %v\n", 
+                state.CurrentNodeID, state.Context)
+        }
+    }()
+    
+    r.Run(ctx)
+}
+```
+
+##### Garantias de Concorrência
+
+| Operação          | Proteção           | Comportamento                          |
+|-------------------|--------------------|----------------------------------------|
+| `State()`         | `RWMutex.RLock()`  | Leituras paralelas permitidas          |
+| `Watch()`         | `Mutex.Lock()`     | Registro serializado                   |
+| `broadcastState()`| `RWMutex.RLock()`  | Broadcast paralelo às leituras         |
+| Cleanup (ctx)     | `Mutex.Lock()`     | Remoção copy-and-swap (thread-safe)    |
+
+##### Arquitetura de Broadcast
+
+```mermaid
+sequenceDiagram
+    participant Runner
+    participant Watcher1
+    participant Watcher2
+    participant SlowWatcher
+
+    Runner->>Runner: State Transition
+    Runner->>Runner: broadcastState(newState)
+    
+    par Non-blocking Send
+        Runner-->>Watcher1: chan <- StateChange
+        Runner-->>Watcher2: chan <- StateChange
+        Runner--xSlowWatcher: DROP (chan full)
+    end
+    
+    Note over Runner: droppedCount++
+    Runner->>Runner: Continue Execution
+```
+
+**Decisão de Design**: O broadcast **nunca bloqueia** o Runner. Watchers lentos perdem eventos ao invés de stall na execução. Isso preserva o determinismo do Engine e evita deadlocks.
+
+---
+
+#### 15.3 Separação de Responsabilidades
+
+| Camada          | Propósito                          | Uso Típico                          |
+|-----------------|-----------------------------------|-------------------------------------|
+| **Hooks**       | Auditoria, Logs, Métricas         | Prometheus, OpenTelemetry           |
+| **Visualization**| Análise estrutural, Debugging     | CI/CD, Documentação                 |
+| **Introspection**| Dashboards, Debugging interativo | REPL, Web UI, Estado em tempo real  |
 
 ### 16. Process Adapter (Execução de Script Local)
 
