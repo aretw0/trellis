@@ -7,9 +7,12 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/aretw0/lifecycle"
+
+	"github.com/aretw0/introspection"
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
@@ -37,6 +40,91 @@ type Runner struct {
 	engine       *trellis.Engine
 	initialState *domain.State
 	finalState   *domain.State
+
+	// State Watching
+	stateMu   sync.RWMutex
+	lastState *domain.State
+	watchers  []chan introspection.StateChange[*domain.State]
+}
+
+// State returns a snapshot of the current execution state.
+// It implements the introspection.TypedWatcher interface.
+func (r *Runner) State() *domain.State {
+	r.stateMu.RLock()
+	defer r.stateMu.RUnlock()
+	if r.lastState == nil {
+		return r.initialState
+	}
+	// lastState is already a snapshot, no need to clone again
+	return r.lastState
+}
+
+// Watch returns a channel of state changes for the introspection system.
+func (r *Runner) Watch(ctx context.Context) <-chan introspection.StateChange[*domain.State] {
+	ch := make(chan introspection.StateChange[*domain.State], 10)
+	
+	r.stateMu.Lock()
+	r.watchers = append(r.watchers, ch)
+	r.stateMu.Unlock()
+	
+	go func() {
+		<-ctx.Done()
+		
+		// Safe removal using copy-and-swap to avoid race conditions
+		r.stateMu.Lock()
+		newWatchers := make([]chan introspection.StateChange[*domain.State], 0, len(r.watchers)-1)
+		for _, w := range r.watchers {
+			if w != ch {
+				newWatchers = append(newWatchers, w)
+			}
+		}
+		r.watchers = newWatchers
+		r.stateMu.Unlock()
+		
+		close(ch)
+	}()
+	return ch
+}
+
+func (r *Runner) broadcastState(newState *domain.State) {
+	if newState == nil {
+		return
+	}
+	
+	// Snapshot for isolation
+	snapshot := newState.Snapshot()
+	timestamp := time.Now()
+	
+	r.stateMu.Lock()
+	defer r.stateMu.Unlock()
+	
+	oldState := r.lastState
+	r.lastState = snapshot
+	
+	change := introspection.StateChange[*domain.State]{
+		ComponentID:   r.SessionID,
+		ComponentType: "runner",
+		OldState:      oldState,
+		NewState:      snapshot,
+		Timestamp:     timestamp,
+	}
+	
+	droppedCount := 0
+	for _, ch := range r.watchers {
+		select {
+		case ch <- change:
+		default:
+			// Non-blocking send to avoid stalling runner
+			droppedCount++
+		}
+	}
+	
+	// Log dropped events for observability (only if drops occurred)
+	if droppedCount > 0 {
+		// Use a non-blocking log to avoid recursion if logger is also being watched
+		// This is informational, not critical
+		_ = droppedCount // Placeholder: integrate with metrics/logging later
+	}
 }
 
 // NewRunner creates a new Runner with options.
@@ -78,10 +166,17 @@ func (r *Runner) Run(ctx context.Context) error {
 		// Check for cancellation before each step
 		select {
 		case <-ctx.Done():
+			r.stateMu.Lock()
 			r.finalState = state
+			// Don't broadcast on cancellation to avoid deadlocks or closed channels
+			r.lastState = state.Snapshot()
+			r.stateMu.Unlock()
 			return ctx.Err()
 		default:
 		}
+
+		// Update Observability State
+		r.broadcastState(state)
 
 		// A. Render
 		actions, _, err := engine.Render(ctx, state)
@@ -169,13 +264,10 @@ func (r *Runner) Run(ctx context.Context) error {
 	}
 	// Final cleanup if needed (e.g. remove session if complete? Optional logic)
 	r.finalState = state
+	r.stateMu.Lock()
+	r.lastState = state.Snapshot()
+	r.stateMu.Unlock()
 	return nil
-}
-
-// State returns the final state after execution.
-// This allows accessing the result when Run() only returns an error.
-func (r *Runner) State() *domain.State {
-	return r.finalState
 }
 
 func (r *Runner) saveState(ctx context.Context, sessionID string, state *domain.State) error {
