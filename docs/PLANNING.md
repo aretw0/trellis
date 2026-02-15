@@ -229,12 +229,28 @@ Foco: Refinar o comportamento da CLI e ferramentas externas após a integração
 - [x] **Registry & Inline Unified**: Limpeza da lógica de carregamento de ferramentas e re-habilitação de logs de debug limpos.
 - [x] **Atomic Commits**: Organização de todo o trabalho acumulado em 11 commits semânticos e atômicos.
 
-### 🏗️ v0.7.4: Developer Experience & Type Safety (The "DX" Patch)
+### 🚧 v0.7.4: Infrastructure & Interoperability
+
+Foco: Estabilizar o ambiente de desenvolvimento e preparar a integração com ferramentas de diagnóstico.
+
+- [x] **Dev Environment Interoperability**:
+  - [x] **Cross-Platform Makefile**: Refatoração completa para suportar Windows e POSIX simultaneamente via GNU Make.
+  - [x] **Go Workspace Sync**: Mecanismo de `DROP_WORK` com normalização de paths (`subst`) para garantir funcionamento cross-platform.
+  - [x] **Dependency Automation**: Novos targets `work-on/off-[lib]` para `lifecycle`, `procio`, `loam` e `introspection`.
+- [x] **Introspection Strategy Analysis**:
+  - [x] **Technical Audit**: Análise de compatibilidade entre o gerador Mermaid interno e a lib `introspection`.
+  - [x] **Strategy**: Manter visualização interna para grafos complexos; adotar `introspection` para snapshots de estado (v0.7.5).
+- [ ] **Lifecycle 2.0**: Avaliar se esta tudo estável para liberar a lifecycle ser publicada na v2. No estado atual depois da fechada das extrações da lifecycle, i.e. procio e introspecção, precisamos avaliar se nada quebrou aqui.
+
+### 🏗️ v0.7.5: Developer Experience & Type Safety (The "DX" Patch)
 
 Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX).
 
 - [ ] **Lifecycle Workers & Supervisors**: Avaliar se o `trellis.Runner` deve ser implementado como um `Worker` nativo da lib `lifecycle` para melhor gestão de pools.
 - [ ] **Unified Observability**: Integrar a introspecção do Engine com os coletores de métricas e introspecção da lib `lifecycle`.
+  - Implementar `Engine` como `introspection.TypedWatcher[EngineState]`
+  - Usar `introspection.AggregateWatchers` para vista unificada (Engine + Workers + Signals)
+  - ⚠️ **NÃO** usar introspection para geração de Mermaid (ver ANALYSIS_INTROSPECTION_COMPATIBILITY.md)
 - [ ] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
