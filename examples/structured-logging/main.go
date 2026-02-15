@@ -100,9 +100,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	r := runner.NewRunner()
+	r := runner.NewRunner(
+		runner.WithEngine(eng),
+		runner.WithInitialState(state),
+	)
 
-	if _, err := r.Run(context.Background(), eng, state); err != nil {
+	if err := r.Run(context.Background()); err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			logger.Info("execution canceled")
 			return

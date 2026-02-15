@@ -248,12 +248,12 @@ Foco: Estabilizar o ambiente de desenvolvimento e preparar a integração com fe
 
 Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX).
 
-- [ ] **Lifecycle Workers & Supervisors**: Avaliar se o `trellis.Runner` deve ser implementado como um `Worker` nativo da lib `lifecycle` para melhor gestão de pools.
+- [x] **Lifecycle Workers & Supervisors**: Avaliar se o `trellis.Runner` deve ser implementado como um `Worker` nativo da lib `lifecycle` para melhor gestão de pools.
 - [ ] **Unified Observability**: Integrar a introspecção do Engine com os coletores de métricas e introspecção da lib `lifecycle`.
   - Implementar `Engine` como `introspection.TypedWatcher[EngineState]`
   - Usar `introspection.AggregateWatchers` para vista unificada (Engine + Workers + Signals)
   - ⚠️ **NÃO** usar introspection para geração de Mermaid (ver ANALYSIS_INTROSPECTION_COMPATIBILITY.md)
-- [ ] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
+- [x] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.

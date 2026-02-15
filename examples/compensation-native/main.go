@@ -76,9 +76,10 @@ func main() {
 	r := runner.NewRunner(
 		runner.WithInputHandler(toolHandler),
 		runner.WithHeadless(true),
+		runner.WithEngine(eng),
 	)
 
-	_, err = r.Run(context.Background(), eng, nil)
+	err = r.Run(context.Background())
 	if err != nil {
 		fmt.Printf("\n❌ Demo Finished with error: %v\n", err)
 	} else {

@@ -94,6 +94,7 @@ func main() {
 		runner.WithInputHandler(handler),
 		runner.WithStore(store),
 		runner.WithLogger(logger),
+		runner.WithEngine(engine),
 	)
 
 	// 6. Run Session
@@ -102,7 +103,7 @@ func main() {
 	fmt.Printf("--- SAGA DEMO (Session: %s) ---\n", sessionID)
 	fmt.Println("This demo simulates a booking flow failure and subsequent rollback.")
 
-	_, err = r.Run(context.Background(), engine, nil)
+	err = r.Run(context.Background())
 	if err != nil {
 		fmt.Printf("Execution Error: %v\n", err)
 		os.Exit(1)

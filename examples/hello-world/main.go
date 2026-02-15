@@ -46,11 +46,6 @@ func main() {
 		log.Fatalf("Failed to init engine: %v", err)
 	}
 
-	// 3. Configure Runner with TUI
-	r := runner.NewRunner(
-		runner.WithRenderer(tui.NewRenderer()),
-	)
-
 	// 4. Create initial state and seed data
 	ctx := context.Background()
 	state, err := eng.Start(ctx, "hello-world", nil)
@@ -59,8 +54,14 @@ func main() {
 	}
 	state.Context["User"] = "World" // Seed Data (Verification of Interpolation)
 
+	r := runner.NewRunner(
+		runner.WithRenderer(tui.NewRenderer()),
+		runner.WithEngine(eng),
+		runner.WithInitialState(state),
+	)
+
 	// 5. Run!
-	if _, err := r.Run(context.Background(), eng, state); err != nil {
+	if err := r.Run(context.Background()); err != nil {
 		log.Fatalf("Error running: %v", err)
 	}
 }

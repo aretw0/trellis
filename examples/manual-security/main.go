@@ -57,14 +57,7 @@ func main() {
 		panic(err)
 	}
 
-	// 7. Run
-	r := runner.NewRunner(
-		runner.WithStore(sessionMgr),
-		runner.WithSessionID(sessionID),
-		runner.WithLogger(logger),
-		runner.WithInputHandler(runner.NewTextHandler(os.Stdout)),
-	)
-
+	// 7. Prepare State
 	// Initialize context with sensitive data
 	initialState := map[string]any{
 		"api_key": "sk-12345-very-secret",
@@ -84,8 +77,18 @@ func main() {
 	state.Context["api_key"] = initialState["api_key"]
 	state.Context["password"] = "007"
 
+	// 8. Create and run
+	r := runner.NewRunner(
+		runner.WithStore(sessionMgr),
+		runner.WithSessionID(sessionID),
+		runner.WithLogger(logger),
+		runner.WithInputHandler(runner.NewTextHandler(os.Stdout)),
+		runner.WithEngine(eng),
+		runner.WithInitialState(state),
+	)
+
 	// Execute
-	if _, err := r.Run(ctx, eng, state); err != nil {
+	if err := r.Run(ctx); err != nil {
 		panic(err)
 	}
 

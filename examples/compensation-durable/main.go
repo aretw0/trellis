@@ -87,14 +87,6 @@ func main() {
 	handler := runner.NewTextHandler(os.Stdout)
 	toolHandler := &ToolMiddleware{Next: handler, Tools: tools}
 
-	r := runner.NewRunner(
-		runner.WithInputHandler(toolHandler),
-		// Use the session manager as the store (it implements StateStore)
-		runner.WithStore(sessMgr),
-		runner.WithSessionID(sessionID),
-		runner.WithHeadless(true), // Auto-approve tools
-	)
-
 	fmt.Printf("\n--- DURABLE SAGA DEMO: Action='%s' ---\n", *action)
 
 	switch *action {
@@ -127,8 +119,18 @@ func main() {
 			}
 		}
 
+		// Create runner with engine and state for this run
+		r := runner.NewRunner(
+			runner.WithInputHandler(toolHandler),
+			runner.WithStore(sessMgr),
+			runner.WithSessionID(sessionID),
+			runner.WithHeadless(true),
+			runner.WithEngine(eng),
+			runner.WithInitialState(state),
+		)
+
 		// Run with the loaded/new state
-		_, err = r.Run(ctx, eng, state)
+		err = r.Run(ctx)
 		if err != nil {
 			// Ignore interrupt error as we expect to stop at prompts or signals
 			if err.Error() != "interrupt" && err.Error() != "interrupted" {
