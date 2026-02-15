@@ -1,4 +1,4 @@
-.PHONY: all gen build test vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-on-introspection work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
+.PHONY: all gen build test coverage lint vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-on-introspection work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
 
 # --- OS Detection & Command Abstraction ---
 ifeq ($(OS),Windows_NT)
@@ -32,6 +32,15 @@ build:
 # Note: -race is mandatory for verifying behavioral logic and concurrency safety.
 test:
 	go test -race -timeout 90s ./...
+
+# Run coverage tests
+coverage:
+	go test -race -timeout 90s -coverprofile="coverage.out" ./...
+	go tool cover -func="coverage.out"
+
+# Run ineffassign to detect ineffectual assignments
+lint:
+	go run github.com/gordonklaus/ineffassign@latest ./...
 
 # Run vet tool in all files
 vet:
