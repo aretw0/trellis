@@ -1,4 +1,21 @@
-.PHONY: all gen build test vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-off-lifecycle work-off-loam work-off-procio work-off-all
+.PHONY: all gen build test vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-on-introspection work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
+
+# --- OS Detection & Command Abstraction ---
+ifeq ($(OS),Windows_NT)
+BINARY := trellis.exe
+RM := del /F /Q
+CURL := curl.exe
+# Windows needs backslashes for 'go work edit -dropuse' to match go.work content
+DROP_WORK = if exist go.work ( go work edit -dropuse $(subst /,\,$(1)) )
+INIT_WORK = if not exist go.work ( echo "Initializing go.work..." & go work init . )
+else
+BINARY := trellis
+RM := rm -f
+CURL := curl
+# Linux/macOS uses forward slashes
+DROP_WORK = [ -f go.work ] && go work edit -dropuse $(1)
+INIT_WORK = [ -f go.work ] || ( echo "Initializing go.work..." && go work init . )
+endif
 
 # Default target
 all: gen build
@@ -9,7 +26,7 @@ gen:
 
 # Build the Trellis CLI
 build:
-	go build -o trellis.exe ./cmd/trellis
+	go build -o $(BINARY) ./cmd/trellis
 
 # Run all tests
 # Note: -race is mandatory for verifying behavioral logic and concurrency safety.
@@ -46,58 +63,66 @@ inspect-tour-sse:
 
 # Verify server endpoints (requires server running in another terminal)
 verify:
-	curl.exe -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
+	$(CURL) -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
 
 # --- Dependency Management (Dev vs Prod) ---
 
-# Switch specific dependencies to local version
+# Helper to get the correct path (uses WORK_PATH if provided, else default)
+GET_PATH = $(if $(WORK_PATH),$(WORK_PATH),$(1))
 
-# Enable local development mode for lifecycle by creating/updating go.work
+# Enable local development mode for lifecycle
 # Usage: make work-on-lifecycle [WORK_PATH=../lifecycle]
 work-on-lifecycle:
 	@echo "Enabling local lifecycle..."
-	@if not exist go.work ( echo "Initializing go.work..." & go work init . )
-	@if "$(WORK_PATH)"=="" ( go work use ../lifecycle ) else ( go work use $(WORK_PATH) )
+	@$(INIT_WORK)
+	go work use $(call GET_PATH,../lifecycle)
 
-# Enable local development mode for loam by creating/updating go.work
+# Enable local development mode for loam
 # Usage: make work-on-loam [WORK_PATH=../loam]
 work-on-loam:
 	@echo "Enabling local loam..."
-	@if not exist go.work ( echo "Initializing go.work..." & go work init . )
-	@if "$(WORK_PATH)"=="" ( go work use ../loam ) else ( go work use $(WORK_PATH) )
+	@$(INIT_WORK)
+	go work use $(call GET_PATH,../loam)
 
-# Enable local development mode for procio by creating/updating go.work
+# Enable local development mode for procio
 # Usage: make work-on-procio [WORK_PATH=../procio]
 work-on-procio:
 	@echo "Enabling local procio..."
-	@if not exist go.work ( echo "Initializing go.work..." & go work init . )
-	@if "$(WORK_PATH)"=="" ( go work use ../procio ) else ( go work use $(WORK_PATH) )
+	@$(INIT_WORK)
+	go work use $(call GET_PATH,../procio)
 
-# Disable local lifecycle (remove from go.work)
+# Enable local development mode for introspection
+# Usage: make work-on-introspection [WORK_PATH=../introspection]
+work-on-introspection:
+	@echo "Enabling local introspection..."
+	@$(INIT_WORK)
+	go work use $(call GET_PATH,../introspection)
+
+# Disable local lifecycle
 # Usage: make work-off-lifecycle [WORK_PATH=../lifecycle]
 work-off-lifecycle:
 	@echo "Disabling local lifecycle..."
-	@if exist go.work ( \
-		if "$(WORK_PATH)"=="" ( go work edit -dropuse ../lifecycle ) else ( go work edit -dropuse $(WORK_PATH) ) \
-	)
+	@$(call DROP_WORK,$(call GET_PATH,../lifecycle))
 
-# Disable local loam (remove from go.work)
+# Disable local loam
 # Usage: make work-off-loam [WORK_PATH=../loam]
 work-off-loam:
 	@echo "Disabling local loam..."
-	@if exist go.work ( \
-		if "$(WORK_PATH)"=="" ( go work edit -dropuse ../loam ) else ( go work edit -dropuse $(WORK_PATH) ) \
-	)
+	@$(call DROP_WORK,$(call GET_PATH,../loam))
 
-# Disable local procio (remove from go.work)
+# Disable local procio
 # Usage: make work-off-procio [WORK_PATH=../procio]
 work-off-procio:
 	@echo "Disabling local procio..."
-	@if exist go.work ( \
-		if "$(WORK_PATH)"=="" ( go work edit -dropuse ../procio ) else ( go work edit -dropuse $(WORK_PATH) ) \
-	)
+	@$(call DROP_WORK,$(call GET_PATH,../procio))
+
+# Disable local introspection
+# Usage: make work-off-introspection [WORK_PATH=../introspection]
+work-off-introspection:
+	@echo "Disabling local introspection..."
+	@$(call DROP_WORK,$(call GET_PATH,../introspection))
 
 # Disable local development mode by removing go.work (nuclear option)
 work-off-all:
 	@echo "Disabling local workspace mode..."
-	@if exist go.work ( del go.work )
+	@$(RM) go.work
