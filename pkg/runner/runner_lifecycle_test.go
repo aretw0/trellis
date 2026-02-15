@@ -59,13 +59,16 @@ func TestRunner_Lifecycle_Interactive_SkipWaitOnTerminal(t *testing.T) {
 	mockHandler.On("Output", mock.Anything, mock.Anything).Return(false, nil)
 	// Expect NO Input call
 
+	initialState := &domain.State{CurrentNodeID: "end_skip"}
+
 	r := runner.NewRunner(
 		runner.WithInputHandler(mockHandler),
 		runner.WithHeadless(false),
+		runner.WithEngine(engine),
+		runner.WithInitialState(initialState),
 	)
 
-	initialState := &domain.State{CurrentNodeID: "end_skip"}
-	r.Run(context.Background(), engine, initialState)
+	r.Run(context.Background())
 	mockHandler.AssertExpectations(t)
 }
 
@@ -87,17 +90,19 @@ func TestRunner_Lifecycle_Interactive_WaitExplicit(t *testing.T) {
 	// Input MUST be called
 	mockHandler.On("Input", mock.Anything).Return("\n", nil)
 
+	initialState := &domain.State{CurrentNodeID: "end_wait"}
+
 	r := runner.NewRunner(
 		runner.WithInputHandler(mockHandler),
 		runner.WithHeadless(false),
+		runner.WithEngine(engine),
+		runner.WithInitialState(initialState),
 	)
-
-	initialState := &domain.State{CurrentNodeID: "end_wait"}
 
 	// Use async/timeout to ensure it doesn't block forever if broken
 	done := make(chan error)
 	go func() {
-		_, err := r.Run(context.Background(), engine, initialState)
+		err := r.Run(context.Background())
 		done <- err
 	}()
 
@@ -129,14 +134,16 @@ func TestRunner_Lifecycle_Headless_SkipWaitOnTerminal(t *testing.T) {
 	// Input should NOT be called
 	// We do not set expectation for Input. strict mock will fail if called.
 
+	initialState := &domain.State{CurrentNodeID: "end"}
+
 	r := runner.NewRunner(
 		runner.WithInputHandler(mockHandler),
 		runner.WithHeadless(true), // Headless
+		runner.WithEngine(engine),
+		runner.WithInitialState(initialState),
 	)
 
-	initialState := &domain.State{CurrentNodeID: "end"}
-
-	_, err := r.Run(context.Background(), engine, initialState)
+	err := r.Run(context.Background())
 	assert.NoError(t, err)
 
 	mockHandler.AssertExpectations(t)

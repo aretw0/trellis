@@ -49,12 +49,13 @@ func TestRunner_Run_BasicFlow(t *testing.T) {
 	r := NewRunner(
 		WithInputHandler(handler),
 		WithInterceptor(AutoApproveMiddleware()),
+		WithEngine(engine),
 	)
 
 	// 3. Run in a goroutine to prevent deadlock
 	done := make(chan error)
 	go func() {
-		_, err := r.Run(t.Context(), engine, nil)
+		err := r.Run(t.Context())
 		done <- err
 	}()
 
@@ -96,12 +97,13 @@ func TestRunner_Run_Headless(t *testing.T) {
 	r := NewRunner(
 		WithInputHandler(handler),
 		WithHeadless(true),
+		WithEngine(engine),
 	)
 
 	// 3. Run
 	done := make(chan error)
 	go func() {
-		_, err := r.Run(t.Context(), engine, nil)
+		err := r.Run(t.Context())
 		done <- err
 	}()
 
@@ -174,13 +176,15 @@ func TestRunner_Run_RollbackFlow(t *testing.T) {
 	r := NewRunner(
 		WithInputHandler(mockHandler),
 		WithHeadless(true),
+		WithEngine(engine),
 	)
 
 	// 3. Run
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
-	state, err := r.Run(ctx, engine, nil)
+	err := r.Run(ctx)
+	state := r.State()
 
 	// 4. Verification
 	// We expect the undo tool to have been called.

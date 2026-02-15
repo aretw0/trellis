@@ -43,17 +43,6 @@ func TestNonBlockingText(t *testing.T) {
 	}
 
 	// 2. Setup Runner with Mock IO
-	r := runner.NewRunner(
-		runner.WithInputHandler(&MockHandler{
-			Inputs: []string{"yes"}, // Only one input needed for the 'end' node
-			T:      t,
-		}),
-	)
-
-	// 3. Run
-	// If 'start' was blocking, it would consume "yes" prematurely or fail if no input provided for it.
-	// Since we provide only 1 input for the 'end' node, if 'start' requests input, we will get an error/hang (simulated).
-
 	// Use a timeout context to prevent hangs should logic fail
 	ctx := context.Background()
 	initialState, err := engine.Start(ctx, "test", nil)
@@ -61,7 +50,20 @@ func TestNonBlockingText(t *testing.T) {
 		t.Fatalf("Start failed: %v", err)
 	}
 
-	_, err = r.Run(context.Background(), engine, initialState)
+	r := runner.NewRunner(
+		runner.WithInputHandler(&MockHandler{
+			Inputs: []string{"yes"}, // Only one input needed for the 'end' node
+			T:      t,
+		}),
+		runner.WithEngine(engine),
+		runner.WithInitialState(initialState),
+	)
+
+	// 3. Run
+	// If 'start' was blocking, it would consume "yes" prematurely or fail if no input provided for it.
+	// Since we provide only 1 input for the 'end' node, if 'start' requests input, we will get an error/hang (simulated).
+
+	err = r.Run(context.Background())
 	if err != nil && err.Error() != "mock EOF" {
 		// mock EOF is expected when inputs out
 		t.Logf("Runner stopped with: %v", err)

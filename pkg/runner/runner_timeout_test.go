@@ -87,9 +87,10 @@ func TestRunner_Timeout(t *testing.T) {
 	r := runner.NewRunner(
 		runner.WithInputHandler(mockHandler),
 		runner.WithHeadless(true), // Prevent blocking on final node
+		runner.WithEngine(engine),
 	)
 
-	_, err := r.Run(context.Background(), engine, nil)
+	err := r.Run(context.Background())
 	assert.NoError(t, err)
 
 	// Since we are mocking the output, we rely on the MockHandler expectations to verify behavior.

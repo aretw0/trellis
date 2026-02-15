@@ -65,15 +65,17 @@ Checking version...
 	r := runner.NewRunner(
 		runner.WithHeadless(true),
 		runner.WithToolRunner(procRunner),
+		runner.WithEngine(engine),
 	)
 
 	// 8. Run
 	ctx := context.Background()
-	finalState, err := r.Run(ctx, engine, nil)
+	err = r.Run(ctx)
 	require.NoError(t, err)
 
 	// 9. Verify Result
 	// The output of 'go version' should be in context["version_output"]
+	finalState := r.State()
 	require.NotNil(t, finalState)
 	val, exists := finalState.Context["version_output"]
 	assert.True(t, exists, "Expected version_output in context")
@@ -115,13 +117,15 @@ Checking OS...
 	r := runner.NewRunner(
 		runner.WithHeadless(true),
 		runner.WithToolRunner(procRunner),
+		runner.WithEngine(engine),
 	)
 
 	// 3. Run
-	finalState, err := r.Run(context.Background(), engine, nil)
+	err = r.Run(context.Background())
 	require.NoError(t, err)
 
-	// 4. Verify
+	//  4. Verify
+	finalState := r.State()
 	val, exists := finalState.Context["os_name"]
 	assert.True(t, exists, "Expected os_name in context")
 	// On Windows, should be windows. On Linux, linux.
