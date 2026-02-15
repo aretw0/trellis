@@ -39,6 +39,40 @@ type State struct {
 	Terminated bool `json:"terminated,omitempty"`
 }
 
+// Snapshot creates a deep copy of the state for observability purposes.
+// This is thread-safe as long as the caller ensures exclusive access to the source state during copying.
+func (s *State) Snapshot() *State {
+	if s == nil {
+		return nil
+	}
+
+	// Deep copy maps
+	ctxCopy := make(map[string]any, len(s.Context))
+	for k, v := range s.Context {
+		ctxCopy[k] = v // Shallow copy of values (assuming primitives or treated as such)
+	}
+
+	sysCtxCopy := make(map[string]any, len(s.SystemContext))
+	for k, v := range s.SystemContext {
+		sysCtxCopy[k] = v
+	}
+
+	// Deep copy slices
+	histCopy := make([]string, len(s.History))
+	copy(histCopy, s.History)
+
+	return &State{
+		SessionID:       s.SessionID,
+		CurrentNodeID:   s.CurrentNodeID,
+		Status:          s.Status,
+		PendingToolCall: s.PendingToolCall,
+		Context:         ctxCopy,
+		SystemContext:   sysCtxCopy,
+		History:         histCopy,
+		Terminated:      s.Terminated,
+	}
+}
+
 // NewState creates a clean state starting at a specific node.
 func NewState(sessionID, startNodeID string) *State {
 	return &State{
