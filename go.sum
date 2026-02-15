@@ -11,8 +11,6 @@ github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7D
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/aretw0/introspection v0.1.3 h1:Ob7vxbTrQ2myb7hOnZiSPEExshsNPTpBBpNgeN3YdBg=
 github.com/aretw0/introspection v0.1.3/go.mod h1:fuUaJL8subAkzhwSOVvb0EQTpzDtwOHrwQuhPEK/3m0=
-github.com/aretw0/lifecycle v0.1.1 h1:pP0Jj3qfHGuaze0PoQhH17qqNeHbvgrhaQ5V9ENWH5k=
-github.com/aretw0/lifecycle v0.1.1/go.mod h1:UTG5CyMplb3jT4dxh7QVabKHpleLIqEQ+608rf9hgqw=
 github.com/aretw0/lifecycle v1.5.1 h1:J+wl+Ej0NacVssRP1fnB152IZdo/3kQllqSESMIX5Jk=
 github.com/aretw0/lifecycle v1.5.1/go.mod h1:8zxyrZxzZZWbNntqYh1mbkdFGXBgmiN4BvbH1d7nC1w=
 github.com/aretw0/loam v0.10.6 h1:z98uxwhiM1NzYGZwFmgY1V2bNF2Fm+6SEHqlIDkS2Nw=
