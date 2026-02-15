@@ -94,11 +94,16 @@ func RunSession(ctx context.Context, opts RunOptions, initialContext map[string]
 		// Setup Runner
 		runnerOpts := createRunnerOptions(logger, opts.Headless, opts.SessionID, store, ioHandler, interruptSource)
 		runnerOpts = append(runnerOpts, runner.WithToolRunner(procRunner))
+		runnerOpts = append(runnerOpts, runner.WithEngine(engine))
+		runnerOpts = append(runnerOpts, runner.WithInitialState(state))
 
 		r := runner.NewRunner(runnerOpts...)
 
-		// Execute
-		finalState, runErr := r.Run(ctx, engine, state)
+		// Execute as lifecycle.Worker
+		runErr := r.Run(ctx)
+
+		// Retrieve final state
+		finalState := r.State()
 
 		// Log Completion
 		completionNodeID := state.CurrentNodeID

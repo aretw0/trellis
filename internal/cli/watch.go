@@ -137,6 +137,8 @@ func runWatchIteration(parentCtx context.Context, opts RunOptions, ioHandler run
 	rOpts = append(rOpts,
 		runner.WithInputHandler(ioHandler),
 		runner.WithToolRunner(procRunner),
+		runner.WithEngine(engine),
+		runner.WithInitialState(state),
 	)
 
 	r := runner.NewRunner(rOpts...)
@@ -175,16 +177,10 @@ func runWatchIteration(parentCtx context.Context, opts RunOptions, ioHandler run
 	runCtx, runCancel := context.WithCancel(ctx)
 	defer runCancel()
 
-	doneCh := make(chan struct {
-		state *domain.State
-		err   error
-	}, 1)
+	doneCh := make(chan error, 1)
 	go func() {
-		s, err := r.Run(runCtx, engine, state)
-		doneCh <- struct {
-			state *domain.State
-			err   error
-		}{s, err}
+		err := r.Run(runCtx)
+		doneCh <- err
 	}()
 
 	select {
@@ -199,8 +195,9 @@ func runWatchIteration(parentCtx context.Context, opts RunOptions, ioHandler run
 		runCancel() // Stop the runner
 		<-doneCh    // Wait for it to exit
 		return true // Continue to next iteration
-	case res := <-doneCh:
-		return handleRunCompletion(res.state, res.err, watchCh, parentCtx, logger)
+	case err := <-doneCh:
+		finalState := r.State()
+		return handleRunCompletion(finalState, err, watchCh, parentCtx, logger)
 	}
 }
 
