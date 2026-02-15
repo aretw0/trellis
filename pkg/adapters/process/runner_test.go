@@ -10,16 +10,10 @@ import (
 )
 
 func TestRunner_Execute(t *testing.T) {
-	// Setup: Define a command that works on the OS
-	cmdName := "echo"
-	args := []string{"hello"}
-	if runtime.GOOS == "windows" {
-		// On Windows, echo is a shell builtin, so we use "cmd /c echo" or a simple executable.
-		// Go's exec.LookPath might not find "echo".
-		// We can use "go version" as a safe cross-platform command.
-		cmdName = "go"
-		args = []string{"version"}
-	}
+	// Setup: Define a command that works on the OS.
+	// We use "go version" as a safe cross-platform command.
+	cmdName := "go"
+	args := []string{"version"}
 
 	runner := NewRunner()
 	runner.Register("check_version", cmdName, args...)
