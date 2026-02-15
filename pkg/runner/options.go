@@ -3,6 +3,8 @@ package runner
 import (
 	"log/slog"
 
+	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 )
 
@@ -73,5 +75,21 @@ func WithToolRunner(tr ToolRunner) Option {
 func WithInterruptSource(ch <-chan struct{}) Option {
 	return func(r *Runner) {
 		r.InterruptSource = ch
+	}
+}
+
+// WithEngine configures the Trellis engine for execution.
+// This is required for the Runner to operate as a lifecycle.Worker.
+func WithEngine(engine *trellis.Engine) Option {
+	return func(r *Runner) {
+		r.engine = engine
+	}
+}
+
+// WithInitialState configures the initial state for the Runner.
+// If not provided, the Runner will call Engine.Start() to create one.
+func WithInitialState(state *domain.State) Option {
+	return func(r *Runner) {
+		r.initialState = state
 	}
 }

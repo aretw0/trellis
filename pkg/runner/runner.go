@@ -17,7 +17,11 @@ import (
 
 // Runner handles the execution loop of the Trellis engine using provided IO.
 // This allows for easy testing and integration with different frontends (CLI, TUI, etc).
-// Runner handler the execution loop of the Trellis engine.
+//
+// Runner implements the lifecycle.Worker interface.
+//
+// Note: Runner is designed for single-use execution. It is NOT thread-safe for concurrent usage.
+// Create a new Runner instance for each execution.
 type Runner struct {
 	Handler         IOHandler
 	Store           ports.StateStore
@@ -28,6 +32,11 @@ type Runner struct {
 	Interceptor     ToolInterceptor
 	ToolRunner      ToolRunner
 	InterruptSource <-chan struct{}
+
+	// Worker Pattern: Self-contained execution context
+	engine       *trellis.Engine
+	initialState *domain.State
+	finalState   *domain.State
 }
 
 // NewRunner creates a new Runner with options.
@@ -44,14 +53,22 @@ func NewRunner(opts ...Option) *Runner {
 }
 
 // Run executes the engine loop until termination.
-func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *domain.State) (*domain.State, error) {
+// This method implements the lifecycle.Worker interface (Run(context.Context) error).
+func (r *Runner) Run(ctx context.Context) error {
 	// 1. Setup Phase
+	engine := r.engine
+	initialState := r.initialState
+
+	if engine == nil {
+		return fmt.Errorf("runner: Engine is required (use WithEngine option)")
+	}
+
 	handler := r.resolveHandler()
 	interceptor := r.resolveInterceptor(handler)
 
 	state, err := r.resolveInitialState(ctx, engine, initialState)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	lastRenderedID := ""
@@ -61,14 +78,16 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		// Check for cancellation before each step
 		select {
 		case <-ctx.Done():
-			return state, ctx.Err()
+			r.finalState = state
+			return ctx.Err()
 		default:
 		}
 
 		// A. Render
 		actions, _, err := engine.Render(ctx, state)
 		if err != nil {
-			return state, fmt.Errorf("render error: %w", err)
+			r.finalState = state
+			return fmt.Errorf("render error: %w", err)
 		}
 
 		// B. Output
@@ -78,7 +97,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 
 		needsInput, err := handler.Output(ctx, actions)
 		if err != nil {
-			return state, fmt.Errorf("output error: %w", err)
+			r.finalState = state
+			return fmt.Errorf("output error: %w", err)
 		}
 
 		if state.CurrentNodeID != lastRenderedID {
@@ -104,7 +124,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 			if err == io.EOF {
 				break
 			}
-			return state, err
+			r.finalState = state
+			return err
 		}
 
 		// If a signal caused a transition, update state and loop immediately
@@ -112,7 +133,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 			state = nextState
 			// Auto-Save on Signal Transition
 			if err := r.saveState(ctx, r.SessionID, state); err != nil {
-				return state, err
+				r.finalState = state
+				return err
 			}
 			continue
 		}
@@ -120,7 +142,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		// 4. Navigate Phase (Controller)
 		nextState, err = engine.Navigate(ctx, state, nextInput)
 		if err != nil {
-			return state, fmt.Errorf("navigation error: %w", err)
+			r.finalState = state
+			return fmt.Errorf("navigation error: %w", err)
 		}
 
 		if nextState.CurrentNodeID != state.CurrentNodeID {
@@ -129,7 +152,8 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 
 		// 5. Commit Phase (Persistence)
 		if err := r.saveState(ctx, r.SessionID, nextState); err != nil {
-			return nextState, fmt.Errorf("critical persistence error: %w", err)
+			r.finalState = nextState
+			return fmt.Errorf("critical persistence error: %w", err)
 		}
 
 		if nextState == nil {
@@ -144,7 +168,14 @@ func (r *Runner) Run(ctx context.Context, engine *trellis.Engine, initialState *
 		state = nextState
 	}
 	// Final cleanup if needed (e.g. remove session if complete? Optional logic)
-	return state, nil
+	r.finalState = state
+	return nil
+}
+
+// State returns the final state after execution.
+// This allows accessing the result when Run() only returns an error.
+func (r *Runner) State() *domain.State {
+	return r.finalState
 }
 
 func (r *Runner) saveState(ctx context.Context, sessionID string, state *domain.State) error {
