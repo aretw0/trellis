@@ -131,9 +131,11 @@ eng, _ := trellis.New("", trellis.WithLoader(loader))
 ### Rodando o Golden Path (Demo)
 
 ```bash
-# Execução do Engine (Demo)
-go run ./cmd/trellis ./examples/tour
+# Execucao do Engine (Demo)
+trellis run ./examples/tour
 ```
+
+Se voce estiver desenvolvendo dentro do repo, veja a secao "Modo de Desenvolvimento" abaixo.
 
 ## Usage
 
@@ -141,27 +143,21 @@ go run ./cmd/trellis ./examples/tour
 
 ```bash
 # Modo Interativo (Terminal)
-go run ./cmd/trellis run ./examples/tour
+trellis run ./examples/tour
 
 # Modo HTTP Server (Stateless API)
-go run ./cmd/trellis serve --dir ./examples/tour --port 8080
+trellis serve --dir ./examples/tour --port 8080
 # Swagger UI disponível em: http://localhost:8080/swagger
 
 # Modo MCP Server (Para Agentes de IA)
-go run ./cmd/trellis mcp --dir ./examples/tour
-
-# Modo Debug (Observability)
-go run ./cmd/trellis run --debug ./examples/observability
-
-# Exemplo Global Signals (Interrupts)
-go run ./cmd/trellis run ./examples/interrupt-demo
-
-# Exemplo Tool Safety & Error Handling
-go run ./cmd/trellis run ./examples/tools-demo
-
-# Exemplo Log Estruturado (Production Recipe)
-go run ./examples/structured-logging
+trellis mcp --dir ./examples/tour
 ```
+
+Detalhes e variacoes em:
+
+- [docs/guides/running_http_server.md](docs/guides/running_http_server.md)
+- [docs/guides/running_mcp_server.md](docs/guides/running_mcp_server.md)
+- [examples/README.md](examples/README.md)
 
 ### Introspecção
 
@@ -180,6 +176,14 @@ trellis graph ./my-flow
 make gen    # Gera código Go a partir da spec OpenAPI
 make serve  # Roda servidor com exemplo 'tour'
 make test   # Roda testes
+```
+
+**Executar direto do repo (Go):**
+
+```bash
+go run ./cmd/trellis run ./examples/tour
+go run ./cmd/trellis serve --dir ./examples/tour --port 8080
+go run ./cmd/trellis mcp --dir ./examples/tour
 ```
 
 **Hot Reload Manual:**
