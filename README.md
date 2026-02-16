@@ -7,20 +7,24 @@
 
 > **The Neuro-Symbolic Backbone for Agents & Automation.**
 
-**Trellis** é um **Motor de Máquina de Estados Determinístico** (Deterministic State Machine Engine) para a construção de CLIs, **ChatOps** resilientes e Guardrails para Agentes de IA (**Neuro-Symbolic**).
-
-Atuando como a espinha dorsal lógica do sistema, ele impõe estritamente as regras de negócio e transições permitidas, enquanto sua interface (ou LLM) gerencia apenas a apresentação.
-
-Mais do que um engine, é uma plataforma de **Durable Execution** que permite a suspensão e retomada de processos longos, habilitando padrões avançados como **SAGA** (Orquestração de Transações e Compensação).
+**Trellis** e um motor deterministico de fluxos para orquestrar ferramentas, scripts e guardrails com previsibilidade.
+Use como framework de CLI/Markdown ou como biblioteca Go dentro do seu backend.
 
 > **Hybrid Nature**: Use como **Framework** (CLI + Markdown) para prototipagem rápida, ou como **Biblioteca** (Go) para controle total em seu backend. *"Opinionated by default, flexible under the hood."*
+
+## Onde brilha
+
+- **CLIs e Ops**: fluxos guiados, com validacao e auditabilidade.
+- **Automacao de ferramentas**: scripts e APIs encadeados como um grafo versionavel.
+- **Agentes com governanca**: guardrails reais, sem depender apenas de prompt.
+- **Backends duraveis**: execucoes longas com pause/resume e padroes SAGA.
 
 ## O Conceito Neuro-Simbólico & Automação
 
 O Trellis preenche a lacuna entre a **Rigidez dos Processos** e a **Flexibilidade da Inteligência**:
 
-* **Para Agentes de IA**: Substitua "If/Else" frágeis e Prompts gigantes por um grafo de estados auditável. O Trellis impede alucinações de fluxo.
-* **Para Humanos**: Funciona como um motor de **Workflow as Code** (similar a um n8n/Zapier, mas compilado e versionável), ideal para CLIs complexas e automação de Ops.
+- **Para Agentes de IA**: Substitua "If/Else" frágeis e Prompts gigantes por um grafo de estados auditável. O Trellis impede alucinações de fluxo.
+- **Para Humanos**: Funciona como um motor de **Workflow as Code** (similar a um n8n/Zapier, mas compilado e versionável), ideal para CLIs complexas e automação de Ops.
 
 ```mermaid
 graph TD
@@ -45,11 +49,11 @@ graph TD
 
 O decisor (seja **IA** ou **Humano**) escolhe *qual* caminho tomar, mas o Trellis garante que ele *existe* e é *válido*.
 
-## Como funciona?
+## Como modelar um fluxo
 
-Coreografamos sua lógica em um **Grafo de Estados**. Você define **Nós** (Passos) e **Transições** (Regras), e o Trellis gerencia a navegação.
+Voce define um **Grafo de Estados** com **Nos** (Passos) e **Transicoes** (Regras), e o Trellis gerencia a navegacao.
 
-Você pode definir esse grafo de duas formas:
+Voce pode definir esse grafo de duas formas:
 
 ### 1. Declarativo (Arquivos)
 
@@ -81,14 +85,17 @@ Ideal para integração profunda em backends, performance crítica e type-safety
 
 ## Funcionalidades Principais
 
-* **Data Binding & Contexto**: Capture inputs (`save_to`) e use variáveis (`{{ .name }}`) nativamente.
-* **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`), escalando sua arquitetura.
-* **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA (Claude, Cursor, etc.).
-* **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação (Zero "undefined" errors).
-* **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core é desacoplado de IO e Persistência (Hexagonal).
-* **Error Handling**: Mecanismo nativo de recuperação (`on_error`) para ferramentas que falham.
-* **Native SAGA Support**: Orquestração de transações distribuídas com `undo` e `rollback` automático.
-* **Hot Reload**: Desenvolva com feedback instantâneo (SSE) ao salvar seus arquivos.
+**Para produto e UX**
+
+- **Data Binding & Contexto**: Capture inputs (`save_to`) e use variaveis (`{{ .name }}`) nativamente.
+- **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e modulos (`jump_to`).
+- **MCP Server**: Integracao nativa com **Model Context Protocol** para conectar Agentes de IA.
+
+**Para engenharia**
+
+- **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitacao.
+- **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core e desacoplado de IO e Persistencia.
+- **Native SAGA Support**: Orquestracao de transacoes distribuidas com `undo` e `rollback` automatico.
 
 ## Quick Start
 
@@ -168,7 +175,7 @@ trellis graph ./my-flow
 # Saída: graph TD ...
 ```
 
-### Modo de Desenvolvimento
+### Para quem esta contribuindo
 
 **Usando Makefile (Recomendado):**
 
@@ -195,15 +202,14 @@ trellis run --watch --dir ./my-flow
 
 O engine monitorará seus arquivos `.md`, `.json`, `.yaml`. Ao salvar, a sessão recarrega automaticamente (preservando o loop de execução).
 
-## Documentação
+## Documentacao
 
-* [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
-* [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
-* [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
-* [🎮 Guide: Interactive Inputs](./docs/guides/interactive_inputs.md)
-* [💾 Guide: Session Management (Chaos Control)](./docs/guides/session_management.md)
-* [📅 Roadmap & Planning](./docs/PLANNING.md)
-* [⚖️ Decisões de Arquitetura](./docs/DECISIONS.md)
+- [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
+- [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
+- [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
+- [🧭 Node Syntax Reference](./docs/reference/node_syntax.md)
+
+Mais em [`docs/`](./docs/).
 
 ## Estrutura
 
