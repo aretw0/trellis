@@ -1,5 +1,12 @@
+# Go Workspace
+go.work
+go.work.sum
+
 # Binaries
 /**/*.exe
+
+# Build Output
+dist/
 
 # Test Output
 *test*.txt
@@ -11,16 +18,12 @@
 # Examples
 examples/**/config.json
 
-# Trellis
-.loam/
-.trellis/
-.sessions/
-
 # Gemini
 .gemini/
 gha-creds-*.json
 secure-*.json
 
-# Go Workspace
-go.work
-go.work.sum
+# Internal
+.loam/
+.trellis/
+.sessions/
