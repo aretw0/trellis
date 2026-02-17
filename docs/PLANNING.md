@@ -298,8 +298,9 @@ Foco: Atualizações parciais de estado para frontends reativos.
   - [x] **HTTP Server Integration**: Endpoint `/events` com suporte a filtering (ex: `?watch=context,history`).
   - [x] **Documentation & Examples**: Exemplo React/vanilla JS que consome deltas, guia em `docs/guides/frontend-integration.md`.
   - [x] **Technical Debt**:
-    - [x] **Context Deletion Protocol**: Definir padrão para remover chaves do contexto (ex: `null`).
-    - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo.
+    - [x] **Context Deletion Protocol**: Definir padrão para remover chaves do contexto (ex: `null`). [COMPLETED]
+    - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo. [COMPLETED]
+    - [x] **SSE Tests Data Race**: Corrigir condição de corrida detectada pelo `-race`. [COMPLETED]
 
 ### 🏗️ v0.7.10: The "Signal" Patch
 
