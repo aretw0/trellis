@@ -28,6 +28,11 @@ Demonstrates how to define fallback values in `start.md`. These defaults act as 
 **Concepts:** `required_context`, `Fail Fast`
 Shows how to enforce data contracts using `required_context`. If a required key is missing, the engine stops immediately, preventing "silent failures" later in the flow.
 
+### [Typed Flow (Context Schema)](./typed-flow)
+
+**Concepts:** `context_schema`, `Typed Context`, `Fail Fast`
+Demonstrates type validation for context values before nodes render. Useful for catching data mismatches early.
+
 ### [Tools Demo (Safety & Metadata)](./tools-demo)
 
 **Concepts:** `on_error`, `metadata.confirm_msg`, `Implicit IDs`

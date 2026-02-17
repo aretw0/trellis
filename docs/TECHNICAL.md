@@ -810,8 +810,6 @@ Para garantir interoperabilidade, o Engine serializa seu estado para JSON usando
 
 Nós servem como fronteiras de dados e podem impor contratos de execução:
 
-**Fail Fast (Required Context):**
-
 ```yaml
 required_context:
   - user_id
@@ -819,6 +817,20 @@ required_context:
 ```
 
 Se uma chave estiver faltando, o Engine aborta a execução com `ContextValidationError`.
+
+**Fail Fast (Typed Context):**
+
+Para garantir tipagem de dados, um nó pode declarar `context_schema`:
+
+```yaml
+context_schema:
+    api_key: string
+    retries: int
+    tags: [string]
+```
+
+O Engine valida tipos antes de renderizar o nó e aborta a execução com `ContextTypeValidationError`
+se houver tipos inválidos ou campos ausentes.
 
 **Valores Padrão (Mocking):**
 

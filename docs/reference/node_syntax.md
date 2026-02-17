@@ -49,6 +49,10 @@ required_context:       # Fails if these keys are missing
   - "user_id"
 default_context:        # Fallback values
   theme: "dark"
+context_schema:         # Type validation for context values
+  api_key: string
+  retries: int
+  tags: [string]
 
 # --- Behavior: Input (The "Wait") ---
 wait: true              # Pauses for simple text input (Enter)
@@ -198,9 +202,26 @@ do:
 | `undo` | `ToolCall` | SAGA compensation action if flow rolls back. |
 | `required_context` | `[]string` | Keys that MUST exist in context or flow errors. |
 | `default_context` | `map[string]any` | Default values for context keys if missing. |
+| `context_schema` | `map[string]string` | Type constraints for context values (fail fast on mismatch). |
 | `timeout` | `string` | Duration (e.g. "30s") to wait for input before signaling timeout. |
 
-### 5.1. The Confirm Convention (Unix Style)
+### 5.1. Context Schema (Typed Flows)
+
+Use `context_schema` to validate types in the context before a node renders. Supported types:
+
+- `string`, `int`, `float`, `bool`
+- Slice types like `[string]`, `[int]`
+
+```yaml
+context_schema:
+  api_key: string
+  retries: int
+  tags: [string]
+```
+
+If a value is missing or has the wrong type, execution fails with a `ContextTypeValidationError`.
+
+### 5.2. The Confirm Convention (Unix Style)
 
 When using `input_type: confirm`, Trellis follows the standard CLI convention:
 
