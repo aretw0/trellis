@@ -254,7 +254,7 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
   - Usar `introspection.AggregateWatchers` para vista unificada (Engine + Workers + Signals)
   - ⚠️ **NÃO** usar introspection para geração de Mermaid (Performance). Manter o gerador interno para visualização de grafos complexos.
 - [x] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
-- [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento.
+- [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento e runtime. **Decision: Option A (Validation in Trellis) with Extraction Path**. See [docs/architecture/schema-validation-architecture.md](docs/architecture/schema-validation-architecture.md).
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
 
