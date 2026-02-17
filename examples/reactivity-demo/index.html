@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trellis Reactivity Demo</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        display: flex;
+        gap: 20px;
+      }
+      .panel {
+        flex: 1;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+      }
+      #logs {
+        height: 300px;
+        overflow-y: auto;
+        background: #f0f0f0;
+        padding: 10px;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      button {
+        padding: 10px 20px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h2>Controls</h2>
+      <p>Session ID: <strong id="sessionId">Checking...</strong></p>
+      <button onclick="navigate('next')">Send 'next'</button>
+      <button onclick="sendSignal('interrupt')">Send Signal 'interrupt'</button>
+      <hr />
+      <h3>Current State (Client-Side Patching)</h3>
+      <pre id="stateDisplay">Waiting for updates...</pre>
+    </div>
+
+    <div class="panel">
+      <h2>Event Stream (Deltas)</h2>
+      <div id="logs"></div>
+    </div>
+
+    <script>
+      // Generate a random session ID
+      const sessionId = "demo-" + Math.random().toString(36).substr(2, 9);
+      document.getElementById("sessionId").textContent = sessionId;
+
+      // Server Base URL (Go Server runs on 8080)
+      const baseUrl = "http://localhost:8080";
+
+      // Local State Replica
+      let localState = {
+        session_id: sessionId,
+        context: {},
+        history: [],
+        status: "unknown",
+      };
+
+      function log(msg, type = "info") {
+        const el = document.getElementById("logs");
+        const entry = document.createElement("div");
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        entry.style.color = type === "error" ? "red" : "black";
+        el.appendChild(entry);
+        el.scrollTop = el.scrollHeight;
+      }
+
+      function updateStateDisplay() {
+        document.getElementById("stateDisplay").textContent = JSON.stringify(
+          localState,
+          null,
+          2,
+        );
+      }
+
+      // 1. Subscribe to SSE
+      const evtSource = new EventSource(
+        `${baseUrl}/events?session_id=${sessionId}&watch=context,history,status`,
+      );
+
+      evtSource.onopen = () => log("Connected to Event Stream", "success");
+      evtSource.onerror = (err) => log("EventSource failed", "error");
+
+      evtSource.addEventListener("ping", (e) => {
+        log("Ping: " + e.data);
+      });
+
+      evtSource.onmessage = (e) => {
+        log("Delta Received: " + e.data);
+        try {
+          const delta = JSON.parse(e.data);
+          applyDelta(delta);
+        } catch (err) {
+          log("Failed to parse delta: " + err.message, "error");
+        }
+      };
+
+      // 2. Patching Logic
+      function applyDelta(delta) {
+        if (delta.current_node_id)
+          localState.current_node_id = delta.current_node_id;
+        if (delta.status) localState.status = delta.status;
+        if (delta.terminated !== undefined)
+          localState.terminated = delta.terminated;
+
+        // Context Patching (Simple Merge)
+        if (delta.context) {
+          localState.context = { ...localState.context, ...delta.context };
+        }
+
+        // History Patching (Append)
+        if (delta.history && delta.history.appended) {
+          localState.history.push(...delta.history.appended);
+        }
+
+        updateStateDisplay();
+      }
+
+      // 3. Command Sender
+      async function navigate(input) {
+        log(`Sending input: ${input}...`);
+        try {
+          const res = await fetch(`${baseUrl}/navigate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: localState, // Send our current state (the server is stateless!)
+              input: input,
+            }),
+          });
+          if (!res.ok) throw new Error(res.statusText);
+          const data = await res.json();
+          // Note: In a pure reactive model, we might ignore the response
+          // and wait for the SSE event. But for stateless server,
+          // the response *is* the new state snapshot.
+          // However, the SSE broadcast happens *during* processing.
+          // Let's rely on SSE for updates to prove it works.
+          // But we MUST update localState with the response if the server
+          // doesn't broadcast the full state on first connect?
+          // Actually, the server broadcasts diffs *from the input state*.
+          // So if we send current state, we get diff.
+          log("Command sent successfully.");
+        } catch (err) {
+          log("Navigate error: " + err.message, "error");
+        }
+      }
+
+      async function sendSignal(signal) {
+        log(`Sending signal: ${signal}...`);
+        try {
+          const res = await fetch(`${baseUrl}/signal`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: localState,
+              signal: signal,
+            }),
+          });
+          if (!res.ok) throw new Error(res.statusText);
+          log("Signal sent successfully.");
+        } catch (err) {
+          log("Signal error: " + err.message, "error");
+        }
+      }
+
+      // Initial Render to get things started?
+      // Since we start from scratch on client, we need to Init the session on server?
+      // Trellis is stateless. We just say "I am at start".
+      // Let's initialize localState with "start" node and we are good.
+      localState.current_node_id = "start";
+      updateStateDisplay();
+    </script>
+  </body>
+</html>
