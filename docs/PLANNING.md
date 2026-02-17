@@ -265,16 +265,16 @@ Foco: Segurança de tipos para definição de grafos.
   - [x] **Error Handling**: `ContextSchemaValidationError` com diagnostics claros.
   - [x] **Documentation & Examples**: `examples/typed-flow/`, atualizar `docs/reference/node_syntax.md`.
 
-### 🏗️ v0.7.7: Type-Safe Builders (The "Ergonomics" Patch)
+### ✅ v0.7.7: Type-Safe Builders (The "Ergonomics" Patch)
 
 Foco: API Go para construir grafos sem YAML/JSON.
 
-- [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
-  - [ ] **Fluent Builder API**: `dsl.New("start").Text("...").Go("next")...Build()`.
-  - [ ] **Type-Safe Nodes**: Compiler integrado, erros em tempo de compilação.
-  - [ ] **Tool Registration**: Inline tool definitions sem YAML.
-  - [ ] **Testing Helpers**: DSL como ferramenta pra testes unitários.
-  - [ ] **Documentation & Examples**: `examples/dsl-graph/`, guia em `docs/guides/building-graphs-go.md`.
+- [x] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
+  - [x] **Fluent Builder API**: `dsl.New("start").Text("...").Go("next")...Build()`.
+  - [x] **Type-Safe Nodes**: Compiler integrado, erros em tempo de compilação.
+  - [x] **Tool Registration**: Inline tool definitions sem YAML.
+  - [x] **Testing Helpers**: DSL como ferramenta pra testes unitários.
+  - [x] **Documentation & Examples**: `examples/dsl-graph/`, guia em `docs/guides/building-graphs-go.md`.
 
 ### 🏗️ v0.7.8: Real-Time Updates (The "Reactivity" Patch)
 

@@ -24,6 +24,7 @@ type Engine struct {
 	defaultErrorNodeID string
 	hooks              domain.LifecycleHooks
 	logger             *slog.Logger
+	Name               string
 }
 
 // Option defines a functional option for configuring the Engine.
@@ -93,6 +94,8 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 			return nil, fmt.Errorf("invalid path: %w", err)
 		}
 
+		eng.Name = filepath.Base(absPath)
+
 		// Initialize Loam with global strict mode (v0.10.4+)
 		// This ensures that all adapters (JSON, Markdown/YAML) return consistent numeric types (json.Number),
 		// preventing "float64" ambiguity for large integers.
@@ -109,11 +112,21 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 		// Setup Typed Repository and Adapter
 		typedRepo := loam.NewTypedRepository[loamAdapter.NodeMetadata](repo)
 		eng.loader = loamAdapter.New(typedRepo)
+	} else {
+		// If custom loader is provided, we can use repoPath as a descriptive label/session prefix.
+		if repoPath != "" {
+			eng.Name = filepath.Base(repoPath)
+		}
 	}
 
 	// Ensure logger is initialized (so we don't pass nil to runtime, which would overwrite its default)
 	if eng.logger == nil {
 		eng.logger = slog.New(slog.NewJSONHandler(io.Discard, nil))
+	}
+
+	// Enrich logger with graph name if available
+	if eng.Name != "" {
+		eng.logger = eng.logger.With("graph", eng.Name)
 	}
 
 	// Initialize Core Runtime with the selected loader
