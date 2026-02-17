@@ -36,6 +36,13 @@ archives:
         formats:
           - zip
 
+release:
+  github:
+    owner: aretw0
+    name: trellis
+  draft: true
+  prerelease: auto
+
 changelog:
   sort: asc
   filters:
