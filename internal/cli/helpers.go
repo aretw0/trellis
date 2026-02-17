@@ -22,13 +22,15 @@ import (
 
 type SignalContext = lifecycle.Context
 
-// createLogger configures the application logger.
-// In debug mode, it writes to Stderr (to separate from Stdout flow UI).
+// createLogger configures the application logger and sets it as the default.
 func createLogger(debug bool) *slog.Logger {
+	level := slog.LevelInfo
 	if debug {
-		return logging.New(slog.LevelDebug)
+		level = slog.LevelDebug
 	}
-	return logging.NewNop()
+	logger := logging.New(level)
+	slog.SetDefault(logger)
+	return logger
 }
 
 // printSystemMessage prints a standardized system message to stdout.

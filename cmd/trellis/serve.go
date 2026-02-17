@@ -25,7 +25,12 @@ var serveCmd = &cobra.Command{
 			port, _ := cmd.Flags().GetString("port")
 
 			// Initialize Logger
-			logger := logging.New(slog.LevelInfo)
+			level := slog.LevelInfo
+			debug, _ := cmd.Flags().GetBool("debug")
+			if debug {
+				level = slog.LevelDebug
+			}
+			logger := logging.New(level)
 			slog.SetDefault(logger)
 
 			engine, err := trellis.New(dir)
