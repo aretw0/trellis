@@ -50,7 +50,7 @@ all: gen build
 
 # Generate Go code from OpenAPI spec using oapi-codegen
 gen:
-	go generate ./internal/adapters/http
+	go generate ./pkg/adapters/http
 
 # Build the binary for the current platform
 build:

@@ -60,7 +60,8 @@ type State struct {
 	History *[]string `json:"history,omitempty"`
 
 	// Memory Key-value store for session variables.
-	Memory *map[string]interface{} `json:"memory,omitempty"`
+	Memory    *map[string]interface{} `json:"memory,omitempty"`
+	SessionId *string                 `json:"session_id,omitempty"`
 
 	// Terminated Indicates if the execution has reached a sink state.
 	Terminated *bool `json:"terminated,omitempty"`
@@ -76,6 +77,15 @@ type ToolResult struct {
 
 	// Result The output of the tool execution.
 	Result interface{} `json:"result"`
+}
+
+// SubscribeEventsParams defines parameters for SubscribeEvents.
+type SubscribeEventsParams struct {
+	// SessionId Session ID to subscribe to for state updates
+	SessionId *string `form:"session_id,omitempty" json:"session_id,omitempty"`
+
+	// Watch Comma-separated list of fields to watch (e.g. "context,history")
+	Watch *string `form:"watch,omitempty" json:"watch,omitempty"`
 }
 
 // SignalJSONBody defines parameters for Signal.
@@ -160,7 +170,7 @@ func (t *NavigateRequest_Input) UnmarshalJSON(b []byte) error {
 type ServerInterface interface {
 	// Subscribe to server-sent events for graph changes
 	// (GET /events)
-	SubscribeEvents(w http.ResponseWriter, r *http.Request)
+	SubscribeEvents(w http.ResponseWriter, r *http.Request, params SubscribeEventsParams)
 	// Introspect the full state machine graph
 	// (GET /graph)
 	GetGraph(w http.ResponseWriter, r *http.Request)
@@ -187,7 +197,7 @@ type Unimplemented struct{}
 
 // Subscribe to server-sent events for graph changes
 // (GET /events)
-func (_ Unimplemented) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) SubscribeEvents(w http.ResponseWriter, r *http.Request, params SubscribeEventsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -239,8 +249,29 @@ type MiddlewareFunc func(http.Handler) http.Handler
 // SubscribeEvents operation middleware
 func (siw *ServerInterfaceWrapper) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SubscribeEventsParams
+
+	// ------------- Optional query parameter "session_id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "session_id", r.URL.Query(), &params.SessionId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "session_id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "watch" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "watch", r.URL.Query(), &params.Watch)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "watch", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SubscribeEvents(w, r)
+		siw.Handler.SubscribeEvents(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -475,29 +506,31 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"GuVPt94M5eZm81cAAAD//0DgOTgoEwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

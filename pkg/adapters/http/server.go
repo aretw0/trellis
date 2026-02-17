@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
@@ -28,7 +29,8 @@ type Engine interface {
 
 // Server implements the generated ServerInterface
 type Server struct {
-	Engine Engine
+	Engine  Engine
+	Streams *StreamManager
 }
 
 // Ensure Server implements ServerInterface
@@ -36,7 +38,10 @@ var _ ServerInterface = (*Server)(nil)
 
 // NewHandler creates a new HTTP handler for the engine.
 func NewHandler(engine Engine) http.Handler {
-	server := &Server{Engine: engine}
+	server := &Server{
+		Engine:  engine,
+		Streams: NewStreamManager(),
+	}
 	r := chi.NewRouter()
 
 	// Swagger UI
@@ -56,7 +61,21 @@ func NewHandler(engine Engine) http.Handler {
 		w.Write([]byte(swaggerHTML))
 	})
 
-	return HandlerFromMux(server, r)
+	handler := HandlerFromMux(server, r)
+	return enableCORS(handler)
+}
+
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Custom-Header")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 const swaggerHTML = `
@@ -150,6 +169,17 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Calculate and Broadcast Diff
+	diff := domain.Diff(&domainState, newState)
+	if diff != nil {
+		slog.Debug("Navigate: Diff calculated", "diff", diff, "session_id", domainState.SessionID)
+		if bytes, err := json.Marshal(diff); err == nil {
+			s.Streams.Broadcast(domainState.SessionID, string(bytes))
+		}
+	} else {
+		slog.Debug("Navigate: No diff calculated", "session_id", domainState.SessionID)
+	}
+
 	resp := mapStateFromDomain(*newState)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
@@ -177,6 +207,17 @@ func (s *Server) Signal(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Signal error: %v", err), http.StatusInternalServerError)
 		slog.Error("Signal failed", "error", err)
 		return
+	}
+
+	// Calculate and Broadcast Diff
+	diff := domain.Diff(&domainState, newState)
+	if diff != nil {
+		slog.Debug("Signal: Diff calculated", "diff", diff, "session_id", domainState.SessionID)
+		if bytes, err := json.Marshal(diff); err == nil {
+			s.Streams.Broadcast(domainState.SessionID, string(bytes))
+		}
+	} else {
+		slog.Debug("Signal: No diff calculated", "session_id", domainState.SessionID)
 	}
 
 	resp := mapStateFromDomain(*newState)
@@ -224,8 +265,62 @@ func (s *Server) GetInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// StreamManager handles active SSE connections
+type StreamManager struct {
+	mu          sync.RWMutex
+	subscribers map[string]map[chan<- string]struct{} // SessionID -> Set of Channels
+}
+
+func NewStreamManager() *StreamManager {
+	return &StreamManager{
+		subscribers: make(map[string]map[chan<- string]struct{}),
+	}
+}
+
+func (sm *StreamManager) Subscribe(sessionID string) (chan string, func()) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	ch := make(chan string, 10)
+	if _, ok := sm.subscribers[sessionID]; !ok {
+		sm.subscribers[sessionID] = make(map[chan<- string]struct{})
+	}
+	sm.subscribers[sessionID][ch] = struct{}{}
+
+	return ch, func() {
+		sm.mu.Lock()
+		defer sm.mu.Unlock()
+		if subs, ok := sm.subscribers[sessionID]; ok {
+			delete(subs, ch)
+			close(ch)
+			if len(subs) == 0 {
+				delete(sm.subscribers, sessionID)
+			}
+		}
+	}
+}
+
+func (sm *StreamManager) Broadcast(sessionID string, msg string) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	slog.Debug("StreamManager: Broadcasting", "session_id", sessionID, "payload_size", len(msg))
+
+	if subs, ok := sm.subscribers[sessionID]; ok {
+		slog.Debug("StreamManager: Found subscribers", "count", len(subs))
+		for ch := range subs {
+			select {
+			case ch <- msg:
+			default:
+				// Drop message if channel is full (slow client)
+				slog.Warn("SSE: Client buffer full, dropping message", "session_id", sessionID)
+			}
+		}
+	}
+}
+
 // SubscribeEvents handles the GET /events request (SSE).
-func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request, params SubscribeEventsParams) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
@@ -237,30 +332,90 @@ func (s *Server) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	events, err := s.Engine.Watch(r.Context())
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Watch error: %v", err), http.StatusInternalServerError)
-		slog.Error("Watch failed", "error", err)
-		return
+	// Global Hot Reload (Legacy / No Session)
+	if params.SessionId == nil {
+		slog.Info("SSE: Subscribing to Global Hot Reload")
+		events, err := s.Engine.Watch(r.Context())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Watch error: %v", err), http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprintf(w, "event: ping\ndata: connected\n\n")
+		flusher.Flush()
+
+		for {
+			select {
+			case <-r.Context().Done():
+				return
+			case event, ok := <-events:
+				if !ok {
+					return
+				}
+				fmt.Fprintf(w, "data: %s\n\n", event)
+				flusher.Flush()
+			}
+		}
 	}
 
-	// Send initial connection message? Optional. Let's send a ping.
+	// Session-based Subscription (State Diff)
+	sessionID := *params.SessionId
+	slog.Info("SSE: Subscribing to Session Updates", "session_id", sessionID)
+
+	// StreamManager is initialized in NewHandler and attached to Server.
+
+	ch, cancel := s.Streams.Subscribe(sessionID)
+	defer cancel()
+
 	fmt.Fprintf(w, "event: ping\ndata: connected\n\n")
 	flusher.Flush()
-	slog.Info("SSE Client Connected")
+
+	// Parse 'watch' filter
+	var watchList []string
+	if params.Watch != nil {
+		watchList = strings.Split(*params.Watch, ",")
+	}
 
 	for {
 		select {
 		case <-r.Context().Done():
 			slog.Info("SSE Client Disconnected")
 			return
-		case event, ok := <-events:
+		case msg, ok := <-ch:
 			if !ok {
 				return
 			}
-			// Log event to server console for DX
-			slog.Info("SSE Broadcast", "event", event)
-			fmt.Fprintf(w, "data: %s\n\n", event)
+			// Apply Filtering if provided.
+			// Note: We currently deserialize JSON to check fields, which has a performance cost.
+			// Future optimization: Push filtering down to the Broadcast level or send raw bytes if matching.
+			if len(watchList) > 0 {
+				var diff domain.StateDiff
+				if err := json.Unmarshal([]byte(msg), &diff); err == nil {
+					// Check if any watched field is present
+					keep := false
+					for _, field := range watchList {
+						field = strings.TrimSpace(field)
+						switch field {
+						case "context":
+							if len(diff.Context) > 0 {
+								keep = true
+							}
+						case "history":
+							if diff.HistoryParams != nil {
+								keep = true
+							}
+						case "status":
+							if diff.Status != nil || diff.Terminated != nil {
+								keep = true
+							}
+						}
+					}
+					if !keep {
+						continue
+					}
+				}
+			}
+
+			fmt.Fprintf(w, "data: %s\n\n", msg)
 			flusher.Flush()
 		}
 	}
@@ -285,6 +440,9 @@ func mapStateToDomain(s State) domain.State {
 		History:       []string{},
 		Terminated:    false,
 	}
+	if s.SessionId != nil {
+		d.SessionID = *s.SessionId
+	}
 	if s.Memory != nil {
 		d.Context = *s.Memory
 	}
@@ -299,6 +457,7 @@ func mapStateToDomain(s State) domain.State {
 
 func mapStateFromDomain(d domain.State) State {
 	s := State{
+		SessionId:     ptr(d.SessionID),
 		CurrentNodeId: d.CurrentNodeID,
 		Memory:        ptr(d.Context),
 		Terminated:    &d.Terminated,
