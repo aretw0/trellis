@@ -265,18 +265,30 @@ Foco: Segurança de tipos para definição de grafos.
   - [x] **Error Handling**: `ContextSchemaValidationError` com diagnostics claros.
   - [x] **Documentation & Examples**: `examples/typed-flow/`, atualizar `docs/reference/node_syntax.md`.
 
-### ✅ v0.7.7: Type-Safe Builders (The "Ergonomics" Patch)
+### ✅ v0.7.7: Type-Safe Builders (The "Foundations" Patch) [COMPLETED]
 
-Foco: API Go para construir grafos sem YAML/JSON.
+Foco: API Go inicial para construir grafos sem YAML/JSON.
 
 - [x] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
-  - [x] **Fluent Builder API**: `dsl.New("start").Text("...").Go("next")...Build()`.
-  - [x] **Type-Safe Nodes**: Compiler integrado, erros em tempo de compilação.
-  - [x] **Tool Registration**: Inline tool definitions sem YAML.
-  - [x] **Testing Helpers**: DSL como ferramenta pra testes unitários.
-  - [x] **Documentation & Examples**: `examples/dsl-graph/`, guia em `docs/guides/building-graphs-go.md`.
+  - [x] **Fluent Builder API**: `dsl.New().Add("start").Text("...").Go("next")`.
+  - [x] **MemoryLoader Integration**: Compilação direta para loader em memória.
+  - [x] **Documentation & Examples**: `examples/dsl-graph/`, guia inicial em `docs/guides/building-graphs-go.md`.
 
-### 🏗️ v0.7.8: Real-Time Updates (The "Reactivity" Patch)
+### 🏗️ v0.7.8: Fluent API Completion & Documentation [IN PROGRESS]
+
+Foco: Completar a DSL com suporte a ferramentas, SAGA e documentação técnica detalhada.
+
+- [ ] **Tool & SAGA Support**:
+  - [ ] **Tool Registration**: `Do(name, args)` e `Tools(tools...)` no `NodeBuilder`.
+  - [ ] **SAGA Support**: `Undo(name, args)` para transações compensatórias.
+  - [ ] **Terminal Nodes**: `Terminal()` alias para nós de saída.
+- [ ] **Advanced Testing Helpers**: DSL otimizada para asserções em testes unitários.
+- [ ] **Documentation & Diagrams**:
+  - [ ] Atualizar `docs/guides/building-graphs-go.md` com exemplos de ferramentas.
+  - [ ] Atualizar `pkg/dsl/doc.go` com a API correta.
+  - [ ] Adicionar diagrama de sequência da construção do grafo.
+
+### 🏗️ v0.7.9: Real-Time Updates (The "Reactivity" Patch)
 
 Foco: Atualizações parciais de estado para frontends reativos.
 
