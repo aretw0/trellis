@@ -19,23 +19,54 @@ go run ./cmd/trellis serve --dir ./examples/tour --port 8080
 make serve-tour
 ```
 
-## 2. Hot Reload (SSE)
+## 2. Real-Time Updates & Hot Reload (SSE)
 
-The server exposes a `/events` endpoint for real-time updates using Server-Sent Events (SSE). This is used by clients to trigger reloads when the graph changes.
+The server exposes a `/events` endpoint for real-time updates using Server-Sent Events (SSE). It supports two modes:
 
-Test it with curl:
+1. **Global Hot Reload** (No parameters): Used by developer tools to reload the graph when files change.
+2. **Session Reactivity** (`?session_id=...`): Used by frontends to receive granular state updates (Deltas).
 
-```bash
-curl -N http://localhost:8080/events
+### The Reactivity Loop
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Client->>Server: GET /events?session_id=123
+    Server-->>Client: event: ping (connected)
+    
+    Client->>Server: POST /navigate (Input="next")
+    Server->>Server: Calculate State Diff
+    Server-->>Client: data: {"context": {"foo": "bar"}}
+    
+    Client->>Client: Patch Local State
 ```
 
-Output:
+### Delta JSON Structure
 
-```text
-event: ping
-data: connected
+The SSE `data` payload is a JSON object representing **only what changed**:
 
-data: reload
+```json
+{
+  "session_id": "123",
+  "current_node_id": "step_2",
+  "status": "active",
+  "context": {
+    "points": 10
+  },
+  "history": {
+    "appended": ["step_2"]
+  }
+}
+```
+
+### Filtering
+
+You can filter which fields to watch using the `watch` parameter:
+
+```bash
+curl -N "http://localhost:8080/events?session_id=123&watch=context,status"
 ```
 
 ## 3. Accessing Swagger UI

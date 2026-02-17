@@ -292,11 +292,33 @@ Foco: Completar a DSL com suporte a ferramentas, SAGA e documentação técnica 
 
 Foco: Atualizações parciais de estado para frontends reativos.
 
-- [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
-  - [ ] **State Diff**: Detectar mudanças apenas em campos alterados (not full snapshot).
-  - [ ] **SSE Delta Protocol**: Serializar deltas em JSON compacto.
-  - [ ] **HTTP Server Integration**: Endpoint `/events` com suporte a filtering (ex: `?watch=context,history`).
-  - [ ] **Documentation & Examples**: Exemplo React/vanilla JS que consome deltas, guia em `docs/guides/frontend-integration.md`.
+- [x] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
+  - [x] **State Diff**: Detectar mudanças apenas em campos alterados (not full snapshot).
+  - [x] **SSE Delta Protocol**: Serializar deltas em JSON compacto.
+  - [x] **HTTP Server Integration**: Endpoint `/events` com suporte a filtering (ex: `?watch=context,history`).
+  - [x] **Documentation & Examples**: Exemplo React/vanilla JS que consome deltas, guia em `docs/guides/frontend-integration.md`.
+  - [x] **Technical Debt**:
+    - [x] **Context Deletion Protocol**: Definir padrão para remover chaves do contexto (ex: `null`).
+    - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo.
+
+### 🏗️ v0.7.10: The "Signal" Patch
+
+- [ ] **Signal Centralization**: Refatorar lógica de sinal para o `Runner` (hoje fragmentada).
+- [ ] **Default Handlers**: Implementar `on_signal_default` (restrito ao nó de entrada/root).
+- [ ] **Graceful Session Shutdown**: Garantir que o encerramento de uma sessão libere recursos (SSE, memória) sem afetar o servidor.
+- [ ] **Termination Logic Fix**: Corrigir bug onde o engine precisa de uma interação extra para detectar fim de fluxo.
+- [ ] **Chat UI Prototype**: Evoluir o `reactivity-demo` para uma interface de chat moderna.
+- [ ] **Warnings**: Sistema de logs avisando sobre configurações ignoradas em nós não-root.
+
+### 🏗️ v0.7.11: The "Context" Patch
+
+- [ ] **Deletion Support**: Implementar o protocolo de deleção no `StateDiff` e no `Subscriber`.
+- [ ] **Efficiency**: Otimizar serialização de deltas grandes.
+
+### 🏗️ v0.7.12: The "Structure" Patch
+
+- [ ] **Entrypoint fallback**: Suportar `main.md` e `NomeDaPasta.md` além do `start.md`.
+- [ ] **ID Collisions**: Melhorar tratamento de colisão de IDs em sub-grafos.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
