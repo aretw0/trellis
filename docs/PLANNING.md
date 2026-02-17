@@ -274,19 +274,19 @@ Foco: API Go inicial para construir grafos sem YAML/JSON.
   - [x] **MemoryLoader Integration**: Compilação direta para loader em memória.
   - [x] **Documentation & Examples**: `examples/dsl-graph/`, guia inicial em `docs/guides/building-graphs-go.md`.
 
-### 🏗️ v0.7.8: Fluent API Completion & Documentation [IN PROGRESS]
+### ✅ v0.7.8: Fluent API Completion & Documentation [COMPLETED]
 
 Foco: Completar a DSL com suporte a ferramentas, SAGA e documentação técnica detalhada.
 
-- [ ] **Tool & SAGA Support**:
-  - [ ] **Tool Registration**: `Do(name, args)` e `Tools(tools...)` no `NodeBuilder`.
-  - [ ] **SAGA Support**: `Undo(name, args)` para transações compensatórias.
-  - [ ] **Terminal Nodes**: `Terminal()` alias para nós de saída.
-- [ ] **Advanced Testing Helpers**: DSL otimizada para asserções em testes unitários.
-- [ ] **Documentation & Diagrams**:
-  - [ ] Atualizar `docs/guides/building-graphs-go.md` com exemplos de ferramentas.
-  - [ ] Atualizar `pkg/dsl/doc.go` com a API correta.
-  - [ ] Adicionar diagrama de sequência da construção do grafo.
+- [x] **Tool & SAGA Support**:
+  - [x] **Tool Registration**: `Do(name, args)` e `Tools(tools...)` no `NodeBuilder`.
+  - [x] **SAGA Support**: `Undo(name, args)` para transações compensatórias.
+  - [x] **Terminal Nodes**: `Terminal()` alias para nós de saída.
+- [x] **Advanced Testing Helpers**: DSL otimizada para asserções em testes unitários.
+- [x] **Documentation & Diagrams**:
+  - [x] Atualizar `docs/guides/building-graphs-go.md` com exemplos de ferramentas.
+  - [x] Atualizar `pkg/dsl/doc.go` com a API correta.
+  - [x] Adicionar diagrama de sequência da construção do grafo.
 
 ### 🏗️ v0.7.9: Real-Time Updates (The "Reactivity" Patch)
 
