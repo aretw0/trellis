@@ -288,7 +288,7 @@ Foco: Completar a DSL com suporte a ferramentas, SAGA e documentação técnica 
   - [x] Atualizar `pkg/dsl/doc.go` com a API correta.
   - [x] Adicionar diagrama de sequência da construção do grafo.
 
-### 🏗️ v0.7.9: Real-Time Updates (The "Reactivity" Patch)
+### ✅ v0.7.9: Real-Time Updates (The "Reactivity" Patch) [COMPLETED]
 
 Foco: Atualizações parciais de estado para frontends reativos.
 
@@ -299,8 +299,8 @@ Foco: Atualizações parciais de estado para frontends reativos.
   - [x] **Documentation & Examples**: Exemplo React/vanilla JS que consome deltas, guia em `docs/guides/frontend-integration.md`.
   - [x] **Technical Debt**:
     - [x] **Context Deletion Protocol**: Definir padrão para remover chaves do contexto (ex: `null`). [COMPLETED]
-    - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo. [COMPLETED]
-    - [x] **SSE Tests Data Race**: Corrigir condição de corrida detectada pelo `-race`. [COMPLETED]
+    - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo.
+    - [x] **SSE Tests Data Race**: Corrigir condição de corrida detectada pelo `-race`.
 
 ### 🏗️ v0.7.10: The "Signal" Patch
 
