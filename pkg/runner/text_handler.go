@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -53,6 +54,23 @@ func WithTextInputBufferSize(size int) TextHandlerOption {
 	}
 }
 
+// WithStdin enables reading from os.Stdin for simple library usage.
+func WithStdin() TextHandlerOption {
+	return func(h *TextHandler) {
+		go func() {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				h.FeedInput(scanner.Text(), nil)
+			}
+			if err := scanner.Err(); err != nil {
+				h.FeedInput("", err)
+			} else {
+				h.FeedInput("", io.EOF)
+			}
+		}()
+	}
+}
+
 // NewTextHandler creates a handler for standard text IO.
 func NewTextHandler(w io.Writer, opts ...TextHandlerOption) *TextHandler {
 	if w == nil {
@@ -63,11 +81,11 @@ func NewTextHandler(w io.Writer, opts ...TextHandlerOption) *TextHandler {
 		buffer: DefaultInputBufferSize,
 	}
 
+	h.inputChan = make(chan inputResult, h.buffer)
+
 	for _, opt := range opts {
 		opt(h)
 	}
-
-	h.inputChan = make(chan inputResult, h.buffer)
 
 	return h
 }
@@ -106,17 +124,10 @@ func (h *TextHandler) Output(ctx context.Context, actions []domain.ActionRequest
 
 func (h *TextHandler) Input(ctx context.Context) (string, error) {
 	for {
-		// Only show prompt if context is not yet done
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		default:
-			fmt.Fprint(h.Writer, "> ")
-		}
+		fmt.Fprint(h.Writer, "> ")
 
 		select {
 		case <-ctx.Done():
-			// Important: don't print anything here, just exit silently
 			return "", ctx.Err()
 		case res, ok := <-h.inputChan:
 			if !ok {
@@ -125,15 +136,17 @@ func (h *TextHandler) Input(ctx context.Context) (string, error) {
 			if res.err != nil {
 				return "", res.err
 			}
+
 			text := strings.TrimSpace(res.text)
 
-			// Sanitize Input (Limit + Control Chars)
+			// Sanitize Input (Security & Consistency)
 			clean, err := SanitizeInput(text)
 			if err != nil {
-				// User Feedback: Prompt retry
+				// For text/interactive handler, we provide feedback and retry.
 				fmt.Fprintf(h.Writer, "Error: %v. Please try again.\n", err)
 				continue
 			}
+
 			return clean, nil
 		}
 	}

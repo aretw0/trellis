@@ -55,6 +55,7 @@ A API primária para interagir com o engine.
 * `Engine.Render(state)`: Retorna a view (ações) para o estado atual e se é terminal.
 * `Engine.Navigate(state, input)`: Computa o próximo estado dado um input.
 * `Engine.Inspect()`: Retorna o grafo completo para visualização.
+* `Engine.Name`: Nome/Rótulo identificador do grafo (útil para logs e introspecção).
 
 #### 2.2. Driven Ports (Saída)
 
@@ -130,6 +131,7 @@ graph TD
     Engine -->|Driven Port| Loader[GraphLoader Interface]
     Loader -.->|Adapter| Loam[pkg/adapters/loam]
     Loader -.->|Adapter| Memory[pkg/adapters/memory]
+    Loader -.->|Adapter| GoDSL[pkg/dsl]
     
     Host -->|Uses| Store[StateStore Interface]
     Store -.->|Adapter| File[pkg/adapters/file]
@@ -651,7 +653,7 @@ sequenceDiagram
 
 O Trellis suporta dois modos primários de operação:
 
-1. **Text Mode** (`TextHandler`): Para uso interativo TUI/CLI. Bloqueia no input do usuário.
+1. **Text Mode** (`TextHandler`): Para uso interativo TUI/CLI. Bloqueia no input do usuário através de um canal (`inputChan`). Suporta a opção `WithStdin()` para leitura direta de `os.Stdin` em aplicações autônomas.
 2. **JSON Mode** (`JSONHandler`): Para automação headless e integração de API.
 
 **Restrição Chave para Modo JSON:**
