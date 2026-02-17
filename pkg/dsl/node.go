@@ -16,6 +16,32 @@ func (n *NodeBuilder) Text(content string) *NodeBuilder {
 	return n
 }
 
+// Do configures the primary action (tool) for the node.
+// It automatically sets the node type to "tool".
+func (n *NodeBuilder) Do(name string, args map[string]any) *NodeBuilder {
+	n.node.Type = domain.NodeTypeTool
+	n.node.Do = &domain.ToolCall{
+		Name: name,
+		Args: args,
+	}
+	return n
+}
+
+// Undo defines the compensating action (SAGA pattern) to revert this node's effect.
+func (n *NodeBuilder) Undo(name string, args map[string]any) *NodeBuilder {
+	n.node.Undo = &domain.ToolCall{
+		Name: name,
+		Args: args,
+	}
+	return n
+}
+
+// Tools defines tools available to the engine within this node's context.
+func (n *NodeBuilder) Tools(tools ...domain.Tool) *NodeBuilder {
+	n.node.Tools = append(n.node.Tools, tools...)
+	return n
+}
+
 // Question sets the content of the node and marks it as a question node (hard step).
 func (n *NodeBuilder) Question(content string) *NodeBuilder {
 	n.node.Type = domain.NodeTypeQuestion
@@ -75,6 +101,12 @@ func (n *NodeBuilder) On(signal string, target string) *NodeBuilder {
 		n.node.OnSignal = make(map[string]string)
 	}
 	n.node.OnSignal[signal] = target
+	return n
+}
+
+// Terminal marks the node as a terminal node (end of the flow).
+func (n *NodeBuilder) Terminal() *NodeBuilder {
+	n.node.Transitions = nil
 	return n
 }
 

@@ -88,3 +88,59 @@ func TestBuilder_SimpleFlow(t *testing.T) {
 		t.Errorf("Expected 4 nodes, got %d", len(nodes))
 	}
 }
+
+func TestBuilder_ToolFlow(t *testing.T) {
+	b := New()
+
+	b.Add("start").
+		Text("Executing tool...").
+		Go("run_tool")
+
+	b.Add("run_tool").
+		Do("http_get", map[string]any{"url": "https://api.example.com"}).
+		Undo("http_delete", map[string]any{"id": "123"}).
+		Go("end")
+
+	b.Add("end").
+		Text("Done!").
+		Terminal()
+
+	loader, err := b.Build()
+	if err != nil {
+		t.Fatalf("Build() failed: %v", err)
+	}
+
+	// Verify Tool Node
+	toolNodeBytes, err := loader.GetNode("run_tool")
+	if err != nil {
+		t.Fatalf("GetNode('run_tool') failed: %v", err)
+	}
+
+	var toolNode domain.Node
+	if err := json.Unmarshal(toolNodeBytes, &toolNode); err != nil {
+		t.Fatalf("Failed to unmarshal tool node: %v", err)
+	}
+
+	if toolNode.Type != domain.NodeTypeTool {
+		t.Errorf("Expected node type 'tool', got '%s'", toolNode.Type)
+	}
+	if toolNode.Do == nil || toolNode.Do.Name != "http_get" {
+		t.Errorf("Expected tool 'http_get', got %+v", toolNode.Do)
+	}
+	if toolNode.Undo == nil || toolNode.Undo.Name != "http_delete" {
+		t.Errorf("Expected undo tool 'http_delete', got %+v", toolNode.Undo)
+	}
+
+	// Verify Terminal Node
+	endNodeBytes, err := loader.GetNode("end")
+	if err != nil {
+		t.Fatalf("GetNode('end') failed: %v", err)
+	}
+	var endNode domain.Node
+	if err := json.Unmarshal(endNodeBytes, &endNode); err != nil {
+		t.Fatalf("Failed to unmarshal end node: %v", err)
+	}
+	if len(endNode.Transitions) != 0 {
+		t.Errorf("Expected 0 transitions for terminal node, got %d", len(endNode.Transitions))
+	}
+}
