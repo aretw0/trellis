@@ -84,7 +84,9 @@ func TestSubscribeEvents_Session(t *testing.T) {
 	wSub := httptest.NewRecorder()
 	reqSub := httptest.NewRequest("GET", "/events?session_id=sess-1", nil).WithContext(ctx)
 
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		handler.ServeHTTP(wSub, reqSub)
 	}()
 
@@ -120,7 +122,7 @@ func TestSubscribeEvents_Session(t *testing.T) {
 
 	// 3. Stop subscription to flush
 	cancel()
-	time.Sleep(50 * time.Millisecond)
+	<-done // Wait for handler to finish writing to wSub
 
 	output := wSub.Body.String()
 

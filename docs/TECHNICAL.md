@@ -863,6 +863,46 @@ Para facilitar testes automatizados e integração, o Trellis permite injetar o 
 * **Precedência**: `initialData` (Runtime) > `default_context` (File).
 * **Uso**: Dados injetados estão disponíveis imediatamente para interpolação (`{{.user}}`) no nó de entrada.
 
+#### 11.6. Reatividade e Atualizações em Tempo Real (SSE)
+
+A partir da v0.7.9, o adaptador HTTP suporta notificações em tempo real via **Server-Sent Events (SSE)**. Isso permite que interfaces ricas (Web, Mobile) reajam a mudanças de estado sem polling.
+
+**Arquitetura do StreamManager:**
+
+O `StreamManager` gerencia o ciclo de vida das conexões SSE:
+
+1. **Subscription**: Clientes se inscrevem via `GET /events?session_id=...`.
+2. **Filtering**: Opcionalmente, clientes podem filtrar eventos via `watch=context,history`.
+3. **Broadcasting**: Quando o motor processa um `Navigate` ou `Signal`, ele gera um `StateDiff` (Delta) e o `StreamManager` despacha para todos os inscritos daquela sessão.
+
+**Fluxo de Atualização (Sequence Diagram):**
+
+```mermaid
+sequenceDiagram
+    participant UI as Browser / Mobile
+    participant Srv as HTTP Adapter
+    participant SM as StreamManager
+    participant Eng as Engine (Core)
+
+    UI->>Srv: GET /events?session_id=123
+    Srv->>SM: Subscribe(session_123)
+    SM-->>UI: 200 OK (Stream Open)
+
+    Note over UI, Eng: Fluxo de Interação
+
+    UI->>Srv: POST /navigate (Input: "next")
+    Srv->>Eng: Navigate(State, "next")
+    Eng-->>Srv: NewState
+    Srv->>Srv: Diff(OldState, NewState) -> Delta
+    Srv->>SM: Broadcast(session_123, Delta)
+    SM-->>UI: data: { "current_node_id": "done", ... }
+
+    Note over UI: UI reage ao Delta
+```
+
+**Garantias de Concorrência:**
+O `StreamManager` utiliza um `sync.RWMutex` para proteger o mapa de inscritos, garantindo que o `Broadcast` (leitura do mapa) possa ocorrer em paralelo com novas inscrições, enquanto a remoção de clientes desconectados (escrita) é serializada com segurança.
+
 ---
 
 ## III. Funcionalidades Estendidas (System Features)
