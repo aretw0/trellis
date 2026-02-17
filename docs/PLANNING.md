@@ -255,15 +255,15 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
   - [x] ⚠️ **NÃO** usar introspection para geração de Mermaid (Performance). Manter o gerador interno para visualização de grafos complexos.
 - [x] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
 
-### 🏗️ v0.7.6: Type Safety & Schema Validation (The "Contracts" Patch)
+### ✅ v0.7.6: Type Safety & Schema Validation (The "Contracts" Patch) [COMPLETED]
 
 Foco: Segurança de tipos para definição de grafos.
 
-- [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento e runtime. **Decision: Option A (Validation in Trellis) with Extraction Path**. See [docs/architecture/schema-validation-architecture.md](docs/architecture/schema-validation-architecture.md).
-  - [ ] **Core Schema Package**: `pkg/schema/` com Type interface (string, int, float, bool, array, custom).
-  - [ ] **Loam Adapter Integration**: Parse `context_schema` frontmatter e validar tipos em runtime.
-  - [ ] **Error Handling**: `ContextSchemaValidationError` com diagnostics claros.
-  - [ ] **Documentation & Examples**: `examples/typed-flow/`, atualizar `docs/reference/node_syntax.md`.
+- [x] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento e runtime. **Decision: Option A (Validation in Trellis) with Extraction Path**. See [docs/architecture/schema-validation-architecture.md](docs/architecture/schema-validation-architecture.md).
+  - [x] **Core Schema Package**: `pkg/schema/` com Type interface (string, int, float, bool, array, custom).
+  - [x] **Loam Adapter Integration**: Parse `context_schema` frontmatter e validar tipos em runtime.
+  - [x] **Error Handling**: `ContextSchemaValidationError` com diagnostics claros.
+  - [x] **Documentation & Examples**: `examples/typed-flow/`, atualizar `docs/reference/node_syntax.md`.
 
 ### 🏗️ v0.7.7: Type-Safe Builders (The "Ergonomics" Patch)
 
