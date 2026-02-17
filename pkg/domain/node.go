@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/aretw0/trellis/pkg/schema"
+
 // NodeType constants define the control flow behavior.
 const (
 	// NodeTypeText displays content and continues immediately (soft step).
@@ -38,6 +40,9 @@ type Node struct {
 
 	// DefaultContext provides fallback values for context keys
 	DefaultContext map[string]any `json:"default_context,omitempty" yaml:"default_context,omitempty"`
+
+	// ContextSchema defines expected types for context values
+	ContextSchema schema.Schema `json:"context_schema,omitempty" yaml:"context_schema,omitempty"`
 
 	// Content holds the raw data for this node.
 	// For a text node, it might be the markdown content.

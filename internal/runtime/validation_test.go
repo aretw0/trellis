@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aretw0/trellis/internal/runtime"
 	"github.com/aretw0/trellis/pkg/adapters/memory"
 	"github.com/aretw0/trellis/pkg/domain"
-	"github.com/stretchr/testify/assert"
+	"github.com/aretw0/trellis/pkg/schema"
 )
 
 func TestEngine_RequiredContext(t *testing.T) {
@@ -84,5 +86,75 @@ func TestEngine_RequiredContext(t *testing.T) {
 		assert.ErrorAs(t, err, &validationErr)
 		assert.Equal(t, "secure", validationErr.NodeID)
 		assert.Contains(t, validationErr.MissingKeys, "token")
+	})
+}
+
+func TestEngine_ContextSchema(t *testing.T) {
+	t.Run("Start Node ContextSchema Valid", func(t *testing.T) {
+		startNode := domain.Node{
+			ID:      "start",
+			Type:    domain.NodeTypeStart,
+			Content: []byte("Start"),
+			ContextSchema: schema.Schema{
+				"api_key": schema.String(),
+				"retries": schema.Int(),
+			},
+		}
+		loader, _ := memory.NewFromNodes(startNode)
+		engine := runtime.NewEngine(loader, nil, nil)
+
+		state := domain.NewState("test-session", "start")
+		state.Context["api_key"] = "secret"
+		state.Context["retries"] = 3
+
+		_, _, err := engine.Render(context.Background(), state)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Start Node ContextSchema Missing Field", func(t *testing.T) {
+		startNode := domain.Node{
+			ID:      "start",
+			Type:    domain.NodeTypeStart,
+			Content: []byte("Start"),
+			ContextSchema: schema.Schema{
+				"api_key": schema.String(),
+				"retries": schema.Int(),
+			},
+		}
+		loader, _ := memory.NewFromNodes(startNode)
+		engine := runtime.NewEngine(loader, nil, nil)
+
+		state := domain.NewState("test-session", "start")
+		state.Context["api_key"] = "secret"
+
+		_, _, err := engine.Render(context.Background(), state)
+		assert.Error(t, err)
+		var validationErr *runtime.ContextTypeValidationError
+		assert.ErrorAs(t, err, &validationErr)
+		assert.Equal(t, "start", validationErr.NodeID)
+	})
+
+	t.Run("Start Node ContextSchema Invalid Type", func(t *testing.T) {
+		startNode := domain.Node{
+			ID:      "start",
+			Type:    domain.NodeTypeStart,
+			Content: []byte("Start"),
+			ContextSchema: schema.Schema{
+				"api_key": schema.String(),
+				"retries": schema.Int(),
+			},
+		}
+		loader, _ := memory.NewFromNodes(startNode)
+		engine := runtime.NewEngine(loader, nil, nil)
+
+		state := domain.NewState("test-session", "start")
+		state.Context["api_key"] = "secret"
+		state.Context["retries"] = "two"
+
+		_, _, err := engine.Render(context.Background(), state)
+		assert.Error(t, err)
+		var validationErr *runtime.ContextTypeValidationError
+		assert.ErrorAs(t, err, &validationErr)
+		assert.Equal(t, "start", validationErr.NodeID)
 	})
 }

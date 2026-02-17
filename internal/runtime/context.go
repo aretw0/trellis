@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/schema"
 )
 
 // ContextValidationError represents a failure to meet context requirements.
@@ -19,7 +20,7 @@ func (e *ContextValidationError) Error() string {
 
 func (e *Engine) validateContext(node *domain.Node, state *domain.State) error {
 	if len(node.RequiredContext) == 0 {
-		return nil
+		return e.validateContextTypes(node, state)
 	}
 
 	var missing []string
@@ -42,6 +43,42 @@ func (e *Engine) validateContext(node *domain.Node, state *domain.State) error {
 			MissingKeys: missing,
 		}
 	}
+
+	return e.validateContextTypes(node, state)
+}
+
+// ContextTypeValidationError represents a failure to meet context schema requirements.
+type ContextTypeValidationError struct {
+	NodeID string
+	Err    error
+}
+
+func (e *ContextTypeValidationError) Error() string {
+	return fmt.Sprintf("Node '%s' has invalid context types: %s", e.NodeID, e.Err.Error())
+}
+
+func (e *Engine) validateContextTypes(node *domain.Node, state *domain.State) error {
+	if len(node.ContextSchema) == 0 {
+		return nil
+	}
+
+	data := make(map[string]any)
+	for key, value := range state.Context {
+		data[key] = value
+	}
+	for key, value := range state.SystemContext {
+		if _, exists := data[key]; !exists {
+			data[key] = value
+		}
+	}
+
+	if err := schema.Validate(node.ContextSchema, data); err != nil {
+		return &ContextTypeValidationError{
+			NodeID: node.ID,
+			Err:    err,
+		}
+	}
+
 	return nil
 }
 
