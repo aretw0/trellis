@@ -244,19 +244,47 @@ Foco: Estabilizar o ambiente de desenvolvimento e preparar a integração com fe
   - **Verdict**: ✅ Estável. A suíte de testes passou (`make test`) utilizando as versões locais (`go.work`) das libs `lifecycle` (`main`), `procio` (`main`) e `introspection` (`main`). Nenhuma regressão detectada.
   - [x] **Release v1.5**: Publicar `lifecycle` v1.5.0 com breaking changes (SignalContext, Terminal IO) e atualizar dependências no `go.mod`.
 
-### 🏗️ v0.7.5: Developer Experience & Type Safety (The "DX" Patch)
+### ✅ v0.7.5: Lifecycle & Observability [COMPLETED]
 
 Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX).
 
 - [x] **Lifecycle Workers & Supervisors**: Avaliar se o `trellis.Runner` deve ser implementado como um `Worker` nativo da lib `lifecycle` para melhor gestão de pools.
 - [x] **Unified Observability**: Integrar a introspecção do Engine com os coletores de métricas e introspecção da lib `lifecycle`.
-  - Implementar `Engine` como `introspection.TypedWatcher[EngineState]`
-  - Usar `introspection.AggregateWatchers` para vista unificada (Engine + Workers + Signals)
-  - ⚠️ **NÃO** usar introspection para geração de Mermaid (Performance). Manter o gerador interno para visualização de grafos complexos.
+  - [x] Implementar `Engine` como `introspection.TypedWatcher[EngineState]`
+  - [x] Usar `introspection.AggregateWatchers` para vista unificada (Engine + Workers + Signals)
+  - [x] ⚠️ **NÃO** usar introspection para geração de Mermaid (Performance). Manter o gerador interno para visualização de grafos complexos.
 - [x] **Trellis as Lib (API Polish)**: Revisão da superfície pública (`pkg/runner`) para garantir que o Trellis seja tão fácil de usar como biblioteca quanto é como CLI.
+
+### 🏗️ v0.7.6: Type Safety & Schema Validation (The "Contracts" Patch)
+
+Foco: Segurança de tipos para definição de grafos.
+
 - [ ] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento e runtime. **Decision: Option A (Validation in Trellis) with Extraction Path**. See [docs/architecture/schema-validation-architecture.md](docs/architecture/schema-validation-architecture.md).
+  - [ ] **Core Schema Package**: `pkg/schema/` com Type interface (string, int, float, bool, array, custom).
+  - [ ] **Loam Adapter Integration**: Parse `context_schema` frontmatter e validar tipos em runtime.
+  - [ ] **Error Handling**: `ContextSchemaValidationError` com diagnostics claros.
+  - [ ] **Documentation & Examples**: `examples/typed-flow/`, atualizar `docs/reference/node_syntax.md`.
+
+### 🏗️ v0.7.7: Type-Safe Builders (The "Ergonomics" Patch)
+
+Foco: API Go para construir grafos sem YAML/JSON.
+
 - [ ] **Go DSL / Builders**: Pacote `pkg/dsl` para construção de grafos Type-Safe em Go puro.
+  - [ ] **Fluent Builder API**: `dsl.New("start").Text("...").Go("next")...Build()`.
+  - [ ] **Type-Safe Nodes**: Compiler integrado, erros em tempo de compilação.
+  - [ ] **Tool Registration**: Inline tool definitions sem YAML.
+  - [ ] **Testing Helpers**: DSL como ferramenta pra testes unitários.
+  - [ ] **Documentation & Examples**: `examples/dsl-graph/`, guia em `docs/guides/building-graphs-go.md`.
+
+### 🏗️ v0.7.8: Real-Time Updates (The "Reactivity" Patch)
+
+Foco: Atualizações parciais de estado para frontends reativos.
+
 - [ ] **Granular SSE Events**: Update parcial de estado (Delta) para frontends reativos de alta performance.
+  - [ ] **State Diff**: Detectar mudanças apenas em campos alterados (not full snapshot).
+  - [ ] **SSE Delta Protocol**: Serializar deltas em JSON compacto.
+  - [ ] **HTTP Server Integration**: Endpoint `/events` com suporte a filtering (ex: `?watch=context,history`).
+  - [ ] **Documentation & Examples**: Exemplo React/vanilla JS que consome deltas, guia em `docs/guides/frontend-integration.md`.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
