@@ -26,6 +26,9 @@ type NodeMetadata struct {
 	// DefaultContext provides fallback values for context keys
 	DefaultContext map[string]any `json:"default_context" mapstructure:"default_context"`
 
+	// ContextSchema defines expected types for context values
+	ContextSchema map[string]any `json:"context_schema" mapstructure:"context_schema"`
+
 	// Timeout defines the maximum duration (e.g. "30s") to wait for input.
 	Timeout string `json:"timeout,omitempty" mapstructure:"timeout"`
 

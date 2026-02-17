@@ -200,6 +200,39 @@ default_context:
 	// Note: We check specifically for the key-value pair in JSON
 }
 
+func TestLoader_ContextSchema(t *testing.T) {
+	// Setup Temp Repository
+	tmpDir, repo := testutils.SetupTestRepo(t)
+
+	// Create a node with context_schema
+	content := `---
+id: start
+type: start
+context_schema:
+  api_key: string
+  retries: int
+  tags: [string]
+---
+# Start`
+	err := os.WriteFile(filepath.Join(tmpDir, "start.md"), []byte(content), 0644)
+	require.NoError(t, err)
+
+	// Initialize Adapter
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
+	loader := New(typedRepo)
+
+	// Execute GetNode
+	data, err := loader.GetNode("start")
+	require.NoError(t, err)
+
+	// Verify JSON output
+	jsonStr := string(data)
+	assert.Contains(t, jsonStr, `"context_schema":{`)
+	assert.Contains(t, jsonStr, `"api_key":"string"`)
+	assert.Contains(t, jsonStr, `"retries":"int"`)
+	assert.Contains(t, jsonStr, `"tags":"[string]"`)
+}
+
 func TestLoader_TransitionShorthand(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)

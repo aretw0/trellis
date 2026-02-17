@@ -37,16 +37,32 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 		return nil, fmt.Errorf("loam get failed for %s: %w", id, err)
 	}
 
-	// Synthesize valid JSON for the compiler.
-	// We must map our loader struct (which matches YAML "to") to domain JSON ("to_node_id").
+	transitions := l.buildTransitions(doc.Data)
+	data, err := l.buildBaseNodeData(doc.ID, doc.Data, doc.Content, transitions)
+	if err != nil {
+		return nil, err
+	}
+	l.applyInputConfig(doc.Data, data)
 
-	// Merge Transitions and Options
-	totalTransitions := len(doc.Data.Transitions) + len(doc.Data.Options)
-	domainTransitions := make([]domain.Transition, 0, totalTransitions)
+	if err := l.applyToolConfig(ctx, id, doc.Data, data); err != nil {
+		return nil, err
+	}
 
-	// Helper to convert LoaderTransition (DTO) to domain.Transition
+	l.applyMetadataAndTimeout(doc.Data, data)
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal node data: %w", err)
+	}
+
+	return bytes, nil
+}
+
+func (l *Loader) buildTransitions(meta NodeMetadata) []domain.Transition {
+	totalTransitions := len(meta.Transitions) + len(meta.Options)
+	transitions := make([]domain.Transition, 0, totalTransitions)
+
 	convert := func(lt LoaderTransition) domain.Transition {
-		// Support both "to" and "to_node_id"
 		to := lt.To
 		if to == "" {
 			to = lt.ToFull
@@ -60,10 +76,7 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 		}
 
 		condition := lt.Condition
-		// Sugar: Map "text" to condition if condition is empty
-		// This supports the "options" syntax
 		if condition == "" && lt.Text != "" {
-			// Simple exact match logic aligned with DefaultEvaluator
 			condition = fmt.Sprintf("input == '%s'", strings.ReplaceAll(lt.Text, "'", "\\'"))
 		}
 
@@ -74,84 +87,141 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 		}
 	}
 
-	for _, opt := range doc.Data.Options {
-		domainTransitions = append(domainTransitions, convert(opt))
+	for _, opt := range meta.Options {
+		transitions = append(transitions, convert(opt))
 	}
-	for _, lt := range doc.Data.Transitions {
-		domainTransitions = append(domainTransitions, convert(lt))
+	for _, lt := range meta.Transitions {
+		transitions = append(transitions, convert(lt))
 	}
-	// Handle Top-Level "To" Shorthand
-	if doc.Data.To != "" {
-		domainTransitions = append(domainTransitions, domain.Transition{
-			ToNodeID: doc.Data.To,
-		})
+	if meta.To != "" {
+		transitions = append(transitions, domain.Transition{ToNodeID: meta.To})
 	}
 
+	return transitions
+}
+
+func (l *Loader) buildBaseNodeData(docID string, meta NodeMetadata, content string, transitions []domain.Transition) (map[string]any, error) {
 	data := make(map[string]any)
-	// Normalize ID: prefer metadata ID, fallback to filename ID, but always strip extension
-	rawID := doc.Data.ID
+
+	rawID := meta.ID
 	if rawID == "" {
-		rawID = doc.ID
+		rawID = docID
 	}
 	data["id"] = trimExtension(rawID)
 
-	data["type"] = doc.Data.Type
-	if doc.Data.Type == "" {
+	data["type"] = meta.Type
+	if meta.Type == "" {
 		data["type"] = domain.NodeTypeText
 	}
 
-	if doc.Data.Wait {
-		data["wait"] = doc.Data.Wait
+	if meta.Wait {
+		data["wait"] = meta.Wait
 	}
-	if doc.Data.OnError != "" {
-		data["on_error"] = doc.Data.OnError
+	if meta.OnError != "" {
+		data["on_error"] = meta.OnError
 	}
-	if doc.Data.OnDenied != "" {
-		data["on_denied"] = doc.Data.OnDenied
+	if meta.OnDenied != "" {
+		data["on_denied"] = meta.OnDenied
 	}
-	if len(doc.Data.OnSignal) > 0 {
-		data["on_signal"] = doc.Data.OnSignal
+	if len(meta.OnSignal) > 0 {
+		data["on_signal"] = meta.OnSignal
 	}
-	// Syntactic Sugar: on_timeout -> on_signal["timeout"]
-	if doc.Data.OnTimeout != "" {
-		signals, ok := data["on_signal"].(map[string]string)
-		if !ok {
-			signals = make(map[string]string)
-			data["on_signal"] = signals
-		}
-		signals[domain.SignalTimeout] = doc.Data.OnTimeout
-	}
-	// Syntactic Sugar: on_interrupt -> on_signal["interrupt"]
-	if doc.Data.OnInterrupt != "" {
-		signals, ok := data["on_signal"].(map[string]string)
-		if !ok {
-			signals = make(map[string]string)
-			data["on_signal"] = signals
-		}
-		signals[domain.SignalInterrupt] = doc.Data.OnInterrupt
-	}
-	if doc.Data.SaveTo != "" {
-		data["save_to"] = doc.Data.SaveTo
-	}
-	if len(doc.Data.RequiredContext) > 0 {
-		data["required_context"] = doc.Data.RequiredContext
-	}
-	if len(doc.Data.DefaultContext) > 0 {
-		data["default_context"] = doc.Data.DefaultContext
-	}
-	data["transitions"] = domainTransitions
-	data["content"] = []byte(doc.Content) // As Base64
 
-	// Smart Choice Inference: If options have text, they are likely for a choice input.
+	l.applySignalSugar(meta, data)
+
+	if meta.SaveTo != "" {
+		data["save_to"] = meta.SaveTo
+	}
+	if len(meta.RequiredContext) > 0 {
+		data["required_context"] = meta.RequiredContext
+	}
+	if len(meta.DefaultContext) > 0 {
+		data["default_context"] = meta.DefaultContext
+	}
+	if len(meta.ContextSchema) > 0 {
+		normalized, err := normalizeContextSchema(meta.ContextSchema)
+		if err != nil {
+			return nil, err
+		}
+		data["context_schema"] = normalized
+	}
+
+	data["transitions"] = transitions
+	data["content"] = []byte(content)
+
+	return data, nil
+}
+
+func normalizeContextSchema(raw map[string]any) (map[string]string, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+
+	normalized := make(map[string]string, len(raw))
+	for key, value := range raw {
+		typeStr, err := formatSchemaType(value)
+		if err != nil {
+			return nil, fmt.Errorf("context_schema.%s: %w", key, err)
+		}
+		normalized[key] = typeStr
+	}
+
+	return normalized, nil
+}
+
+func formatSchemaType(value any) (string, error) {
+	switch v := value.(type) {
+	case string:
+		return v, nil
+	case []any:
+		if len(v) != 1 {
+			return "", fmt.Errorf("expected single element list for slice type")
+		}
+		inner, err := formatSchemaType(v[0])
+		if err != nil {
+			return "", err
+		}
+		return "[" + inner + "]", nil
+	case []string:
+		if len(v) != 1 {
+			return "", fmt.Errorf("expected single element list for slice type")
+		}
+		return "[" + v[0] + "]", nil
+	default:
+		return "", fmt.Errorf("expected string or list, got %T", value)
+	}
+}
+
+func (l *Loader) applySignalSugar(meta NodeMetadata, data map[string]any) {
+	if meta.OnTimeout != "" {
+		signals := l.ensureSignalMap(data)
+		signals[domain.SignalTimeout] = meta.OnTimeout
+	}
+	if meta.OnInterrupt != "" {
+		signals := l.ensureSignalMap(data)
+		signals[domain.SignalInterrupt] = meta.OnInterrupt
+	}
+}
+
+func (l *Loader) ensureSignalMap(data map[string]any) map[string]string {
+	signals, ok := data["on_signal"].(map[string]string)
+	if !ok {
+		signals = make(map[string]string)
+		data["on_signal"] = signals
+	}
+	return signals
+}
+
+func (l *Loader) applyInputConfig(meta NodeMetadata, data map[string]any) {
 	inferredOptions := make([]string, 0)
-	for _, opt := range doc.Data.Options {
+	for _, opt := range meta.Options {
 		if opt.Text != "" {
 			inferredOptions = append(inferredOptions, opt.Text)
 		}
 	}
 
-	inputType := doc.Data.InputType
-	inputOptions := doc.Data.InputOptions
+	inputType := meta.InputType
+	inputOptions := meta.InputOptions
 
 	if len(inferredOptions) > 0 {
 		if len(inputOptions) == 0 {
@@ -162,65 +232,59 @@ func (l *Loader) GetNode(id string) ([]byte, error) {
 		}
 	}
 
-	// Smart Confirm Inference: Default options for confirmation type
 	if inputType == string(domain.InputConfirm) && len(inputOptions) == 0 {
 		inputOptions = []string{"yes", "no"}
 	}
 
-	// Map Input Configuration
 	if inputType != "" {
 		data["input_type"] = inputType
 		data["input_options"] = inputOptions
-		data["input_default"] = doc.Data.InputDefault
+		data["input_default"] = meta.InputDefault
 	}
+}
 
-	// Map Tool Configuration
-	// Priority: Do > ToolCall (Alias)
+func (l *Loader) applyToolConfig(ctx context.Context, nodeID string, meta NodeMetadata, data map[string]any) error {
 	var toolCall *LoaderToolCall
-	if doc.Data.Do != nil {
-		toolCall = doc.Data.Do
-	} else if doc.Data.ToolCall != nil {
-		toolCall = doc.Data.ToolCall
+	if meta.Do != nil {
+		toolCall = meta.Do
+	} else if meta.ToolCall != nil {
+		toolCall = meta.ToolCall
 	}
 
 	if toolCall != nil {
 		domainCall := convertToolCall(toolCall)
-		// Ensure ID is present
 		if domainCall.ID == "" {
 			domainCall.ID = domainCall.Name
 		}
 		data["do"] = domainCall
 	}
-	if len(doc.Data.Tools) > 0 {
-		resolvedTools, err := l.resolveTools(ctx, doc.Data.Tools, nil)
+
+	if len(meta.Tools) > 0 {
+		resolvedTools, err := l.resolveTools(ctx, meta.Tools, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error resolving tools for %s: %w", id, err)
+			return fmt.Errorf("error resolving tools for %s: %w", nodeID, err)
 		}
 		data["tools"] = resolvedTools
 	}
 
-	if doc.Data.Undo != nil {
-		domainUndo := convertToolCall(doc.Data.Undo)
+	if meta.Undo != nil {
+		domainUndo := convertToolCall(meta.Undo)
 		if domainUndo.ID == "" {
 			domainUndo.ID = domainUndo.Name
 		}
 		data["undo"] = domainUndo
 	}
 
-	// Map Metadata with Flattening
-	if doc.Data.Metadata != nil {
-		data["metadata"] = flattenMetadata(doc.Data.Metadata)
-	}
-	if doc.Data.Timeout != "" {
-		data["timeout"] = doc.Data.Timeout
-	}
+	return nil
+}
 
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal node data: %w", err)
+func (l *Loader) applyMetadataAndTimeout(meta NodeMetadata, data map[string]any) {
+	if meta.Metadata != nil {
+		data["metadata"] = flattenMetadata(meta.Metadata)
 	}
-
-	return bytes, nil
+	if meta.Timeout != "" {
+		data["timeout"] = meta.Timeout
+	}
 }
 
 // resolveTools recursively resolves polymorphic tool definitions (inline maps or import strings).
