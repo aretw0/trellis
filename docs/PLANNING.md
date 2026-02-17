@@ -263,8 +263,8 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
 
 - [ ] **Ecosystem Convergence (The "Lobster Way")**: Adaptação para modelos de pipelines tipados e resilientes.
-  - [ ] **Loam Project Integration**: Utilizar `loam.Project` para carregar `trellis.yaml` (Manifest) e validar inputs/configs de forma unificada.
-  - [ ] **Lifecycle Integration**:
+  - [ ] **Project Definition**: Utilizar `loam` para carregar `trellis.yaml` (Manifest) e validar inputs/configs de forma unificada.
+  - [ ] **Lifecycle Sinergy**:
     - [ ] **Supervisor Mount**: Tornar o Trellis um "Worker" compatível com o Supervisor do `lifecycle` (Gestão de Agentes).
     - [ ] **Unified Observability**: Integrar Introspecção (`State()`) e Telemetria (`pkg/metrics`) ao padrão do `lifecycle`.
   - [ ] **Resumable Protocols**:
