@@ -14,23 +14,23 @@ Example usage:
 	)
 
 	func main() {
-		pipeline := dsl.NewPipeline("my-flow")
+		b := dsl.New()
 
-		pipeline.Text("start").
-			Content("Welcome to Trellis!").
-			To("ask_name")
+		b.Add("start").
+			Text("Welcome to Trellis!").
+			Go("ask_name")
 
-		pipeline.Input("ask_name").
-			Content("What is your name?").
+		b.Add("ask_name").
+			Question("What is your name?").
 			SaveTo("user_name").
-			To("end")
+			Go("end")
 
-		pipeline.Text("end").
-			Content("Goodbye, {{.user_name}}!").
+		b.Add("end").
+			Text("Goodbye, {{.user_name}}!").
 			Terminal()
 
-		// The resulting pipeline can be used as a ports.GraphLoader
-		loader := pipeline.Build()
+		// The resulting builder can be compiled into a loader
+		loader, err := b.Build()
 		// ... pass loader to trellis.New(...)
 	}
 */

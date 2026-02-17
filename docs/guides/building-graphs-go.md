@@ -44,6 +44,12 @@ b.Add("menu").
     SaveTo("user_choice").
     Branch("input == 'Reset Password'", "reset_flow").
     Branch("input == 'Contact Support'", "support_flow")
+
+// Tool Node (v0.7.8+)
+b.Add("reset_flow").
+    Do("resend_email", map[string]any{"template": "reset_pw"}).
+    Go("end")
+
 ```
 
 ### 4. Build and Run
@@ -92,19 +98,55 @@ r.Run(context.Background())
 - **Error(target)**: Transition on error.
 - **On(signal, target)**: Transition on global signal (e.g. "timeout").
 
-### Context
+### Context & Tools
 
 - **Context(key, value)**: Sets a default context value for the node.
+- **Do(name, args)**: Configures a `tool` execution (Side-Effect).
+- **Undo(name, args)**: Configures a compensating action for the SAGA pattern.
+- **Tools(definitions...)**: Inline tool definitions for LLM context.
 
-## Architecture
+### Flow Control
+
+- **Terminal()**: Marks the node as a terminal node (no transitions).
+
+## Advanced Examples
+
+### Tool-Usage with SAGA (Rollback)
+
+```go
+b.Add("process_payment").
+    Do("stripe_charge", map[string]any{"amount": 1000}).
+    Undo("stripe_refund", map[string]any{"reason": "failed_downstream"}).
+    OnError("payment_failed").
+    Go("ship_order")
+```
+
+### Inline Tool Definitions
+
+```go
+b.Add("llm_node").
+    Text("You are an assistant. Use the provided tools.").
+    Tools(domain.Tool{
+        Name: "get_weather",
+        Description: "Get the current weather",
+    }).
+    Go("next")
+```
 
 The DSL Builder constructs `domain.Node` objects which are then compiled into a `memory.Loader`. This loader implements the `ports.GraphLoader` interface, making it compatible with the Trellis Engine.
 
 ```mermaid
-graph LR
-    UserCode[Go Code] -->|Calls| Builder[DSL Builder]
-    Builder -->|Constructs| Nodes[domain.Node]
-    Nodes -->|Compiles to| MemLoader[memory.Loader]
-    MemLoader -->|Implements| GraphLoader[ports.GraphLoader]
-    GraphLoader -->|Fed into| Runner[Trellis Engine]
+sequenceDiagram
+    participant User as User Code
+    participant Builder as DSL Builder
+    participant Loader as MemoryLoader
+    participant Engine as Trellis Engine
+
+    User->>Builder: New()
+    User->>Builder: Add("start").Text("...").Go("next")
+    User->>Builder: Add("next").Do("tool", args)
+    User->>Builder: Build()
+    Builder->>Loader: NewFromNodes(nodes)
+    User->>Engine: New(WithLoader(loader))
+    User->>Engine: Run()
 ```
