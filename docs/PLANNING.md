@@ -302,14 +302,16 @@ Foco: Atualizações parciais de estado para frontends reativos.
     - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo.
     - [x] **SSE Tests Data Race**: Corrigir condição de corrida detectada pelo `-race`.
 
-### 🏗️ v0.7.10: The "Signal" Patch
+### ✅ v0.7.10: The "Signal" Patch [COMPLETED]
 
-- [ ] **Signal Centralization**: Refatorar lógica de sinal para o `Runner` (hoje fragmentada).
-- [ ] **Default Handlers**: Implementar `on_signal_default` (restrito ao nó de entrada/root).
-- [ ] **Graceful Session Shutdown**: Garantir que o encerramento de uma sessão libere recursos (SSE, memória) sem afetar o servidor.
-- [ ] **Termination Logic Fix**: Corrigir bug onde o engine precisa de uma interação extra para detectar fim de fluxo.
-- [ ] **Chat UI Prototype**: Evoluir o `reactivity-demo` para uma interface de chat moderna.
-- [ ] **Warnings**: Sistema de logs avisando sobre configurações ignoradas em nós não-root.
+Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
+
+- [x] **Schema Centralization**: Unificação de `RenderResponse` e `RichResponse` no OpenAPI e adaptadores.
+- [x] **Signal Centralization**: Refatoração da lógica de sinal para o `Runner` (centralizado via `lifecycle`).
+- [x] **Default Handlers**: Implementar `on_signal_default` (restrito ao nó de entrada/root).
+- [x] **Graceful Session Shutdown**: Garantir que o encerramento de uma sessão libere recursos (SSE, memória).
+- [x] **Termination Logic Fix**: Corrigido bug onde o engine precisava de uma interação extra para detectar fim de fluxo.
+- [x] **Warnings**: Sistema de logs avisando sobre configurações ignoradas em nós não-root.
 
 ### 🏗️ v0.7.11: The "Context" Patch
 
@@ -320,6 +322,11 @@ Foco: Atualizações parciais de estado para frontends reativos.
 
 - [ ] **Entrypoint fallback**: Suportar `main.md` e `NomeDaPasta.md` além do `start.md`.
 - [ ] **ID Collisions**: Melhorar tratamento de colisão de IDs em sub-grafos.
+
+### 🏗️ v0.7.13: The "Chat UI" Patch
+
+- [ ] **Chat UI Polishing**: Evoluir o `reactivity-demo` para uma interface de chat moderna e dedicada.
+- [ ] **Reactivity Hardening**: Testes de estresse para atualizações em tempo real no frontend.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
