@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strings"
+	"time"
 
+	"github.com/aretw0/lifecycle"
+	"github.com/aretw0/lifecycle/pkg/core/worker"
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
@@ -70,51 +72,40 @@ func (r *Runner) Register(name string, command string, args ...string) {
 	}
 }
 
-// Execute satisfies the hypothetical ToolRunner interface (or is called by IOHandler).
-// For now, checks the toolCall.Name against the registry.
-func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.ToolResult, error) {
+// resolveProcess looks up the command in the registry or tries inline execution if allowed.
+func (r *Runner) resolveProcess(name string, metadata map[string]string) (RegisteredProcess, bool) {
 	// 1. Try Registry
-	proc, ok := r.registry[toolCall.Name]
-
-	// 2. Try Inline (Ad-Hoc) if allowed
-	if !ok {
-		if r.allowInline && toolCall.Metadata != nil {
-			// Check for x-exec vendor extension
-			// The Engine passes metadata as map[string]string, but x-exec usually needs structure.
-			// However, since Metadata is strings, users might pass x-exec-command, x-exec-args (comma separated)?
-			// Or we assume the generic `map[string]string` flatten strategy is sufficient for simple use cases.
-			// Let's look for `x-exec-command`.
-
-			// FIXME: In `node_syntax.md` we designed:
-			// x-exec:
-			//   command: python
-			//   args: ...
-			//
-			// But `ToolCall.Metadata` in `pkg/domain` is `map[string]string`.
-			// The Loader/Parser flattens YAML? Or we need to update Domain?
-			// Checking `pkg/domain/node.go`, ToolCall metadata is `map[string]string`.
-			// So intricate objects in YAML might be lost or flattened.
-			// For v0.7, we support `x-exec-command` and `x-exec-args` (space separated or just command line?)
-
-			// Alternative: Support JSON string in `x-exec`.
-
-			if cmd, exists := toolCall.Metadata["x-exec-command"]; exists {
-				// Inline Found
-				argsStr := toolCall.Metadata["x-exec-args"]
-				var args []string
-				if argsStr != "" {
-					args = strings.Fields(argsStr) // Basic splitting
-				}
-
-				proc = RegisteredProcess{
-					Command: cmd,
-					Args:    args,
-				}
-				ok = true
-			}
-		}
+	proc, ok := r.registry[name]
+	if ok {
+		return proc, true
 	}
 
+	// 2. Try Inline (Ad-Hoc) if allowed
+	if !r.allowInline || metadata == nil {
+		return RegisteredProcess{}, false
+	}
+
+	// Support x-exec-command and x-exec-args (set by Loam parser)
+	cmd, exists := metadata["x-exec-command"]
+	if !exists {
+		return RegisteredProcess{}, false
+	}
+
+	argsStr := metadata["x-exec-args"]
+	var args []string
+	if argsStr != "" {
+		args = strings.Fields(argsStr)
+	}
+
+	return RegisteredProcess{
+		Command: cmd,
+		Args:    args,
+	}, true
+}
+
+// Execute triggers the execution of a registered or inline process tool.
+func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.ToolResult, error) {
+	proc, ok := r.resolveProcess(toolCall.Name, toolCall.Metadata)
 	if !ok {
 		// Not found in this adapter.
 		return domain.ToolResult{
@@ -124,83 +115,78 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 		}, nil
 	}
 
-	// Prepare Command
-	// Security: We do NOT pass toolCall.Args as direct command flags blindly.
-	// Implementation Decision: Pass args as Environment Variables.
-	// This prevents flag injection attacks (e.g. passing "; rm -rf /").
-
-	cmd := exec.CommandContext(ctx, proc.Command, proc.Args...)
-	cmd.Dir = r.baseDir
-
 	// Prepare Environment
-	env := []string{}
-	// Copy useful fields from toolCall.Args to Key=Value strings
-	for k, v := range toolCall.Args {
-		// Basic sanitization: keys must be alphanumeric
-		// Values serialization strategy:
-		// - Primitives (string, number, bool): fmt.Sprintf (Simple)
-		// - Complex (Map, Slice): json.Marshal (Structured)
-		var val string
-
-		switch v.(type) {
-		case string, int, int64, float64, bool:
-			val = fmt.Sprintf("%v", v)
-		case nil:
-			val = ""
-		default:
-			// Complex types: Try JSON
-			if inJson, err := json.Marshal(v); err == nil {
-				val = string(inJson)
-			} else {
-				// Fallback to Go format if marshal fails
-				val = fmt.Sprintf("%v", v)
-			}
-		}
-
-		env = append(env, fmt.Sprintf("TRELLIS_ARG_%s=%s", strings.ToUpper(k), val))
+	argsJSON, err := json.Marshal(toolCall.Args)
+	if err != nil {
+		return domain.ToolResult{
+			ID:      toolCall.ID,
+			IsError: true,
+			Error:   fmt.Sprintf("failed to marshal tool arguments: %v", err),
+		}, nil
 	}
-	cmd.Env = append(cmd.Environ(), env...)
+
+	// Use lifecycle ProcessWorker for graceful shutdown
+	w := lifecycle.NewProcessWorker(toolCall.ID, proc.Command, proc.Args...)
+	w.SetEnv("TRELLIS_ARGS", string(argsJSON))
 
 	// Capture Output
 	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	w.SetOutput(&stdout, &stderr)
 
-	// Run
-	err := cmd.Run()
+	execErr := r.runWorker(ctx, w)
 
 	result := domain.ToolResult{
 		ID: toolCall.ID,
 	}
 
-	if err != nil {
+	if execErr != nil {
 		result.IsError = true
 		// Combine error message with stderr for context
-		result.Error = fmt.Sprintf("execution failed: %v. Stderr: %s", err, stderr.String())
-
-		// If it was an ExitError, we might want to include the exit code?
-		// keeping it simple for now.
+		result.Error = fmt.Sprintf("execution failed: %v. Stderr: %s", execErr, stderr.String())
 		return result, nil
 	}
 
-	// Success
-	// We return stdout as the result.
-	// The Host/Engine will handle parsing if it's JSON (via SaveTo logic).
-	output := stdout.String()
+	result.Result = r.parseResult(stdout.String())
+	return result, nil
+}
+
+// runWorker starts the worker and waits for completion or context cancellation.
+func (r *Runner) runWorker(ctx context.Context, w *worker.ProcessWorker) error {
+	if err := w.Start(ctx); err != nil {
+		return err
+	}
+
+	done := w.Wait()
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		// Timeout or Interrupt -> Trigger Graceful Shutdown
+		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := w.Stop(stopCtx); err != nil {
+			return fmt.Errorf("stopped with error: %w (original context: %v)", err, ctx.Err())
+		}
+		return ctx.Err()
+	}
+}
+
+// parseResult attempts to parse the tool output as JSON, falling back to a trimmed string.
+func (r *Runner) parseResult(output string) any {
 	trimmed := strings.TrimSpace(output)
+	if trimmed == "" {
+		return ""
+	}
 
 	// Try to parse as JSON (Auto-Detection)
 	if (strings.HasPrefix(trimmed, "{") && strings.HasSuffix(trimmed, "}")) ||
 		(strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]")) {
 		var jsonResult any
-		if jsonErr := json.Unmarshal([]byte(trimmed), &jsonResult); jsonErr == nil {
-			result.Result = jsonResult
-			return result, nil
+		if err := json.Unmarshal([]byte(trimmed), &jsonResult); err == nil {
+			return jsonResult
 		}
 	}
 
-	// Fallback to string
-	result.Result = trimmed
-
-	return result, nil
+	return trimmed
 }

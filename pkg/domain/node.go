@@ -64,6 +64,9 @@ type Node struct {
 	// OnSignal defines transitions triggered by global signals (e.g., "interrupt").
 	OnSignal map[string]string `json:"on_signal,omitempty" yaml:"on_signal,omitempty"`
 
+	// OnSignalDefault defines global signal handlers (usually defined only on the root/entry node).
+	OnSignalDefault map[string]string `json:"on_signal_default,omitempty" yaml:"on_signal_default,omitempty"`
+
 	// Input Configuration (Optional)
 	InputType    string   `json:"input_type,omitempty" yaml:"input_type,omitempty"`
 	InputOptions []string `json:"input_options,omitempty" yaml:"input_options,omitempty"`

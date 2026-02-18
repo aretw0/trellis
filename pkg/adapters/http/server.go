@@ -12,6 +12,7 @@ import (
 
 	"github.com/aretw0/trellis"
 	"github.com/aretw0/trellis/pkg/domain"
+	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
 	"github.com/go-chi/chi/v5"
 )
@@ -20,10 +21,7 @@ import (
 
 // Engine defines the interface for the Trellis state machine core.
 type Engine interface {
-	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
-	Navigate(ctx context.Context, state *domain.State, input any) (*domain.State, error)
-	Signal(ctx context.Context, state *domain.State, signal string) (*domain.State, error)
-	Inspect() ([]domain.Node, error)
+	ports.StatelessEngine
 	Watch(ctx context.Context) (<-chan string, error)
 }
 
@@ -120,6 +118,7 @@ func (s *Server) Render(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := RenderResponse{
+		State:    ptr(mapStateFromDomain(domainState)),
 		Actions:  ptr(mapActionsFromDomain(actions)),
 		Terminal: &terminal,
 	}
@@ -162,12 +161,17 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 		input = clean
 	}
 
-	newState, err := s.Engine.Navigate(r.Context(), &domainState, input)
+	rich, err := runner.NavigateAndRender(r.Context(), s.Engine, &domainState, input)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Navigate error: %v", err), http.StatusInternalServerError)
-		slog.Error("Navigate failed", "error", err)
-		return
+		if rich == nil {
+			http.Error(w, fmt.Sprintf("Navigate error: %v", err), http.StatusInternalServerError)
+			slog.Error("Navigate failed", "error", err)
+			return
+		}
+		slog.Error("Navigate: Render failed", "error", err)
 	}
+
+	newState := rich.State
 
 	// Calculate and Broadcast Diff
 	diff := domain.Diff(&domainState, newState)
@@ -180,7 +184,12 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 		slog.Debug("Navigate: No diff calculated", "session_id", domainState.SessionID)
 	}
 
-	resp := mapStateFromDomain(*newState)
+	resp := RenderResponse{
+		State:    ptr(mapStateFromDomain(*newState)),
+		Actions:  ptr(mapActionsFromDomain(rich.Actions)),
+		Terminal: &rich.Terminal,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		slog.Error("Navigate response encode failed", "error", err)
@@ -198,16 +207,21 @@ func (s *Server) Signal(w http.ResponseWriter, r *http.Request) {
 
 	domainState := mapStateToDomain(body.State)
 
-	newState, err := s.Engine.Signal(r.Context(), &domainState, body.Signal)
+	rich, err := runner.SignalAndRender(r.Context(), s.Engine, &domainState, body.Signal)
 	if err != nil {
-		if err == domain.ErrUnhandledSignal {
-			http.Error(w, fmt.Sprintf("Signal unhandled: %v", err), http.StatusNotFound)
+		if rich == nil {
+			if err == domain.ErrUnhandledSignal {
+				http.Error(w, fmt.Sprintf("Signal unhandled: %v", err), http.StatusNotFound)
+				return
+			}
+			http.Error(w, fmt.Sprintf("Signal error: %v", err), http.StatusInternalServerError)
+			slog.Error("Signal failed", "error", err)
 			return
 		}
-		http.Error(w, fmt.Sprintf("Signal error: %v", err), http.StatusInternalServerError)
-		slog.Error("Signal failed", "error", err)
-		return
+		slog.Error("Signal: Render failed", "error", err)
 	}
+
+	newState := rich.State
 
 	// Calculate and Broadcast Diff
 	diff := domain.Diff(&domainState, newState)
@@ -220,7 +234,12 @@ func (s *Server) Signal(w http.ResponseWriter, r *http.Request) {
 		slog.Debug("Signal: No diff calculated", "session_id", domainState.SessionID)
 	}
 
-	resp := mapStateFromDomain(*newState)
+	resp := RenderResponse{
+		State:    ptr(mapStateFromDomain(*newState)),
+		Actions:  ptr(mapActionsFromDomain(rich.Actions)),
+		Terminal: &rich.Terminal,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		slog.Error("Signal response encode failed", "error", err)

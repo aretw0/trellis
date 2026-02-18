@@ -20,7 +20,7 @@ import (
 	"github.com/aretw0/trellis/pkg/session"
 )
 
-type SignalContext = lifecycle.Context
+type SignalContext = lifecycle.SignalContext
 
 // createLogger configures the application logger and sets it as the default.
 func createLogger(debug bool) *slog.Logger {

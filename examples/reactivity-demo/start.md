@@ -1,13 +1,13 @@
 ---
-type: input
-transitions:
-  - to: finish
-    condition: input == 'next'
-on_signal:
-  interrupt: finish
+id: start
+wait: true
+to: menu
+on_signal_default:
+  quit: "finish"
+  interrupt: "catch-interrupt"
 ---
+# Session Initialized
 
-# Welcome to Reactivity Demo
+Trellis Engine is ready.
 
-This is the start node.
-Enter 'next' to proceed.
+Press **Enter** to start the flow...

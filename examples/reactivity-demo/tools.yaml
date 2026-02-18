@@ -1,0 +1,15 @@
+tools:
+  - name: get_weather
+    command: powershell
+    args:
+      - "-Command"
+      - '$args = $env:TRELLIS_ARGS | ConvertFrom-Json; $city = $args.city; Write-Output (''{"temp": 22, "condition": "Sunny", "city": "'' + $city + ''"}'')'
+    description: "Mock weather tool for demo"
+  - name: increment
+    command: powershell
+    args:
+      [
+        "-Command",
+        "$args = $env:TRELLIS_ARGS | ConvertFrom-Json; $n = [int]$args.count + 1; Write-Output $n",
+      ]
+    description: "Increment a number"

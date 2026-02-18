@@ -314,12 +314,24 @@ func (e *Engine) Signal(ctx context.Context, currentState *domain.State, signalN
 		return nil, fmt.Errorf("failed to parse node %s: %w", currentState.CurrentNodeID, err)
 	}
 
-	e.emitNodeLeave(ctx, node)
-
 	targetNodeID, ok := node.OnSignal[signalName]
+	if !ok {
+		// FALLBACK: Check OnSignalDefault on the entry node (usually "start")
+		// This provides a centralized way to handle signals like "quit" or "cancel"
+		entryRaw, err := e.loader.GetNode(e.entryNodeID)
+		if err == nil {
+			entryNode, err := e.parser.Parse(entryRaw)
+			if err == nil && entryNode.OnSignalDefault != nil {
+				targetNodeID, ok = entryNode.OnSignalDefault[signalName]
+			}
+		}
+	}
+
 	if !ok {
 		return nil, domain.ErrUnhandledSignal
 	}
+
+	e.emitNodeLeave(ctx, node)
 
 	// Initialize next state with clean context copy
 	nextState := e.cloneState(currentState)
@@ -358,6 +370,9 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 
 	// 1. Update Context (SaveTo)
 	nextState, err := e.applyInput(currentState, node, effectiveInput)
+	if err == nil && node.SaveTo != "" {
+		e.logger.Debug("Context Updated", "key", node.SaveTo, "val", effectiveInput)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -390,12 +405,14 @@ func (e *Engine) navigateInternal(ctx context.Context, currentState *domain.Stat
 
 // transitionTo handles the mechanics of moving the state to a new node ID.
 func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*domain.State, error) {
-	// Update State to new Node
+	// 1. Transition State
 	nextState.CurrentNodeID = nextNodeID
 	nextState.History = append(nextState.History, nextNodeID)
-	nextState.Status = domain.StatusActive // Default active
+	nextState.Status = domain.StatusActive
 
-	// Check Next Node Type to set Status eagerly
+	e.logger.Debug("Transitioning", "to", nextNodeID, "context_count", len(nextState.Context))
+
+	// 2. Load and Prepare Next Node
 	nextRaw, err := e.loader.GetNode(nextNodeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load next node %s: %w", nextNodeID, err)
@@ -405,12 +422,22 @@ func (e *Engine) transitionTo(nextState *domain.State, nextNodeID string) (*doma
 		return nil, fmt.Errorf("failed to parse next node %s: %w", nextNodeID, err)
 	}
 
+	// 3. Apply Node-Level Defaults (if context key is missing)
+	if nextNode.DefaultContext != nil {
+		for k, v := range nextNode.DefaultContext {
+			if _, exists := nextState.Context[k]; !exists {
+				nextState.Context[k] = v
+			}
+		}
+	}
+
+	// 4. Set Status based on node behavior
 	if nextNode.Do != nil {
 		nextState.Status = domain.StatusWaitingForTool
 		nextState.PendingToolCall = nextNode.Do.ID
 	}
 
-	// Emit Enter Event
+	// 5. Emit Enter Event
 	e.emitNodeEnter(context.Background(), nextNode, nextNodeID)
 
 	return nextState, nil

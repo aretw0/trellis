@@ -10,34 +10,18 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOTOOL=$(GOCMD) tool
 GOINSTALL=$(GOCMD) install
-BINARY_NAME=loam
-BINARY_UNIX=$(BINARY_NAME)
+BINARY_NAME=trellis
 
 # --- OS Detection & Command Abstraction ---
 ifeq ($(OS),Windows_NT)
 BINARY := $(BINARY_NAME).exe
-RM := del /F /Q
-# Windows needs backslashes for 'go work edit -dropuse' to match go.work content
-DROP_WORK = if exist go.work ( $(GOWORK) edit -dropuse $(subst /,\,$(1)) )
-INIT_WORK = if not exist go.work ( echo "Initializing go.work..." & $(GOWORK) init . )
-else
-BINARY := $(BINARY_UNIX)
-RM := rm -f
-# Linux/macOS uses forward slashes
-DROP_WORK = [ -f go.work ] && $(GOWORK) edit -dropuse $(1)
-INIT_WORK = [ -f go.work ] || ( echo "Initializing go.work..." && $(GOWORK) init . )
-endif
-
-# --- OS Detection & Command Abstraction ---
-ifeq ($(OS),Windows_NT)
-BINARY := trellis.exe
 RM := del /F /Q
 CURL := curl.exe
 # Windows needs backslashes for 'go work edit -dropuse' to match go.work content
 DROP_WORK = if exist go.work ( $(GOWORK) edit -dropuse $(subst /,\,$(1)) )
 INIT_WORK = if not exist go.work ( echo "Initializing go.work..." & $(GOWORK) init . )
 else
-BINARY := trellis
+BINARY := $(BINARY_NAME)
 RM := rm -f
 CURL := curl
 # Linux/macOS uses forward slashes

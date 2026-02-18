@@ -302,7 +302,7 @@ Foco: Atualizações parciais de estado para frontends reativos.
     - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo.
     - [x] **SSE Tests Data Race**: Corrigir condição de corrida detectada pelo `-race`.
 
-### ✅ v0.7.10: The "Signal" Patch [COMPLETED]
+### v0.7.10: The "Signal" Patch [COMPLETED]
 
 Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 

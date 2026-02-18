@@ -423,9 +423,9 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 
 * **CLI Runner**: Executa scripts locais (`.sh`, `.py`) ou funções Go embutidas.
 * **Process Adapter (v0.7)**: Executor seguro para scripts e binários definidos em `tools.yaml` ou inline (`x-exec`).
-  * *Contract*: Input via `TRELLIS_ARG_*` (Env Vars), Output via Stdout.
-  * *JSON Auto-Detection*: O runner detecta automaticamente se o Stdout é um JSON válido (inicia com `{` ou `[` e termina com `}` ou `]`) e o converte para objeto estruturado.
-  * *Caveat*: Se o JSON for inválido, ele faz fallback silencioso para string crua.
+  * *Contract*: Passagem de argumentos via `TRELLIS_ARGS` (JSON unificado).
+  * *JSON Auto-Detection*: O runner detecta automaticamente se o Stdout é um JSON válido e o converte para objeto estruturado.
+  * *Graceful Shutdown*: (v0.7.10+) Implementa desligamento suave via SIGTERM com período de carência.
   * *Security*: Argumentos nunca são passados como flags de CLI para evitar injeção.
 * **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 * **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
@@ -1356,7 +1356,7 @@ O adaptador segue uma política de "Allow-Listing" rigorosa. Scripts não podem 
 
 1. **Registry**: Mapeia `tool_name` -> `command` + `default_args`.
 2. **No Shell**: Usa `exec.Command` diretamente, evitando `sh -c` para mitigar injeção de comandos.
-3. **Input Mapping**: Argumentos complexos devem ser passados via Variáveis de Ambiente (`TRELLIS_ARG_KEY=VAL`) ou Stdin (JSON), evitando injeção de flags na linha de comando.
+3. **Input Mapping**: Todos os argumentos são injetados exclusivamente como um objeto JSON na variável de ambiente `TRELLIS_ARGS`.
 
 ```mermaid
 sequenceDiagram
@@ -1367,7 +1367,7 @@ sequenceDiagram
 
     State->>Adapter: Execute(ToolCall{name="deploy", args={env="prod"}})
     Adapter->>Adapter: Lookup "deploy" in Registry
-    Adapter->>OS: exec("python3 deployment.py", ENV: TRELLIS_ARG_ENV="prod")
+    Adapter->>OS: exec("python3 deployment.py", ENV: TRELLIS_ARGS="{...}")
     OS->>Script: Run Process
     Script-->>OS: Stdout: "Deployment ID: 123"
     OS-->>Adapter: Return Stdout

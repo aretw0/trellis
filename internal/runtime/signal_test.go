@@ -78,4 +78,27 @@ func TestEngine_Signal(t *testing.T) {
 		_, err := engine.Signal(context.Background(), state, domain.SignalInterrupt)
 		assert.ErrorIs(t, err, domain.ErrUnhandledSignal)
 	})
+
+	t.Run("Resorts To OnSignalDefault from Root Node", func(t *testing.T) {
+		// Define flow with default signal on start
+		startNode := domain.Node{
+			ID: "start",
+			OnSignalDefault: map[string]string{
+				"quit": "exit",
+			},
+		}
+		nextNode := domain.Node{ID: "next"}
+		exitNode := domain.Node{ID: "exit"}
+
+		loader, _ := memory.NewFromNodes(startNode, nextNode, exitNode)
+		engine := runtime.NewEngine(loader, nil, nil)
+
+		// Move to 'next'
+		state := domain.NewState("signal-test", "next")
+
+		// Send 'quit' signal (which is only on start)
+		nextState, err := engine.Signal(context.Background(), state, "quit")
+		assert.NoError(t, err)
+		assert.Equal(t, "exit", nextState.CurrentNodeID)
+	})
 }

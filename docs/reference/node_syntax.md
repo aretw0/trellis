@@ -74,7 +74,11 @@ on_error: error_handler_node  # Transition if Tool fails
 # Signal Handlers
 on_timeout: timeout_node      # Syntactic Sugar for on_signal["timeout"]
 on_signal:
-  interrupt: exit_node        # Handle specific signals
+  interrupt: exit_node        # Handle specific signals from THIS node
+
+on_signal_default:
+  interrupt: global_exit      # RECOMMENDED: Define on Root Node to handle signals across the entire flow.
+  quit: cleanup_node
 
 timeout: "30s"            # Max time to wait for input
 ```
@@ -180,6 +184,91 @@ do:
     args: ["scripts/calc.py"]
 ```
 
+### 4.5. Tool Arguments via `TRELLIS_ARGS` (v0.7.10+)
+
+All tool arguments are passed as a single JSON object via the `TRELLIS_ARGS` environment variable. This provides a unified, language-agnostic interface for tool execution.
+
+**Example Flow Node:**
+
+```yaml
+do:
+  name: greet_user
+  args:
+    name: "{{ user_name }}"
+    greeting: "Hello"
+    config:
+      debug: true
+```
+
+**Tool Implementation (PowerShell):**
+
+```powershell
+$TrellisArgs = $env:TRELLIS_ARGS | ConvertFrom-Json
+$Name = $TrellisArgs.name
+Write-Output "Hello, $Name!"
+```
+
+### 4.6. Global Signal Handlers (`on_signal_default`)
+
+Define global signal handlers on your entry node (typically `start.md`) to handle signals like `quit` or `interrupt` from anywhere in the flow.
+
+**Example (start.md):**
+
+```yaml
+---
+id: start
+wait: true
+to: menu
+on_signal_default:
+  quit: "finish"
+  interrupt: "catch-interrupt"
+---
+# Welcome
+
+Press Enter to begin...
+```
+
+**How It Works:**
+
+1. User triggers a signal (e.g., types `/quit` or presses `Ctrl+C`)
+2. Engine checks if the current node has an `on_signal` handler for that signal
+3. If not found, engine falls back to `on_signal_default` on the entry node
+4. If found in `on_signal_default`, transitions to the specified node
+5. If not found anywhere, returns `ErrUnhandledSignal`
+
+**Use Cases:**
+
+- **Graceful Exit**: Always allow `/quit` to go to a cleanup node
+- **Interrupt Handling**: Catch `Ctrl+C` to save state before exiting  
+- **Timeout Fallback**: Global timeout handler for all idle states
+
+**Best Practice:** Define `on_signal_default` on your root node (`start`) to provide consistent signal handling across your entire flow.
+
+### 4.7. "Good Citizen" Scripts (Graceful Shutdown)
+
+Trellis v0.7.10+ uses a tiered shutdown strategy (SIGTERM -> Grace Period -> SIGKILL). For tools to benefit from this, they should be "Good Citizens":
+
+1. **Handle Signals**: Listen for `SIGTERM` (and `SIGINT` for local dev).
+2. **Cleanup**: On signal, flush buffers, save state, and exit promptly.
+3. **Result Delivery**: Always write the final result (JSON or text) to `stdout`.
+
+**Example (Python):**
+
+```python
+import signal
+import sys
+import json
+
+def handle_shutdown(signum, frame):
+    # Perform cleanup here
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, handle_shutdown)
+
+# ... perform tool logic ...
+print(json.dumps({"status": "success"}))
+```
+
 ## 5. Property Dictionary
 
 | Property | Type | Description |
@@ -198,6 +287,7 @@ do:
 | `on_timeout` | `string` | Syntactic sugar for `on_signal["timeout"]`. |
 | `on_interrupt` | `string` | Syntactic sugar for `on_signal["interrupt"]`. |
 | `on_signal` | `map[string]string` | Handlers for global signals (`interrupt`, `timeout`). |
+| `on_signal_default` | `map[string]string` | Global signal handlers (valid only on Root/Entry node). |
 | `tools` | `[]Tool` | Definitions of tools available to this node (for LLMs). |
 | `undo` | `ToolCall` | SAGA compensation action if flow rolls back. |
 | `required_context` | `[]string` | Keys that MUST exist in context or flow errors. |
@@ -233,7 +323,7 @@ When using `input_type: confirm`, Trellis follows the standard CLI convention:
 
 ```yaml
 input_type: confirm
-input_default: "no" # Overrides convention to make Enter = False
+input_default: "yes" # Overrides convention to make Enter = True
 on_denied: stop_flow
 to: continue_flow
 ```

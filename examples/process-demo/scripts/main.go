@@ -7,13 +7,23 @@ import (
 )
 
 func main() {
-	// This script simulates a tool that reads environment variables
+	// This script simulates a tool that reads TRELLIS_ARGS
 	// and outputs JSON.
 
-	// Expect TRELLIS_ARG_NAME
-	name := os.Getenv("TRELLIS_ARG_NAME")
-	if name == "" {
-		name = "World"
+	// 2026-02-17: Tool Argument Evolution - use TRELLIS_ARGS
+	rawArgs := os.Getenv("TRELLIS_ARGS")
+	if rawArgs == "" {
+		rawArgs = "{}"
+	}
+
+	var args map[string]interface{}
+	if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
+		args = make(map[string]interface{})
+	}
+
+	name := "World"
+	if n, ok := args["name"].(string); ok && n != "" {
+		name = n
 	}
 
 	// Output formatted JSON

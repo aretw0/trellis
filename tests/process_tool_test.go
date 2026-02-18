@@ -171,7 +171,7 @@ import (
 )
 func main() {
 	// Print the env var raw
-	fmt.Print(os.Getenv("TRELLIS_ARG_DATA"))
+	fmt.Print(os.Getenv("TRELLIS_ARGS"))
 }`
 	err := os.WriteFile(scriptPath, []byte(scriptContent), 0644)
 	require.NoError(t, err)
@@ -194,7 +194,8 @@ func main() {
 	// So the runner should parse it back to a map.
 
 	assert.IsType(t, map[string]any{}, result.Result, "Expected result to be parsed JSON object")
-	resMap := result.Result.(map[string]any)
+	fullRes := result.Result.(map[string]any)
+	resMap := fullRes["data"].(map[string]any)
 
 	assert.Equal(t, "bar", resMap["foo"])
 	// JSON numbers are float64 by default in unmarshal

@@ -1,3 +1,6 @@
-# Finished
+---
+id: finish
+---
+# Session Terminated
 
-You have reached the end.
+The Trellis session has ended. You can no longer send messages.

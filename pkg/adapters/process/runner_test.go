@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"encoding/json"
 	"runtime"
 	"testing"
 
@@ -54,10 +55,10 @@ func TestRunner_Execute(t *testing.T) {
 
 		if runtime.GOOS == "windows" {
 			testCmd = "cmd"
-			testArgs = []string{"/c", "echo %TRELLIS_ARG_MSG%"}
+			testArgs = []string{"/c", "echo %TRELLIS_ARGS%"}
 		} else {
 			testCmd = "sh"
-			testArgs = []string{"-c", "echo $TRELLIS_ARG_MSG"}
+			testArgs = []string{"-c", "echo $TRELLIS_ARGS"}
 		}
 
 		runner.Register("echo_env", testCmd, testArgs...)
@@ -72,7 +73,17 @@ func TestRunner_Execute(t *testing.T) {
 
 		result, err := runner.Execute(context.Background(), toolCall)
 		assert.NoError(t, err)
-		assert.False(t, result.IsError)
-		assert.Contains(t, result.Result.(string), "SecretMessage")
+		assert.False(t, result.IsError, "Tool result should not be an error: %v", result.Error)
+		assert.NotNil(t, result.Result, "Result should not be nil")
+
+		var output string
+		switch v := result.Result.(type) {
+		case string:
+			output = v
+		default:
+			outputBytes, _ := json.Marshal(v)
+			output = string(outputBytes)
+		}
+		assert.Contains(t, output, "\"msg\":\"SecretMessage\"")
 	})
 }

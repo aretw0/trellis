@@ -1,7 +1,9 @@
-// 1. Input: Read from Environment Variables
-// Trellis capitalizes argument names: 'name' -> 'TRELLIS_ARG_NAME'
-const name = process.env.TRELLIS_ARG_NAME || "Guest";
-const greeting = process.env.TRELLIS_ARG_GREETING || "Hi";
+// 1. Input: Read from TRELLIS_ARGS (2026-02-17: Tool Argument Evolution)
+// Trellis passes all arguments as a JSON object in TRELLIS_ARGS
+const rawArgs = process.env.TRELLIS_ARGS || "{}";
+const args = JSON.parse(rawArgs);
+const name = args.name || "Guest";
+const greeting = args.greeting || "Hi";
 
 try {
   // 2. Logic

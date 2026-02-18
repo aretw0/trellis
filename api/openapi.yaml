@@ -125,7 +125,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/State"
+                $ref: "#/components/schemas/RenderResponse"
         "400":
           description: Invalid input
         "500":
@@ -156,7 +156,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/State"
+                $ref: "#/components/schemas/RenderResponse"
         "400":
           description: Invalid input
         "404":
@@ -188,6 +188,11 @@ components:
         terminated:
           type: boolean
           description: Indicates if the execution has reached a sink state.
+        actions:
+          type: array
+          description: List of actions to be performed (e.g., render content).
+          items:
+            $ref: "#/components/schemas/ActionRequest"
 
     NavigateRequest:
       type: object
@@ -221,6 +226,8 @@ components:
     RenderResponse:
       type: object
       properties:
+        state:
+          $ref: "#/components/schemas/State"
         actions:
           type: array
           items:

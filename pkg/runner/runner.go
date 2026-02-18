@@ -62,14 +62,14 @@ func (r *Runner) State() *domain.State {
 // Watch returns a channel of state changes for the introspection system.
 func (r *Runner) Watch(ctx context.Context) <-chan introspection.StateChange[*domain.State] {
 	ch := make(chan introspection.StateChange[*domain.State], 10)
-	
+
 	r.stateMu.Lock()
 	r.watchers = append(r.watchers, ch)
 	r.stateMu.Unlock()
-	
+
 	go func() {
 		<-ctx.Done()
-		
+
 		// Safe removal using copy-and-swap to avoid race conditions
 		r.stateMu.Lock()
 		newWatchers := make([]chan introspection.StateChange[*domain.State], 0, len(r.watchers)-1)
@@ -80,7 +80,7 @@ func (r *Runner) Watch(ctx context.Context) <-chan introspection.StateChange[*do
 		}
 		r.watchers = newWatchers
 		r.stateMu.Unlock()
-		
+
 		close(ch)
 	}()
 	return ch
@@ -90,17 +90,17 @@ func (r *Runner) broadcastState(newState *domain.State) {
 	if newState == nil {
 		return
 	}
-	
+
 	// Snapshot for isolation
 	snapshot := newState.Snapshot()
 	timestamp := time.Now()
-	
+
 	r.stateMu.Lock()
 	defer r.stateMu.Unlock()
-	
+
 	oldState := r.lastState
 	r.lastState = snapshot
-	
+
 	change := introspection.StateChange[*domain.State]{
 		ComponentID:   r.SessionID,
 		ComponentType: "runner",
@@ -108,7 +108,7 @@ func (r *Runner) broadcastState(newState *domain.State) {
 		NewState:      snapshot,
 		Timestamp:     timestamp,
 	}
-	
+
 	droppedCount := 0
 	for _, ch := range r.watchers {
 		select {
@@ -118,7 +118,7 @@ func (r *Runner) broadcastState(newState *domain.State) {
 			droppedCount++
 		}
 	}
-	
+
 	// Log dropped events for observability (only if drops occurred)
 	if droppedCount > 0 {
 		// Use a non-blocking log to avoid recursion if logger is also being watched
@@ -179,7 +179,7 @@ func (r *Runner) Run(ctx context.Context) error {
 		r.broadcastState(state)
 
 		// A. Render
-		actions, _, err := engine.Render(ctx, state)
+		actions, isTerminal, err := engine.Render(ctx, state)
 		if err != nil {
 			r.finalState = state
 			return fmt.Errorf("render error: %w", err)
@@ -188,10 +188,10 @@ func (r *Runner) Run(ctx context.Context) error {
 		// B. Output
 		stepTimeout := r.detectTimeout(actions)
 		inputCtx, inputCancel := r.createInputContext(ctx, stepTimeout)
-		defer inputCancel()
 
 		needsInput, err := handler.Output(ctx, actions)
 		if err != nil {
+			inputCancel()
 			r.finalState = state
 			return fmt.Errorf("output error: %w", err)
 		}
@@ -214,6 +214,8 @@ func (r *Runner) Run(ctx context.Context) error {
 		} else {
 			nextInput, nextState, err = r.handleInput(inputCtx, handler, needsInput, engine, state)
 		}
+
+		inputCancel() // Clean up input context for this step
 
 		if err != nil {
 			if err == io.EOF {
@@ -256,17 +258,26 @@ func (r *Runner) Run(ctx context.Context) error {
 			break
 		}
 
-		if nextState.Terminated || nextState.Status == domain.StatusTerminated {
+		if nextState.Terminated || nextState.Status == domain.StatusTerminated || (isTerminal && !needsInput && nextState.CurrentNodeID == state.CurrentNodeID) {
 			state = nextState
+			if isTerminal && !state.Terminated {
+				state.Terminated = true
+				state.Status = domain.StatusTerminated
+			}
 			break
 		}
 		state = nextState
 	}
-	// Final cleanup if needed (e.g. remove session if complete? Optional logic)
+
+	// Final update and broadcast for reactivity (so frontend knows we are done)
+	if state != nil {
+		r.stateMu.Lock()
+		r.lastState = state.Snapshot()
+		r.stateMu.Unlock()
+		r.broadcastState(state)
+	}
+
 	r.finalState = state
-	r.stateMu.Lock()
-	r.lastState = state.Snapshot()
-	r.stateMu.Unlock()
 	return nil
 }
 

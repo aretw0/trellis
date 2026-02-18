@@ -3,18 +3,17 @@ import json
 import sys
 
 def main():
-    # 1. Input: Read from Environment Variables
-    # Trellis passes arguments prefixed with TRELLIS_ARG_
-    name = os.getenv("TRELLIS_ARG_NAME", "Guest")
-    greeting = os.getenv("TRELLIS_ARG_GREETING", "Hello")
-
-    # [Demo] Handling Complex Arguments (JSON)
-    # If the flow passes a map/object, Trellis serializes it as a JSON string.
-    raw_config = os.getenv("TRELLIS_ARG_CONFIG", "{}")
+    # 1. Input: Read from TRELLIS_ARGS (2026-02-17: Tool Argument Evolution)
+    # Trellis passes all arguments as a JSON object in TRELLIS_ARGS
+    raw_args = os.getenv("TRELLIS_ARGS", "{}")
     try:
-        config = json.loads(raw_config)
+        args = json.loads(raw_args)
     except json.JSONDecodeError:
-        config = {"error": "Invalid JSON in CONFIG", "raw": raw_config}
+        args = {}
+
+    name = args.get("name", "Guest")
+    greeting = args.get("greeting", "Hello")
+    config = args.get("config", {})
 
     # 2. Logic: Perform some operation
     message = f"{greeting}, {name}! [Python]"

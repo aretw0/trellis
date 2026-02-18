@@ -18,11 +18,16 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+// RenderResponse aligns with the OpenAPI schema and provides a unified structure across adapters.
+type RenderResponse struct {
+	State    *domain.State          `json:"state,omitempty" jsonschema_description:"The current state of the engine"`
+	Actions  []domain.ActionRequest `json:"actions" jsonschema_description:"List of available actions"`
+	Terminal bool                   `json:"terminal" jsonschema_description:"Indicates if this is a terminal state"`
+}
+
 // Engine defines the interface required by the MCP server to interact with Trellis.
 type Engine interface {
-	Render(ctx context.Context, state *domain.State) ([]domain.ActionRequest, bool, error)
-	Navigate(ctx context.Context, state *domain.State, input any) (*domain.State, error)
-	Inspect() ([]domain.Node, error)
+	ports.StatelessEngine
 }
 
 // Server wraps the Trellis Engine and exposes it as an MCP Server.
@@ -108,107 +113,37 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) registerTools() {
-	// TOOL: render
-	s.mcpServer.AddTool(mcp.NewTool("render_state",
+	// TOOL: render_state
+	renderTool := mcp.NewTool("render_state",
 		mcp.WithDescription("Render the view for a given valid state. If state is omitted, renders the start node."),
 		mcp.WithString("node_id", mcp.Description("The ID of the node to render (optional if state is provided)")),
 		mcp.WithString("history", mcp.Description("JSON array of node IDs visited (optional)")),
-		mcp.WithString("history", mcp.Description("JSON array of node IDs visited (optional)")),
 		mcp.WithString("context", mcp.Description("JSON object representing the current context (optional)")),
-	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-
-		state := &domain.State{
-			Context: make(map[string]interface{}),
-			History: []string{},
-		}
-
-		args, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
-			args = make(map[string]interface{})
-		}
-
-		nodeID, _ := args["node_id"].(string)
-
-		if histStr, ok := args["history"].(string); ok {
-			_ = json.Unmarshal([]byte(histStr), &state.History)
-		}
-
-		if ctxStr, ok := args["context"].(string); ok {
-			_ = json.Unmarshal([]byte(ctxStr), &state.Context)
-		} else if memStr, ok := args["memory"].(string); ok {
-			// Backwards compatibility for 'memory'
-			_ = json.Unmarshal([]byte(memStr), &state.Context)
-		}
-
-		if nodeID != "" {
-			state.CurrentNodeID = nodeID
-		} else if len(state.History) > 0 {
-			state.CurrentNodeID = state.History[len(state.History)-1]
-		} else {
-			state.CurrentNodeID = "start"
-		}
-
-		actions, terminal, err := s.engine.Render(ctx, state)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("render failed: %v", err)), nil
-		}
-
-		result := map[string]interface{}{
-			"actions":  actions,
-			"terminal": terminal,
-		}
-
-		jsonBytes, _ := json.Marshal(result)
-		return mcp.NewToolResultText(string(jsonBytes)), nil
-	})
+		mcp.WithOutputSchema[RenderResponse](),
+	)
+	s.mcpServer.AddTool(renderTool, mcp.NewStructuredToolHandler(s.handleRenderState))
 
 	// TOOL: navigate
-	s.mcpServer.AddTool(mcp.NewTool("navigate",
+	navigateTool := mcp.NewTool("navigate",
 		mcp.WithDescription("Navigate to the next state based on input."),
 		mcp.WithString("node_id", mcp.Required(), mcp.Description("Current node ID")),
 		mcp.WithString("input", mcp.Required(), mcp.Description("User input string")),
 		mcp.WithString("history", mcp.Description("JSON array of visit history")),
 		mcp.WithString("context", mcp.Description("JSON object of context")),
-	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		mcp.WithOutputSchema[RenderResponse](),
+	)
+	s.mcpServer.AddTool(navigateTool, mcp.NewStructuredToolHandler(s.handleNavigate))
 
-		args, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
-			return mcp.NewToolResultError("invalid arguments format"), nil
-		}
-
-		nodeID, _ := args["node_id"].(string)
-		input, _ := args["input"].(string)
-
-		state := &domain.State{
-			CurrentNodeID: nodeID,
-			Context:       make(map[string]interface{}),
-			History:       []string{},
-		}
-
-		if histStr, ok := args["history"].(string); ok {
-			_ = json.Unmarshal([]byte(histStr), &state.History)
-		}
-		if ctxStr, ok := args["context"].(string); ok {
-			_ = json.Unmarshal([]byte(ctxStr), &state.Context)
-		} else if memStr, ok := args["memory"].(string); ok {
-			_ = json.Unmarshal([]byte(memStr), &state.Context)
-		}
-
-		// Sanitize Input
-		clean, err := runner.SanitizeInput(input)
-		if err != nil {
-			slog.Warn("MCP Navigate: Input rejected", "error", err, "size", len(input))
-			return mcp.NewToolResultError(fmt.Sprintf("input rejected: %v", err)), nil
-		}
-
-		newState, err := s.engine.Navigate(ctx, state, clean)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("navigate failed: %v", err)), nil
-		}
-
-		jsonBytes, _ := json.Marshal(newState)
-		return mcp.NewToolResultText(string(jsonBytes)), nil
-	})
+	// TOOL: send_signal
+	signalTool := mcp.NewTool("send_signal",
+		mcp.WithDescription("Send a global signal (e.g., interrupt, cancel) to the state machine."),
+		mcp.WithString("signal", mcp.Required(), mcp.Description("Signal name")),
+		mcp.WithString("node_id", mcp.Required(), mcp.Description("Current node ID")),
+		mcp.WithString("history", mcp.Description("JSON array of visit history")),
+		mcp.WithString("context", mcp.Description("JSON object of context")),
+		mcp.WithOutputSchema[RenderResponse](),
+	)
+	s.mcpServer.AddTool(signalTool, mcp.NewStructuredToolHandler(s.handleSignal))
 
 	// TOOL: get_graph
 	s.mcpServer.AddTool(mcp.NewTool("get_graph",
@@ -221,6 +156,120 @@ func (s *Server) registerTools() {
 		jsonBytes, _ := json.Marshal(nodes)
 		return mcp.NewToolResultText(string(jsonBytes)), nil
 	})
+}
+
+// Handler methods for structured tools
+
+func (s *Server) handleRenderState(ctx context.Context, request mcp.CallToolRequest, args map[string]interface{}) (RenderResponse, error) {
+	state := &domain.State{
+		Context: make(map[string]interface{}),
+		History: []string{},
+	}
+
+	nodeID, _ := args["node_id"].(string)
+
+	if histStr, ok := args["history"].(string); ok {
+		_ = json.Unmarshal([]byte(histStr), &state.History)
+	}
+
+	if ctxStr, ok := args["context"].(string); ok {
+		_ = json.Unmarshal([]byte(ctxStr), &state.Context)
+	} else if memStr, ok := args["memory"].(string); ok {
+		// Backwards compatibility for 'memory'
+		_ = json.Unmarshal([]byte(memStr), &state.Context)
+	}
+
+	if nodeID != "" {
+		state.CurrentNodeID = nodeID
+	} else if len(state.History) > 0 {
+		state.CurrentNodeID = state.History[len(state.History)-1]
+	} else {
+		state.CurrentNodeID = "start"
+	}
+
+	actions, terminal, err := s.engine.Render(ctx, state)
+	if err != nil {
+		return RenderResponse{}, fmt.Errorf("render failed: %w", err)
+	}
+
+	return RenderResponse{
+		State:    state,
+		Actions:  actions,
+		Terminal: terminal,
+	}, nil
+}
+
+func (s *Server) handleNavigate(ctx context.Context, request mcp.CallToolRequest, args map[string]interface{}) (RenderResponse, error) {
+	nodeID, _ := args["node_id"].(string)
+	input, _ := args["input"].(string)
+
+	state := &domain.State{
+		CurrentNodeID: nodeID,
+		Context:       make(map[string]interface{}),
+		History:       []string{},
+	}
+
+	if histStr, ok := args["history"].(string); ok {
+		_ = json.Unmarshal([]byte(histStr), &state.History)
+	}
+	if ctxStr, ok := args["context"].(string); ok {
+		_ = json.Unmarshal([]byte(ctxStr), &state.Context)
+	} else if memStr, ok := args["memory"].(string); ok {
+		_ = json.Unmarshal([]byte(memStr), &state.Context)
+	}
+
+	// Sanitize Input
+	clean, err := runner.SanitizeInput(input)
+	if err != nil {
+		slog.Warn("MCP Navigate: Input rejected", "error", err, "size", len(input))
+		return RenderResponse{}, fmt.Errorf("input rejected: %w", err)
+	}
+
+	rich, err := runner.NavigateAndRender(ctx, s.engine, state, clean)
+	if err != nil && rich == nil {
+		return RenderResponse{}, fmt.Errorf("navigate failed: %w", err)
+	}
+	if err != nil {
+		slog.Error("MCP Navigate: Render failed", "error", err)
+	}
+
+	return RenderResponse{
+		State:    rich.State,
+		Actions:  rich.Actions,
+		Terminal: rich.Terminal,
+	}, nil
+}
+
+func (s *Server) handleSignal(ctx context.Context, request mcp.CallToolRequest, args map[string]interface{}) (RenderResponse, error) {
+	signal, _ := args["signal"].(string)
+	nodeID, _ := args["node_id"].(string)
+
+	state := &domain.State{
+		CurrentNodeID: nodeID,
+		Context:       make(map[string]interface{}),
+		History:       []string{},
+	}
+
+	if histStr, ok := args["history"].(string); ok {
+		_ = json.Unmarshal([]byte(histStr), &state.History)
+	}
+	if ctxStr, ok := args["context"].(string); ok {
+		_ = json.Unmarshal([]byte(ctxStr), &state.Context)
+	}
+
+	rich, err := runner.SignalAndRender(ctx, s.engine, state, signal)
+	if err != nil && rich == nil {
+		return RenderResponse{}, fmt.Errorf("signal failed: %w", err)
+	}
+	if err != nil {
+		slog.Error("MCP Signal: Render failed", "error", err)
+	}
+
+	return RenderResponse{
+		State:    rich.State,
+		Actions:  rich.Actions,
+		Terminal: rich.Terminal,
+	}, nil
 }
 
 func (s *Server) registerResources() {
