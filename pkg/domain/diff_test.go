@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -68,7 +70,7 @@ func TestDiff(t *testing.T) {
 				SessionID:  "sess-1",
 				Status:     &term,
 				Terminated: &[]bool{true}[0],
-				Context:    map[string]any{},
+				Context:    nil,
 			},
 		},
 		{
@@ -103,8 +105,20 @@ func TestDiff(t *testing.T) {
 			wantDiff: &StateDiff{
 				SessionID:     "sess-1",
 				CurrentNodeID: &[]string{"next"}[0],
-				Context:       map[string]any{},
+				Context:       nil,
 				HistoryParams: &HistoryDelta{Appended: []string{"next"}},
+			},
+		},
+		{
+			name: "Context Deletion",
+			old: &State{
+				Context: map[string]any{"a": 1, "b": 2},
+			},
+			new: &State{
+				Context: map[string]any{"a": 1},
+			},
+			wantDiff: &StateDiff{
+				Context: map[string]any{"b": nil},
 			},
 		},
 	}
@@ -140,6 +154,36 @@ func TestDiff(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDiffJSONSerialization(t *testing.T) {
+	t.Run("Empty Context Omitted", func(t *testing.T) {
+		s1 := &State{Context: map[string]any{"a": 1}}
+		s2 := &State{Context: map[string]any{"a": 1}} // No change
+		diff := Diff(s1, s2)
+
+		if diff != nil {
+			bytes, _ := json.Marshal(diff)
+			if strings.Contains(string(bytes), `"context"`) {
+				t.Errorf("JSON should not contain 'context' when empty, got: %s", string(bytes))
+			}
+		}
+	})
+
+	t.Run("Deletions as Null", func(t *testing.T) {
+		s1 := &State{Context: map[string]any{"a": 1, "b": 2}}
+		s2 := &State{Context: map[string]any{"a": 1}} // 'b' deleted
+		diff := Diff(s1, s2)
+
+		if diff == nil {
+			t.Fatal("Expected diff, got nil")
+		}
+
+		bytes, _ := json.Marshal(diff)
+		if !strings.Contains(string(bytes), `"b":null`) {
+			t.Errorf("JSON should contain 'b':null for deletion, got: %s", string(bytes))
+		}
+	})
 }
 
 func equalPtr[T comparable](a, b *T) bool {

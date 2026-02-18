@@ -1,308 +1,432 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trellis | Reactive Chat Demo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); }
-        .chat-scroll::-webkit-scrollbar { width: 6px; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        .bubble-system { background: #f3f4f6; border-radius: 18px 18px 18px 4px; }
-        .bubble-user { background: #3b82f6; color: white; border-radius: 18px 18px 4px 18px; }
-        .bubble-tool { background: #ecfdf5; border: 1px solid #d1fae5; color: #065f46; border-radius: 12px; }
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(8px);
+      }
+      .chat-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+      .chat-scroll::-webkit-scrollbar-thumb {
+        background: #e5e7eb;
+        border-radius: 10px;
+      }
+      .bubble-system {
+        background: #f3f4f6;
+        border-radius: 18px 18px 18px 4px;
+      }
+      .bubble-user {
+        background: #3b82f6;
+        color: white;
+        border-radius: 18px 18px 4px 18px;
+      }
+      .bubble-tool {
+        background: #ecfdf5;
+        border: 1px solid #d1fae5;
+        color: #065f46;
+        border-radius: 12px;
+      }
     </style>
-</head>
-<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+  </head>
+  <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
     <!-- Header -->
-    <header class="glass sticky top-0 z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold italic">T</div>
-            <h1 class="text-lg font-semibold tracking-tight">Trellis Reactivity</h1>
+    <header
+      class="glass sticky top-0 z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold italic"
+        >
+          T
         </div>
-        <div class="flex items-center gap-4">
-            <div id="conn-status" class="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span class="w-2 h-2 bg-slate-300 rounded-full animate-pulse"></span>
-                Connecting...
-            </div>
-            <button onclick="toggleDebug()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200">
-                Toggle Debug
-            </button>
+        <h1 class="text-lg font-semibold tracking-tight">Trellis Reactivity</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <div
+          id="conn-status"
+          class="flex items-center gap-2 text-xs font-medium text-slate-500"
+        >
+          <span class="w-2 h-2 bg-slate-300 rounded-full animate-pulse"></span>
+          Connecting...
         </div>
+        <button
+          onclick="toggleDebug()"
+          class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200"
+        >
+          Toggle Debug
+        </button>
+      </div>
     </header>
 
-    <main class="flex-1 max-w-5xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Chat Area -->
-        <div class="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div id="chat-window" class="flex-1 p-6 space-y-4 overflow-y-auto chat-scroll max-h-[70vh]">
-                <!-- Messages will appear here -->
-            </div>
-
-            <!-- Input Area -->
-            <div id="input-container" class="p-4 border-t border-slate-100 bg-slate-50/50">
-                <div id="prompt-area" class="flex gap-2">
-                    <input type="text" id="user-input" 
-                        class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-inner"
-                        placeholder="Type your response..."
-                        onkeypress="if(event.key === 'Enter') sendInput()">
-                    <button onclick="sendInput()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all transform active:scale-95 shadow-md shadow-blue-200">
-                        Send
-                    </button>
-                </div>
-                <div id="terminal-area" class="hidden text-center py-4">
-                    <p class="text-slate-500 italic text-sm">Flow terminated.</p>
-                    <button onclick="window.location.reload()" class="mt-2 text-blue-600 font-medium hover:underline text-sm">Start New Session</button>
-                </div>
-            </div>
-
-            <!-- Global Controls -->
-            <div class="px-4 py-3 bg-slate-100/50 border-t border-slate-100 flex gap-2 justify-center">
-                <button onclick="sendSignal('interrupt')" class="text-[10px] uppercase tracking-wider font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1 rounded border border-orange-200">
-                    Interrupt (Ctrl+C)
-                </button>
-                <button onclick="sendSignal('quit')" class="text-[10px] uppercase tracking-wider font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1 rounded border border-red-200">
-                    Quit
-                </button>
-            </div>
+    <main
+      class="flex-1 max-w-5xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6"
+    >
+      <!-- Chat Area -->
+      <div
+        class="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+      >
+        <div
+          id="chat-window"
+          class="flex-1 p-6 space-y-4 overflow-y-auto chat-scroll max-h-[70vh]"
+        >
+          <!-- Messages will appear here -->
         </div>
 
-        <!-- Sidebar / Debug -->
-        <div class="space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Session Info</h2>
-                <div class="space-y-3 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Node:</span>
-                        <span id="current-node" class="font-mono text-blue-600 font-semibold bg-blue-50 px-2 rounded">start</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Status:</span>
-                        <span id="exec-status" class="font-medium capitalize">active</span>
-                    </div>
-                    <div class="pt-2 border-t border-slate-50 text-[10px] text-slate-400 font-mono">
-                        ID: <span id="session-id-display">...</span>
-                    </div>
-                </div>
-            </div>
-
-            <div id="debug-panel" class="hidden bg-slate-900 p-6 rounded-2xl shadow-xl text-slate-300 font-mono text-xs overflow-hidden flex flex-col max-h-[50vh]">
-                <h2 class="text-blue-400 mb-4 border-b border-slate-800 pb-2 flex justify-between">
-                    <span>DEBUG CONSOLE</span>
-                    <span class="opacity-50">v0.7.10</span>
-                </h2>
-                <div id="debug-logs" class="flex-1 overflow-y-auto chat-scroll space-y-2">
-                    <!-- JSON deltas here -->
-                </div>
-            </div>
+        <!-- Input Area -->
+        <div
+          id="input-container"
+          class="p-4 border-t border-slate-100 bg-slate-50/50"
+        >
+          <div id="prompt-area" class="flex gap-2">
+            <input
+              type="text"
+              id="user-input"
+              class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-inner"
+              placeholder="Type your response..."
+              onkeypress="if (event.key === 'Enter') sendInput();"
+            />
+            <button
+              onclick="sendInput()"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all transform active:scale-95 shadow-md shadow-blue-200"
+            >
+              Send
+            </button>
+          </div>
+          <div id="terminal-area" class="hidden text-center py-4">
+            <p class="text-slate-500 italic text-sm">Flow terminated.</p>
+            <button
+              onclick="window.location.reload()"
+              class="mt-2 text-blue-600 font-medium hover:underline text-sm"
+            >
+              Start New Session
+            </button>
+          </div>
         </div>
+
+        <!-- Global Controls -->
+        <div
+          class="px-4 py-3 bg-slate-100/50 border-t border-slate-100 flex gap-2 justify-center"
+        >
+          <button
+            onclick="sendSignal('interrupt')"
+            class="text-[10px] uppercase tracking-wider font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1 rounded border border-orange-200"
+          >
+            Interrupt (Ctrl+C)
+          </button>
+          <button
+            onclick="sendSignal('quit')"
+            class="text-[10px] uppercase tracking-wider font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1 rounded border border-red-200"
+          >
+            Quit
+          </button>
+        </div>
+      </div>
+
+      <!-- Sidebar / Debug -->
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2
+            class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4"
+          >
+            Session Info
+          </h2>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Node:</span>
+              <span
+                id="current-node"
+                class="font-mono text-blue-600 font-semibold bg-blue-50 px-2 rounded"
+                >start</span
+              >
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Status:</span>
+              <span id="exec-status" class="font-medium capitalize"
+                >active</span
+              >
+            </div>
+            <div
+              class="pt-2 border-t border-slate-50 text-[10px] text-slate-400 font-mono"
+            >
+              ID: <span id="session-id-display">...</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="debug-panel"
+          class="hidden bg-slate-900 p-6 rounded-2xl shadow-xl text-slate-300 font-mono text-xs overflow-hidden flex flex-col max-h-[50vh]"
+        >
+          <h2
+            class="text-blue-400 mb-4 border-b border-slate-800 pb-2 flex justify-between"
+          >
+            <span>DEBUG CONSOLE</span>
+            <span class="opacity-50">v0.7.10</span>
+          </h2>
+          <div
+            id="debug-logs"
+            class="flex-1 overflow-y-auto chat-scroll space-y-2"
+          >
+            <!-- JSON deltas here -->
+          </div>
+        </div>
+      </div>
     </main>
 
     <script>
-        const sessionId = "chat-" + Math.random().toString(36).substr(2, 9);
-        document.getElementById("session-id-display").textContent = sessionId;
-        
-        // Auto-detect environment: 
-        // If served from port 3000 (npx serve), assume backend is at :8080.
-        // Otherwise, use relative path (same origin).
-        const baseUrl = window.location.port === "3000" 
-            ? "http://localhost:8080" 
-            : window.location.origin;
+      const sessionId = "chat-" + Math.random().toString(36).substr(2, 9);
+      document.getElementById("session-id-display").textContent = sessionId;
 
-        let localState = {
-            session_id: sessionId,
-            context: {},
-            history: [],
-            status: "active",
-            current_node_id: "start"
-        };
+      // Auto-detect environment:
+      // If served from port 3000 (npx serve), assume backend is at :8080.
+      // Otherwise, use relative path (same origin).
+      const baseUrl =
+        window.location.port === "3000"
+          ? "http://localhost:8080"
+          : window.location.origin;
 
-        function toggleDebug() {
-            document.getElementById("debug-panel").classList.toggle("hidden");
+      let localState = {
+        session_id: sessionId,
+        context: {},
+        history: [],
+        status: "active",
+        current_node_id: "start",
+      };
+
+      function toggleDebug() {
+        document.getElementById("debug-panel").classList.toggle("hidden");
+      }
+
+      function appendMessage(content, type = "system") {
+        const chat = document.getElementById("chat-window");
+        const div = document.createElement("div");
+        div.className = `flex ${type === "user" ? "justify-end" : "justify-start fadeIn"}`;
+
+        const inner = document.createElement("div");
+        inner.className = `max-w-[85%] px-4 py-3 shadow-sm ${
+          type === "user"
+            ? "bubble-user"
+            : type === "tool"
+              ? "bubble-tool"
+              : "bubble-system"
+        }`;
+
+        if (type === "tool") {
+          inner.innerHTML = `<div class="text-[10px] font-bold opacity-50 mb-1">TOOL EXECUTION</div><code class="text-xs">${content}</code>`;
+        } else if (type === "system") {
+          // Basic Markdown Heading support for Menu
+          const html = content
+            .replace(
+              /^# (.*$)/gim,
+              '<h1 class="text-lg font-bold mb-2">$1</h1>',
+            )
+            .replace(
+              /^## (.*$)/gim,
+              '<h2 class="text-md font-bold mb-1">$1</h2>',
+            )
+            .replace(/\*\*(.*)\*\*/gim, "<b>$1</b>")
+            .replace(/\n/g, "<br>");
+          inner.innerHTML = html;
+        } else {
+          inner.textContent = content;
         }
 
-        function appendMessage(content, type = "system") {
-            const chat = document.getElementById("chat-window");
-            const div = document.createElement("div");
-            div.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start fadeIn'}`;
-            
-            const inner = document.createElement("div");
-            inner.className = `max-w-[85%] px-4 py-3 shadow-sm ${
-                type === 'user' ? 'bubble-user' : 
-                type === 'tool' ? 'bubble-tool' : 'bubble-system'
-            }`;
-            
-            if (type === 'tool') {
-                inner.innerHTML = `<div class="text-[10px] font-bold opacity-50 mb-1">TOOL EXECUTION</div><code class="text-xs">${content}</code>`;
-            } else if (type === 'system') {
-                // Basic Markdown Heading support for Menu
-                const html = content
-                    .replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold mb-2">$1</h1>')
-                    .replace(/^## (.*$)/gim, '<h2 class="text-md font-bold mb-1">$1</h2>')
-                    .replace(/\*\*(.*)\*\*/gim, '<b>$1</b>')
-                    .replace(/\n/g, '<br>');
-                inner.innerHTML = html;
+        div.appendChild(inner);
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function updateUI() {
+        document.getElementById("current-node").textContent =
+          localState.current_node_id;
+        document.getElementById("exec-status").textContent = localState.status;
+
+        if (localState.terminated || localState.status === "terminated") {
+          document.getElementById("prompt-area").classList.add("hidden");
+          document.getElementById("terminal-area").classList.remove("hidden");
+        }
+      }
+
+      function logDebug(data) {
+        const logs = document.getElementById("debug-logs");
+        const pre = document.createElement("pre");
+        pre.className =
+          "p-2 bg-slate-800 rounded mb-2 border-l-2 border-blue-500 overflow-x-auto";
+        pre.textContent = JSON.stringify(data, null, 2);
+        logs.prepend(pre);
+      }
+
+      // 1. SSE Subscription
+      const evtSource = new EventSource(
+        `${baseUrl}/events?session_id=${sessionId}&watch=context,history,status,current_node_id,terminated`,
+      );
+
+      evtSource.onopen = () => {
+        const status = document.getElementById("conn-status");
+        status.innerHTML =
+          '<span class="w-2 h-2 bg-green-500 rounded-full"></span> Live Updates';
+        status.className =
+          "flex items-center gap-2 text-xs font-medium text-green-600";
+      };
+
+      evtSource.onerror = () => {
+        const status = document.getElementById("conn-status");
+        status.innerHTML =
+          '<span class="w-2 h-2 bg-red-500 rounded-full"></span> Offline';
+        status.className =
+          "flex items-center gap-2 text-xs font-medium text-red-600";
+      };
+
+      evtSource.onmessage = (e) => {
+        try {
+          const delta = JSON.parse(e.data);
+          logDebug(delta);
+          applyDelta(delta);
+        } catch (err) {
+          console.error("SSE parse error", err);
+        }
+      };
+
+      function applyDelta(delta) {
+        if (delta.current_node_id)
+          localState.current_node_id = delta.current_node_id;
+        if (delta.status) localState.status = delta.status;
+        if (delta.terminated !== undefined)
+          localState.terminated = delta.terminated;
+
+        if (delta.context) {
+          for (const [key, value] of Object.entries(delta.context)) {
+            if (value === null) {
+              delete localState.context[key];
             } else {
-                inner.textContent = content;
+              localState.context[key] = value;
             }
-            
-            div.appendChild(inner);
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
+          }
         }
 
-        function updateUI() {
-            document.getElementById("current-node").textContent = localState.current_node_id;
-            document.getElementById("exec-status").textContent = localState.status;
-            
-            if (localState.terminated || localState.status === "terminated") {
-                document.getElementById("prompt-area").classList.add("hidden");
-                document.getElementById("terminal-area").classList.remove("hidden");
-            }
+        if (delta.history && delta.history.appended) {
+          localState.history.push(...delta.history.appended);
         }
 
-        function logDebug(data) {
-            const logs = document.getElementById("debug-logs");
-            const pre = document.createElement("pre");
-            pre.className = "p-2 bg-slate-800 rounded mb-2 border-l-2 border-blue-500 overflow-x-auto";
-            pre.textContent = JSON.stringify(data, null, 2);
-            logs.prepend(pre);
+        // Update Header Status
+        const connStatus = document.getElementById("conn-status");
+        if (localState.status === "terminated") {
+          connStatus.innerHTML =
+            '<span class="w-2 h-2 bg-slate-400 rounded-full"></span> Session Ended';
+          connStatus.className =
+            "flex items-center gap-2 text-xs font-medium text-slate-500";
         }
 
-        // 1. SSE Subscription
-        const evtSource = new EventSource(`${baseUrl}/events?session_id=${sessionId}&watch=context,history,status,current_node_id,terminated`);
-        
-        evtSource.onopen = () => {
-            const status = document.getElementById("conn-status");
-            status.innerHTML = '<span class="w-2 h-2 bg-green-500 rounded-full"></span> Live Updates';
-            status.className = "flex items-center gap-2 text-xs font-medium text-green-600";
-        };
+        updateUI();
+      }
 
-        evtSource.onerror = () => {
-            const status = document.getElementById("conn-status");
-            status.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full"></span> Offline';
-            status.className = "flex items-center gap-2 text-xs font-medium text-red-600";
-        };
+      // 2. Custom Event Listeners (for text rendering)
+      // Since Trellis SSE sends state deltas, we need to know when TEXT is rendered.
+      // In this demo, we'll use a trick: any time the history appends, we'll fetch the current node rendering?
+      // Actually, let's keep it simple: the /navigate call returns the ACTIONS (including text).
 
-        evtSource.onmessage = (e) => {
-            try {
-                const delta = JSON.parse(e.data);
-                logDebug(delta);
-                applyDelta(delta);
-            } catch (err) {
-                console.error("SSE parse error", err);
-            }
-        };
+      async function sendInput() {
+        const inputEl = document.getElementById("user-input");
+        const val = inputEl.value.trim();
+        if (!val) return;
 
-        function applyDelta(delta) {
-            if (delta.current_node_id) localState.current_node_id = delta.current_node_id;
-            if (delta.status) localState.status = delta.status;
-            if (delta.terminated !== undefined) localState.terminated = delta.terminated;
-            
-            if (delta.context) {
-                localState.context = { ...localState.context, ...delta.context };
-            }
+        appendMessage(val, "user");
+        inputEl.value = "";
 
-            if (delta.history && delta.history.appended) {
-                localState.history.push(...delta.history.appended);
-            }
+        try {
+          const res = await fetch(`${baseUrl}/navigate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: localState,
+              input: val,
+            }),
+          });
 
-            // Update Header Status
-            const connStatus = document.getElementById("conn-status");
-            if (localState.status === "terminated") {
-                connStatus.innerHTML = '<span class="w-2 h-2 bg-slate-400 rounded-full"></span> Session Ended';
-                connStatus.className = "flex items-center gap-2 text-xs font-medium text-slate-500";
-            }
-
-            updateUI();
-        }
-
-        // 2. Custom Event Listeners (for text rendering)
-        // Since Trellis SSE sends state deltas, we need to know when TEXT is rendered.
-        // In this demo, we'll use a trick: any time the history appends, we'll fetch the current node rendering?
-        // Actually, let's keep it simple: the /navigate call returns the ACTIONS (including text).
-        
-        async function sendInput() {
-            const inputEl = document.getElementById("user-input");
-            const val = inputEl.value.trim();
-            if (!val) return;
-
-            appendMessage(val, "user");
-            inputEl.value = "";
-
-            try {
-                const res = await fetch(`${baseUrl}/navigate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        state: localState,
-                        input: val
-                    })
-                });
-                
-                if (res.ok) {
-                    const data = await res.json();
-                    // Process actions (Text) returned by Navigate
-                    if (data.actions) {
-                        data.actions.forEach(act => {
-                            if (act.type === "RENDER_CONTENT") {
-                                appendMessage(act.payload, "system");
-                            } else if (act.type === "CALL_TOOL") {
-                                appendMessage(`${act.payload.name}(${JSON.stringify(act.payload.args)})`, "tool");
-                            }
-                        });
-                    }
+          if (res.ok) {
+            const data = await res.json();
+            // Process actions (Text) returned by Navigate
+            if (data.actions) {
+              data.actions.forEach((act) => {
+                if (act.type === "RENDER_CONTENT") {
+                  appendMessage(act.payload, "system");
+                } else if (act.type === "CALL_TOOL") {
+                  appendMessage(
+                    `${act.payload.name}(${JSON.stringify(act.payload.args)})`,
+                    "tool",
+                  );
                 }
-            } catch (err) {
-                appendMessage("Error communicating with server.", "system");
+              });
             }
+          }
+        } catch (err) {
+          appendMessage("Error communicating with server.", "system");
         }
+      }
 
-        async function sendSignal(signal) {
-            try {
-                await fetch(`${baseUrl}/signal`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        state: localState,
-                        signal: signal
-                    })
-                });
-            } catch (err) {
-                console.error("Signal error", err);
-            }
+      async function sendSignal(signal) {
+        try {
+          await fetch(`${baseUrl}/signal`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: localState,
+              signal: signal,
+            }),
+          });
+        } catch (err) {
+          console.error("Signal error", err);
         }
+      }
 
-        // Initial Start (Since Trellis is stateless, we just hit Start for the very first time)
-        async function init() {
-            try {
-                const res = await fetch(`${baseUrl}/navigate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        state: { session_id: sessionId, current_node_id: "start", context: {}, status: "active" },
-                        input: ""
-                    })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.actions) {
-                        data.actions.forEach(act => {
-                            if (act.type === "RENDER_CONTENT") {
-                                appendMessage(act.payload, "system");
-                            }
-                        });
-                    }
+      // Initial Start (Since Trellis is stateless, we just hit Start for the very first time)
+      async function init() {
+        try {
+          const res = await fetch(`${baseUrl}/navigate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: {
+                session_id: sessionId,
+                current_node_id: "start",
+                context: {},
+                status: "active",
+              },
+              input: "",
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.actions) {
+              data.actions.forEach((act) => {
+                if (act.type === "RENDER_CONTENT") {
+                  appendMessage(act.payload, "system");
                 }
-            } catch (err) {
-                console.error("Init error", err);
+              });
             }
+          }
+        } catch (err) {
+          console.error("Init error", err);
         }
+      }
 
-        init();
+      init();
     </script>
-</body>
+  </body>
 </html>

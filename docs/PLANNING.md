@@ -313,10 +313,10 @@ Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 - [x] **Termination Logic Fix**: Corrigido bug onde o engine precisava de uma interação extra para detectar fim de fluxo.
 - [x] **Warnings**: Sistema de logs avisando sobre configurações ignoradas em nós não-root.
 
-### 🏗️ v0.7.11: The "Context" Patch
+### v0.7.11: The "Context" Patch [COMPLETED]
 
-- [ ] **Deletion Support**: Implementar o protocolo de deleção no `StateDiff` e no `Subscriber`.
-- [ ] **Efficiency**: Otimizar serialização de deltas grandes.
+- [x] **Deletion Support**: Implementar o protocolo de deleção no `StateDiff` e no `Subscriber`.
+- [x] **Efficiency**: Otimizar serialização de deltas grandes.
 
 ### 🏗️ v0.7.12: The "Structure" Patch
 

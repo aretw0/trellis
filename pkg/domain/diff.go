@@ -110,6 +110,10 @@ func diffContext(old *State, new *State) map[string]any {
 		}
 	}
 
+	// Optimization: Return nil if delta is empty so omitempty can remove the key
+	if len(delta) == 0 {
+		return nil
+	}
 	return delta
 }
 
