@@ -208,6 +208,7 @@ O engine monitorará seus arquivos `.md`, `.json`, `.yaml`. Ao salvar, a sessão
 - [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)
 - [🌐 Guide: Running HTTP Server (Swagger)](./docs/guides/running_http_server.md)
 - [🧭 Node Syntax Reference](./docs/reference/node_syntax.md)
+- [🧪 Testing Strategy](./docs/TESTING.md)
 
 Mais em [`docs/`](./docs/).
 
