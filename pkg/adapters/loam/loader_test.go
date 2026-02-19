@@ -115,6 +115,39 @@ ID is implied from filename`,
 	assert.Len(t, ids, 3)
 }
 
+func TestLoader_ListNodes_DetectsCollisions(t *testing.T) {
+	// Setup Temp Repository
+	tmpDir, repo := testutils.SetupTestRepo(t)
+
+	// Seed files that result in the same ID
+	files := map[string]string{
+		"foo.md": `---
+id: foo
+type: text
+---
+Explicit ID`,
+		"foo.json": `{
+  "id": "foo",
+  "type": "text"
+}`,
+	}
+
+	for filename, content := range files {
+		err := os.WriteFile(filepath.Join(tmpDir, filename), []byte(content), 0644)
+		require.NoError(t, err)
+	}
+
+	// Initialize Adapter
+	typedRepo := loam.NewTypedRepository[NodeMetadata](repo)
+	loader := New(typedRepo)
+
+	// Execute ListNodes - Should Fail
+	_, err := loader.ListNodes()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "collision detected")
+	assert.Contains(t, err.Error(), "foo")
+}
+
 func TestLoader_GetNode_NormalizesID(t *testing.T) {
 	// Setup Temp Repository
 	tmpDir, repo := testutils.SetupTestRepo(t)
