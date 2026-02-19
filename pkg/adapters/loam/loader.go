@@ -372,14 +372,24 @@ func (l *Loader) ListNodes() ([]string, error) {
 		return nil, fmt.Errorf("loam list failed: %w", err)
 	}
 
-	ids := make([]string, len(docs))
-	for i, doc := range docs {
+	seen := make(map[string]string)
+	ids := make([]string, 0, len(docs))
+
+	for _, doc := range docs {
 		// Use the ID from metadata if available, otherwise filename ID
 		rawID := doc.Data.ID
 		if rawID == "" {
 			rawID = doc.ID
 		}
-		ids[i] = trimExtension(rawID)
+		id := trimExtension(rawID)
+
+		// Collision Detection
+		if existingPath, ok := seen[id]; ok {
+			// doc.ID is usually the filepath in Loam (or relative path)
+			return nil, fmt.Errorf("collision detected: ID '%s' is defined in both '%s' and '%s'", id, existingPath, doc.ID)
+		}
+		seen[id] = doc.ID
+		ids = append(ids, id)
 	}
 	return ids, nil
 }
