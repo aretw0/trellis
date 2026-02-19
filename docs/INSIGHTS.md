@@ -23,7 +23,7 @@ We analyzed three conventions for naming the entry node of a flow:
   * *Status:* Not yet supported, but relevant if Trellis moves towards web serving.
 
 **Conclusion:**
-Trellis is a chameleon. It can be a CLI (Program), a Flow (Action), or potentially a Site (Location). Supporting a fallback chain (`start` -> `main` -> `DirectoryName` -> `index`) allows the user to choose the semantic that matches their domain.
+Trellis is a chameleon. It can be a CLI (Program), a Flow (Action), or potentially a Site (Location). Supporting a fallback chain (`start` -> `main` -> `index` -> `DirectoryName`) allows the user to choose the semantic that matches their domain.
 
 ## 2. Trellis vs. Astro (The Web Server Potential)
 
