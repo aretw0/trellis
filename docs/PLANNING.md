@@ -302,7 +302,7 @@ Foco: Atualizações parciais de estado para frontends reativos.
     - [x] **Default Signal Handlers (Proposal)**: Permitir configurar `on_signal_default` no nível do grafo.
     - [x] **SSE Tests Data Race**: Corrigir condição de corrida detectada pelo `-race`.
 
-### v0.7.10: The "Signal" Patch [COMPLETED]
+### ✅ v0.7.10: The "Signal" Patch [COMPLETED]
 
 Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 
@@ -313,15 +313,15 @@ Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 - [x] **Termination Logic Fix**: Corrigido bug onde o engine precisava de uma interação extra para detectar fim de fluxo.
 - [x] **Warnings**: Sistema de logs avisando sobre configurações ignoradas em nós não-root.
 
-### v0.7.11: The "Context" Patch [COMPLETED]
+### ✅ v0.7.11: The "Context" Patch [COMPLETED]
 
 - [x] **Deletion Support**: Implementar o protocolo de deleção no `StateDiff` e no `Subscriber`.
 - [x] **Efficiency**: Otimizar serialização de deltas grandes.
 
-### 🏗️ v0.7.12: The "Structure" Patch
+### ✅ v0.7.12: The "Structure" Patch [COMPLETED]
 
-- [ ] **Entrypoint fallback**: Suportar `main.md` e `NomeDaPasta.md` além do `start.md`.
-- [ ] **ID Collisions**: Melhorar tratamento de colisão de IDs em sub-grafos.
+- [x] **Entrypoint fallback**: Suportar `start.md`, `main.md`, `index.md`, e `NomeDaPasta.md`.
+- [x] **ID Collisions**: Detectar e reportar colisão de IDs em sub-grafos.
 
 ### 🏗️ v0.7.13: The "Chat UI" Patch
 
