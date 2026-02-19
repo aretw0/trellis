@@ -29,24 +29,7 @@ func createEngine(opts RunOptions, logger *slog.Logger) (*trellis.Engine, error)
 	}
 
 	// 3. Smart Convention: Entrypoint Fallback
-	// Priority:
-	// 1. "start" (Current Default)
-	// 2. "main" (Common usage)
-	// 3. "index" (Web/Docs usage)
-	// 4. "{DirectoryName}" (Self-contained module)
-	entryPoint := "start"
-	if !hasNode(opts.RepoPath, "start") {
-		if hasNode(opts.RepoPath, "main") {
-			entryPoint = "main"
-		} else if hasNode(opts.RepoPath, "index") {
-			entryPoint = "index"
-		} else {
-			dirName := filepath.Base(opts.RepoPath)
-			if hasNode(opts.RepoPath, dirName) {
-				entryPoint = dirName
-			}
-		}
-	}
+	entryPoint := determineEntryPoint(opts.RepoPath)
 
 	// Only override if different from default "start" to avoid unnecessary config
 	if entryPoint != "start" {
@@ -72,4 +55,25 @@ func hasNode(repoPath, nodeID string) bool {
 		}
 	}
 	return false
+}
+
+// determineEntryPoint implements the fallback logic for finding the initial node.
+// Priority: start > main > index > DirectoryName
+func determineEntryPoint(repoPath string) string {
+	if hasNode(repoPath, "start") {
+		return "start"
+	}
+	if hasNode(repoPath, "main") {
+		return "main"
+	}
+	if hasNode(repoPath, "index") {
+		return "index"
+	}
+
+	dirName := filepath.Base(repoPath)
+	if hasNode(repoPath, dirName) {
+		return dirName
+	}
+
+	return "start" // Default
 }
