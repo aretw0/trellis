@@ -1,4 +1,8 @@
-# Design: Trellis DSL Compiler & Macro Nodes
+# Architecture Proposal: Trellis DSL Compiler & Macro Nodes
+
+**Status**: 🚧 **PROPOSAL** (Draft)
+**Date**: 2026-02-19
+**Related Concepts**: DX, Macro Nodes, Compilation
 
 ## 1. Contexto
 

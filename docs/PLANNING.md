@@ -351,4 +351,4 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 
 ---
 
-> **Arquitetura & Decisões**: O histórico de decisões arquiteturais foi movido para [DECISIONS.md](./DECISIONS.md).
+> **Arquitetura & Decisões**: O histórico de decisões arquiteturais foi movido para [docs/architecture/HISTORY.md](./architecture/HISTORY.md).

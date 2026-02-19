@@ -1,6 +1,8 @@
-# Architectural Decision Log (ADR)
+# Architectural Decision Log (History)
 
-This document tracks the evolution of Trellis's architecture, preserving the context, pivots, and trade-offs made during development. Ideally, this serves as a primary source for academic analysis of the project's history.
+This document tracks the **chronological evolution** of Trellis's architecture, preserving context, pivots, and trade-offs.
+
+> For detailed Architectural Decision Records (ADR), see the specific files in this directory.
 
 ## Chronological Log
 

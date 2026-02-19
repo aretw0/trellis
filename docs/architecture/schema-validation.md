@@ -4,7 +4,7 @@
 **Date**: 2026-02-16  
 **Affected Components**: `pkg/schema`, `pkg/adapters/loam`, `internal/runtime/engine`, `pkg/domain`  
 **Related Task**: [PLANNING.md § v0.7.5](../PLANNING.md) - "Typed Flows"  
-**Tracking**: [DECISIONS.md](../DECISIONS.md)
+**Tracking**: [HISTORY.md](./HISTORY.md)
 
 ---
 
@@ -285,7 +285,7 @@ If evidence emerges of broader use (beyond Trellis):
 
 ## 8. References
 
-- [DECISIONS.md](../DECISIONS.md) - Decision log entry
+- [HISTORY.md](./HISTORY.md) - Decision log entry
 - [PLANNING.md § v0.7.5](../PLANNING.md) - Feature tracking
 - [Node Syntax Reference](../reference/node_syntax.md)
 - [Loam Package](https://github.com/aretw0/loam)

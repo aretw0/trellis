@@ -1,4 +1,8 @@
-# Design: Contextual Tool Firewall & The "Trellis Gateway"
+# Architecture Proposal: Contextual Tool Firewall & The "Trellis Gateway"
+
+**Status**: 🚧 **PROPOSAL** (Draft)
+**Date**: 2026-02-19
+**Related Concepts**: Security, Tool Use, Sibling Project
 
 ## 1. Visão Geral
 

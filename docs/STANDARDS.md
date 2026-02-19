@@ -28,7 +28,7 @@ Documentos que explicam *como funciona internamente*, *por que decidimos assim* 
 * **Locais:**
   * `docs/TECHNICAL.md` (Arquitetura profunda)
   * `docs/PLANNING.md` (Roadmap e tarefas)
-  * `docs/DECISIONS.md` (Log de decisões arquiteturais - ADRs)
+  * `docs/architecture/HISTORY.md` (Log cronológico)
   * `docs/INSIGHTS.md` (Reflexões abstratas)
 
 ---

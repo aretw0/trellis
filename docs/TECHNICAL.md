@@ -34,7 +34,7 @@
 
 Esta seção define os pilares arquiteturais, regras de design e estratégias que governam todo o projeto.
 
-> **Nota**: Para o histórico evolutivo e justificativas de design (Log de Decisões), consulte [DECISIONS.md](./DECISIONS.md).
+> **Histórico**: Para um log cronológico de decisões, veja [HISTORY.md](./architecture/HISTORY.md).
 
 ### 1. Definição Formal (Identity)
 
