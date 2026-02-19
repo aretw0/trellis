@@ -22,6 +22,7 @@ type Engine struct {
 	evaluator          runtime.ConditionEvaluator
 	interpolator       runtime.Interpolator
 	defaultErrorNodeID string
+	runtimeOpts        []runtime.EngineOption
 	hooks              domain.LifecycleHooks
 	logger             *slog.Logger
 	Name               string
@@ -69,6 +70,13 @@ func WithLogger(logger *slog.Logger) Option {
 func WithDefaultErrorNode(nodeID string) Option {
 	return func(e *Engine) {
 		e.defaultErrorNodeID = nodeID
+	}
+}
+
+// WithEntryNode configures the initial node ID (default: "start").
+func WithEntryNode(nodeID string) Option {
+	return func(e *Engine) {
+		e.runtimeOpts = append(e.runtimeOpts, runtime.WithEntryNode(nodeID))
 	}
 }
 
@@ -130,13 +138,19 @@ func New(repoPath string, opts ...Option) (*Engine, error) {
 	}
 
 	// Initialize Core Runtime with the selected loader
+	runtimeOpts := []runtime.EngineOption{
+		runtime.WithLifecycleHooks(eng.hooks),
+		runtime.WithLogger(eng.logger),
+		runtime.WithDefaultErrorNode(eng.defaultErrorNodeID),
+	}
+	// Append user-defined runtime options (like WithEntryNode)
+	runtimeOpts = append(runtimeOpts, eng.runtimeOpts...)
+
 	eng.runtime = runtime.NewEngine(
 		eng.loader,
 		eng.evaluator,
 		eng.interpolator,
-		runtime.WithLifecycleHooks(eng.hooks),
-		runtime.WithLogger(eng.logger),
-		runtime.WithDefaultErrorNode(eng.defaultErrorNodeID),
+		runtimeOpts...,
 	)
 
 	return eng, nil
