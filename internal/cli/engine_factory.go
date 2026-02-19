@@ -24,13 +24,36 @@ func createEngine(opts RunOptions, logger *slog.Logger) (*trellis.Engine, error)
 	}
 
 	// 2. Smart Convention: Default Error Node
-	// If an 'error.md' (or .json/.yaml) exists in the repo, automatically use it as fallback.
-	// This avoids "magic" behavior if the project doesn't want an error node.
 	if hasNode(opts.RepoPath, domain.DefaultErrorNodeID) {
 		engineOpts = append(engineOpts, trellis.WithDefaultErrorNode(domain.DefaultErrorNodeID))
 	}
 
-	// 3. Initialize
+	// 3. Smart Convention: Entrypoint Fallback
+	// Priority:
+	// 1. "start" (Current Default)
+	// 2. "main" (Common usage)
+	// 3. "index" (Web/Docs usage)
+	// 4. "{DirectoryName}" (Self-contained module)
+	entryPoint := "start"
+	if !hasNode(opts.RepoPath, "start") {
+		if hasNode(opts.RepoPath, "main") {
+			entryPoint = "main"
+		} else if hasNode(opts.RepoPath, "index") {
+			entryPoint = "index"
+		} else {
+			dirName := filepath.Base(opts.RepoPath)
+			if hasNode(opts.RepoPath, dirName) {
+				entryPoint = dirName
+			}
+		}
+	}
+
+	// Only override if different from default "start" to avoid unnecessary config
+	if entryPoint != "start" {
+		engineOpts = append(engineOpts, trellis.WithEntryNode(entryPoint))
+	}
+
+	// 4. Initialize
 	engine, err := trellis.New(opts.RepoPath, engineOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing engine: %w", err)
@@ -40,8 +63,6 @@ func createEngine(opts RunOptions, logger *slog.Logger) (*trellis.Engine, error)
 }
 
 // hasNode checks if a node exists as a file in the directory.
-// Note: This is an optimization for the factory to avoid over-configuring
-// the engine with fallbacks that don't exist.
 func hasNode(repoPath, nodeID string) bool {
 	extensions := []string{".md", ".yaml", ".json"}
 	for _, ext := range extensions {
