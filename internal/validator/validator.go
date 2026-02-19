@@ -11,6 +11,11 @@ import (
 // ValidateGraph checks for broken links and unreachable nodes starting from startNodeID.
 func ValidateGraph(loader ports.GraphLoader, parser *compiler.Parser, startNodeID string) error {
 
+	// 0. Structural Validation (Detect Collisions)
+	if _, err := loader.ListNodes(); err != nil {
+		return fmt.Errorf("structural validation failed: %w", err)
+	}
+
 	// 1. Get raw start node to verify existence and ID
 	startNodeRaw, err := loader.GetNode(startNodeID)
 	if err != nil {
