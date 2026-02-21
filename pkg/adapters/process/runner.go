@@ -150,6 +150,11 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 	return result, nil
 }
 
+// TeardownTimeout is the failsafe duration to wait for a zombie process to die
+// after a Stop/Kill signal before giving up to avoid deep deadlocks.
+// This is especially important for slow environments like WSL/CI.
+const TeardownTimeout = 3 * time.Second
+
 // runWorker starts the worker and waits for completion or context cancellation.
 func (r *Runner) runWorker(ctx context.Context, w *worker.ProcessWorker) error {
 	if err := w.Start(ctx); err != nil {
@@ -165,9 +170,21 @@ func (r *Runner) runWorker(ctx context.Context, w *worker.ProcessWorker) error {
 		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := w.Stop(stopCtx); err != nil {
-			return fmt.Errorf("stopped with error: %w (original context: %v)", err, ctx.Err())
+		// Try to stop, but don't return immediately on error.
+		// We must wait for the process to actually die/cleanup to avoid data races.
+		stopErr := w.Stop(stopCtx)
+
+		// Wait for the worker to fully cleanup (ensure IO flush)
+		select {
+		case <-done:
+		case <-time.After(TeardownTimeout):
+			// Failsafe: prevent deadlock
 		}
+
+		if stopErr != nil {
+			return fmt.Errorf("stopped with error: %w (original context: %v)", stopErr, ctx.Err())
+		}
+
 		return ctx.Err()
 	}
 }
