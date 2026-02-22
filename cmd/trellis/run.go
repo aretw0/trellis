@@ -46,13 +46,11 @@ var runCmd = &cobra.Command{
 		}
 
 		var lifecycleOpts []any
-		if !watchMode {
-			// In session/REPL mode, we want the runner to handle SIGINT (Ctrl+C) to interrupt generation
-			// without killing the application context immediately.
-			lifecycleOpts = append(lifecycleOpts, lifecycle.WithCancelOnInterrupt(false))
-			// Set ForceExit to 0: We give Trellis (via InteractiveRouter) full control over the exit strategy.
-			lifecycleOpts = append(lifecycleOpts, lifecycle.WithForceExit(0))
-		}
+		// For all modes, we want the runner to handle SIGINT (Ctrl+C) to interrupt generation
+		// without killing the application context immediately.
+		lifecycleOpts = append(lifecycleOpts, lifecycle.WithCancelOnInterrupt(false))
+		// Set ForceExit to 0: We give Trellis (via InteractiveRouter) full control over the exit strategy.
+		lifecycleOpts = append(lifecycleOpts, lifecycle.WithForceExit(0))
 
 		err := lifecycle.Run(lifecycle.Job(func(ctx context.Context) error {
 			return cli.Execute(ctx, opts)

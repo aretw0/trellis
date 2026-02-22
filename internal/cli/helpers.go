@@ -24,7 +24,9 @@ type SignalContext = lifecycle.SignalContext
 
 // createLogger configures the application logger and sets it as the default.
 func createLogger(debug bool) *slog.Logger {
-	level := slog.LevelInfo
+	// Padrão como Warn para evitar que logs de bibliotecas de baixo-nível (como lifecycle)
+	// poluam o TUI interativo, a menos que --debug seja usado.
+	level := slog.LevelWarn
 	if debug {
 		level = slog.LevelDebug
 	}

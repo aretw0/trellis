@@ -20,51 +20,43 @@ import (
 
 // RunWatch executes Trellis in development mode, reloading on file changes.
 func RunWatch(ctx context.Context, opts RunOptions) {
-	// Wrap execution in Lifecycle Job
-	// Watch mode uses WithCancelOnInterrupt(false), delegating interrupt handling to the lifecycle router.
-	// The router implements escalation: first interrupt triggers the primary handler (e.g., suspend if declared in flow),
-	// subsequent interrupts force shutdown. Actual behavior depends on flow-level signal handlers.
-	lifecycle.Run(lifecycle.Job(func(ctx context.Context) error {
-		logger := createLogger(opts.Debug)
-		tui.PrintBanner(trellis.Version)
+	logger := createLogger(opts.Debug)
+	tui.PrintBanner(trellis.Version)
 
-		// Default session for watch mode to enable Stateful Hot Reload by default
-		if opts.SessionID == "" {
-			hash := md5.Sum([]byte(opts.RepoPath))
-			opts.SessionID = fmt.Sprintf("watch-%x", hash[:4])
+	// Default session for watch mode to enable Stateful Hot Reload by default
+	if opts.SessionID == "" {
+		hash := md5.Sum([]byte(opts.RepoPath))
+		opts.SessionID = fmt.Sprintf("watch-%x", hash[:4])
+	}
+
+	if opts.Fresh {
+		ResetSession(opts.SessionID)
+	}
+
+	logger.Info("Starting Watcher", "path", opts.RepoPath, "session_id", opts.SessionID)
+	printSystemMessage("Watcher at '%s' session.", opts.SessionID)
+
+	// Reuse the same IO handler to avoid multiple Stdin Pumps (ghost readers)
+	ioHandler := runner.NewTextHandler(os.Stdout, runner.WithTextHandlerRenderer(tui.NewRenderer()))
+
+	// Setup Lifecycle Router (uses shared factory)
+	interruptSource := make(chan struct{}, 1)
+	watcherMux := createInteractiveRouter(ctx, ioHandler, "watch", interruptSource)
+
+	lifecycle.Go(ctx, func(ctx context.Context) error {
+		return watcherMux.Start(ctx)
+	})
+
+	// Watch Loop
+	for {
+		if !runWatchIteration(ctx, opts, ioHandler, interruptSource) {
+			break
 		}
-
-		if opts.Fresh {
-			ResetSession(opts.SessionID)
+		if ctx.Err() != nil {
+			break
 		}
-
-		logger.Info("Starting Watcher", "path", opts.RepoPath, "session_id", opts.SessionID)
-		printSystemMessage("Watcher at '%s' session.", opts.SessionID)
-
-		// Reuse the same IO handler to avoid multiple Stdin Pumps (ghost readers)
-		ioHandler := runner.NewTextHandler(os.Stdout, runner.WithTextHandlerRenderer(tui.NewRenderer()))
-
-		// Setup Lifecycle Router (uses shared factory)
-		interruptSource := make(chan struct{}, 1)
-		watcherMux := createInteractiveRouter(ctx, ioHandler, "watch", interruptSource)
-
-		lifecycle.Go(ctx, func(ctx context.Context) error {
-			return watcherMux.Start(ctx)
-		})
-
-		// Watch Loop
-		for {
-			if !runWatchIteration(ctx, opts, ioHandler, interruptSource) {
-				break
-			}
-			if ctx.Err() != nil {
-				break
-			}
-			logger.Info("Watcher restarting")
-		}
-
-		return nil
-	}), lifecycle.WithCancelOnInterrupt(false))
+		logger.Info("Watcher restarting")
+	}
 }
 
 func runWatchIteration(parentCtx context.Context, opts RunOptions, ioHandler runner.IOHandler, interruptSource <-chan struct{}) bool {
@@ -197,11 +189,11 @@ func runWatchIteration(parentCtx context.Context, opts RunOptions, ioHandler run
 		return true // Continue to next iteration
 	case err := <-doneCh:
 		finalState := r.State()
-		return handleRunCompletion(finalState, err, watchCh, parentCtx, logger)
+		return handleRunCompletion(finalState, err, watchCh, parentCtx, logger, interruptSource)
 	}
 }
 
-func handleRunCompletion(finalState *domain.State, err error, watchCh <-chan string, parentCtx context.Context, logger *slog.Logger) bool {
+func handleRunCompletion(finalState *domain.State, err error, watchCh <-chan string, parentCtx context.Context, logger *slog.Logger, interruptSource <-chan struct{}) bool {
 	nodeID := ""
 	if finalState != nil {
 		nodeID = finalState.CurrentNodeID
@@ -214,6 +206,8 @@ func handleRunCompletion(finalState *domain.State, err error, watchCh <-chan str
 		}
 
 		if isInterrupted(err) {
+			sig := lifecycle.Signal(parentCtx)
+			logCompletion(nodeID, err, false, sig)
 			return false // User stop
 		}
 
@@ -232,6 +226,9 @@ func handleRunCompletion(finalState *domain.State, err error, watchCh <-chan str
 			sig := lifecycle.Signal(parentCtx)
 			logCompletion(nodeID, context.Canceled, false, sig)
 			logger.Info("Stopping watcher (signal received)")
+			return false
+		case <-interruptSource:
+			printSystemMessage("Interrupted at '%s' node.", nodeID)
 			return false
 		case <-watchCh:
 			// File change detected, re-run
