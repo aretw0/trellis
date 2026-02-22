@@ -16,10 +16,15 @@ import (
 // Runner implements a ToolRunner that executes local processes.
 // It follows a Strict Registry pattern for security (Allow-Listing).
 type Runner struct {
-	registry    map[string]RegisteredProcess
-	allowInline bool
-	baseDir     string
+	registry        map[string]RegisteredProcess
+	allowInline     bool
+	baseDir         string
+	gracefulTimeout time.Duration
 }
+
+// DefaultGracefulTimeout is the default duration to wait for a process to stop gracefully
+// before the lifecycle library forces a SIGKILL.
+const DefaultGracefulTimeout = 5 * time.Second
 
 // RegisteredProcess defines a allowed command execution.
 type RegisteredProcess struct {
@@ -53,10 +58,19 @@ func WithBaseDir(dir string) RunnerOption {
 	}
 }
 
+// WithGracefulTimeout sets the maximum time to wait for a process to shut down
+// gracefully before forcing termination.
+func WithGracefulTimeout(d time.Duration) RunnerOption {
+	return func(r *Runner) {
+		r.gracefulTimeout = d
+	}
+}
+
 // NewRunner creates a new Process Runner.
 func NewRunner(opts ...RunnerOption) *Runner {
 	r := &Runner{
-		registry: make(map[string]RegisteredProcess),
+		registry:        make(map[string]RegisteredProcess),
+		gracefulTimeout: DefaultGracefulTimeout,
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -150,11 +164,6 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 	return result, nil
 }
 
-// TeardownTimeout is the failsafe duration to wait for a zombie process to die
-// after a Stop/Kill signal before giving up to avoid deep deadlocks.
-// This is especially important for slow environments like WSL/CI.
-const TeardownTimeout = 3 * time.Second
-
 // runWorker starts the worker and waits for completion or context cancellation.
 func (r *Runner) runWorker(ctx context.Context, w *worker.ProcessWorker) error {
 	if err := w.Start(ctx); err != nil {
@@ -167,21 +176,15 @@ func (r *Runner) runWorker(ctx context.Context, w *worker.ProcessWorker) error {
 		return err
 	case <-ctx.Done():
 		// Timeout or Interrupt -> Trigger Graceful Shutdown
-		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		// Try to stop, but don't return immediately on error.
-		// We must wait for the process to actually die/cleanup to avoid data races.
-		stopErr := w.Stop(stopCtx)
-
-		// Wait for the worker to fully cleanup (ensure IO flush)
-		select {
-		case <-done:
-		case <-time.After(TeardownTimeout):
-			// Failsafe: prevent deadlock
+		timeout := r.gracefulTimeout
+		if timeout <= 0 {
+			timeout = DefaultGracefulTimeout // Failsafe
 		}
 
-		if stopErr != nil {
+		stopCtx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		if stopErr := lifecycle.StopAndWait(stopCtx, w); stopErr != nil {
 			return fmt.Errorf("stopped with error: %w (original context: %v)", stopErr, ctx.Err())
 		}
 

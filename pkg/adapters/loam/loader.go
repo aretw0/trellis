@@ -423,11 +423,12 @@ func (l *Loader) Watch(ctx context.Context) (<-chan string, error) {
 				if !ok {
 					return
 				}
-				// Pass the changed ID up the chain
+				// Loam v0.10.9 provides its own resilient debounce via lifecycle.
+				// Pass the changed ID up the chain, respecting context cancellation.
 				select {
 				case ch <- evt.ID:
-				default:
-					// Drop event if channel is full (debounce)
+				case <-ctx.Done():
+					return
 				}
 			}
 		}
