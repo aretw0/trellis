@@ -327,8 +327,8 @@ Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 
 Foco: Integrar as melhorias mais recentes nas bibliotecas fundamentais do ecossistema.
 
-- [ ] **Lifecycle Update**: Atualizar para a versão contendo `StopAndWait(ctx)` no `ProcessWorker` e simplificar a mecânica de teardown manual atual no `trellis/pkg/adapters/process/runner.go`.
-- [ ] **Loam Update**: Avaliar e aplicar as mais recentes atualizações de parser e schema do `loam` no Trellis para manter paridade e corrigir débitos.
+- [x] **Lifecycle Update**: Atualizar para a versão contendo `StopAndWait(ctx)` no `ProcessWorker` e simplificar a mecânica de teardown manual atual no `trellis/pkg/adapters/process/runner.go`.
+- [x] **Loam Update**: Avaliar e aplicar as mais recentes atualizações de parser e schema do `loam` no Trellis para manter paridade e corrigir débitos.
 
 ### 🏗️ v0.7.14: The "Chat UI" Patch
 

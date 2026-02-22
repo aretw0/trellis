@@ -346,19 +346,19 @@ Na versão 0.7, o Engine adotou a semântica de "Actions Universais", removendo 
    * **Constraint**: Um nó **Não Pode** ter `do` E `wait`.
    * *Motivo*: O Engine não pode estar em dois estados (`WaitingForTool` e `WaitingForInput`) simultaneamente.
 
-### 8.2. Hot Reload Lifecycle (v0.6)
+### 8.2. Hot Reload Lifecycle (v0.6+)
 
-No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado usando um `SignalContext` hierárquico.
+No modo `watch`, o Runner orquestra o recarregamento do motor e a reidratação do estado usando um `SignalContext` hierárquico. A partir da **v0.7.13**, o gerenciamento de eventos de arquivo (debounce, proteção contra *echo*) é inteiramente delegado ao `loam`, que por sua vez utiliza as primitivas resilientes de canais e workers da biblioteca `lifecycle`. O Trellis atua apenas como consumidor estabilizado (consumindo o delta verificado).
 
 ```mermaid
 sequenceDiagram
-    participant W as Watcher (fsnotify)
+    participant W as Watcher (Loam/Lifecycle)
     participant O as Orchestrator (internal/cli)
     participant S as SignalContext
     participant R as Runner (pkg/runner)
 
     Note over W, R: Ciclo de Hot Reload (Signal-Aware)
-    W->>O: Evento: file.md alterado
+    W->>O: Evento estabilizado e debounced
     O->>S: Cancel(Reload)
     S->>R: ctx.Done() propagado
     
@@ -369,7 +369,6 @@ sequenceDiagram
         O->>O: Log "Change detected in file.md"
     end
     
-    O->>O: Aguarda estabilização (100ms)
     O->>S: NewSignalContext()
     O->>R: Nova Iteração: Run(newCtx, engine, state)
     R->>R: Resume at 'CurrentNode'
@@ -425,7 +424,7 @@ Graças a este desacoplamento, a mesma definição de grafo pode usar ferramenta
 * **Process Adapter (v0.7)**: Executor seguro para scripts e binários definidos em `tools.yaml` ou inline (`x-exec`).
   * *Contract*: Passagem de argumentos via `TRELLIS_ARGS` (JSON unificado).
   * *JSON Auto-Detection*: O runner detecta automaticamente se o Stdout é um JSON válido e o converte para objeto estruturado.
-  * *Graceful Shutdown*: (v0.7.10+) Implementa desligamento suave via SIGTERM com período de carência.
+  * *Graceful Shutdown*: (v0.7.13+) Implementa desligamento suave de forma atômica via `StopAndWait(ctx)` gerido nativamente pela biblioteca `lifecycle`, garantindo o fluxo protegido STOP -> WAIT -> CLOSE e prevenindo a ocorrência de processos zumbis sem loops de espera manuais.
   * *Security*: Argumentos nunca são passados como flags de CLI para evitar injeção.
 * **MCP Server**: Repassa a chamada para um cliente MCP (ex: Claude Desktop, IDE).
 * **HTTP Server**: Webhooks que notificam serviços externos (ex: n8n, Zapier).
