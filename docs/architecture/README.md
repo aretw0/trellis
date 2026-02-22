@@ -13,3 +13,5 @@ Specific, detailed documents for major architectural components.
 - **[Typed Flows & Schema Validation](./schema-validation.md)** (Implemented)
 - **[DSL Compiler & Macro Nodes](./dsl-compiler.md)** (Proposal)
 - **[Contextual Firewall & Gateway](./contextual-firewall.md)** (Proposal)
+- **[Durable Execution Delegation](./durable-execution-delegation.md)** (Proposal)
+- **[Single-File Execution & Automation Support](./single-file-execution.md)** (Proposal)
