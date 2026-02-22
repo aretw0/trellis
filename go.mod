@@ -1,12 +1,12 @@
 module github.com/aretw0/trellis
 
-go 1.25.4
+go 1.26.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.36.0
 	github.com/aretw0/introspection v0.1.3
-	github.com/aretw0/lifecycle v1.6.4
-	github.com/aretw0/loam v0.10.6
+	github.com/aretw0/lifecycle v1.7.0
+	github.com/aretw0/loam v0.10.9
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-chi/chi/v5 v5.2.3
