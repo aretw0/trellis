@@ -323,17 +323,17 @@ Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 - [x] **Entrypoint fallback**: Suportar `start.md`, `main.md`, `index.md`, e `NomeDaPasta.md`.
 - [x] **ID Collisions**: Detectar e reportar colisão de IDs em sub-grafos.
 
-### 🏗️ v0.7.13: The "Chat UI" Patch
-
-- [ ] **Chat UI Polishing**: Evoluir o `reactivity-demo` para uma interface de chat moderna e dedicada.
-- [ ] **Reactivity Hardening**: Testes de estresse para atualizações em tempo real no frontend.
-
-### 🏗️ v0.7.14: The "Ecosystem" Patch
+### 🏗️ v0.7.13: The "Ecosystem" Patch
 
 Foco: Integrar as melhorias mais recentes nas bibliotecas fundamentais do ecossistema.
 
 - [ ] **Lifecycle Update**: Atualizar para a versão contendo `StopAndWait(ctx)` no `ProcessWorker` e simplificar a mecânica de teardown manual atual no `trellis/pkg/adapters/process/runner.go`.
 - [ ] **Loam Update**: Avaliar e aplicar as mais recentes atualizações de parser e schema do `loam` no Trellis para manter paridade e corrigir débitos.
+
+### 🏗️ v0.7.14: The "Chat UI" Patch
+
+- [ ] **Chat UI Polishing**: Evoluir o `reactivity-demo` para uma interface de chat moderna e dedicada.
+- [ ] **Reactivity Hardening**: Testes de estresse para atualizações em tempo real no frontend.
 
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
