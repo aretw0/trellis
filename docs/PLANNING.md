@@ -1,6 +1,6 @@
 # Planning: Trellis
 
-> Para filosofia e arquitetura, [consulte o README](./README.md).
+> Para filosofia e arquitetura, [consulte o README](../README.md).
 
 ## 1. Roadmap
 
@@ -259,7 +259,7 @@ Foco: Trazer segurança de tipos e melhoria de experiência do desenvolvedor (DX
 
 Foco: Segurança de tipos para definição de grafos.
 
-- [x] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento e runtime. **Decision: Option A (Validation in Trellis) with Extraction Path**. See [docs/architecture/schema-validation-architecture.md](docs/architecture/schema-validation-architecture.md).
+- [x] **Typed Flows**: Definição de schemas estritos para Contexto (`api_key: string`, `retries: int`), validados no carregamento e runtime. **Decision: Option A (Validation in Trellis) with Extraction Path**. See [docs/architecture/schema-validation.md](architecture/schema-validation.md).
   - [x] **Core Schema Package**: `pkg/schema/` com Type interface (string, int, float, bool, array, custom).
   - [x] **Loam Adapter Integration**: Parse `context_schema` frontmatter e validar tipos em runtime.
   - [x] **Error Handling**: `ContextSchemaValidationError` com diagnostics claros.
@@ -323,7 +323,7 @@ Foco: Consolidar a arquitetura de sinais e centralizar os schemas de resposta.
 - [x] **Entrypoint fallback**: Suportar `start.md`, `main.md`, `index.md`, e `NomeDaPasta.md`.
 - [x] **ID Collisions**: Detectar e reportar colisão de IDs em sub-grafos.
 
-### 🏗️ v0.7.13: The "Ecosystem" Patch
+### ✅ v0.7.13: The "Ecosystem" Patch [COMPLETED]
 
 Foco: Integrar as melhorias mais recentes nas bibliotecas fundamentais do ecossistema.
 
@@ -344,11 +344,15 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
   - [ ] **Lifecycle Sinergy**:
     - [ ] **Supervisor Mount**: Tornar o Trellis um "Worker" compatível com o Supervisor do `lifecycle` (Gestão de Agentes).
     - [ ] **Unified Observability**: Integrar Introspecção (`State()`) e Telemetria (`pkg/metrics`) ao padrão do `lifecycle`.
-  - [ ] **Resumable Protocols**:
+    - [ ] **Durable Execution Delegation**: Depreciar `pkg/session` distribuído em favor do `lifecycle` agindo como Event Broker durável ([Ver ADR](architecture/durable-execution-delegation.md)).
+  - [ ] **Resumable Protocols & Resilience**:
     - [ ] **Native Approval Gates**: Implementar `type: approval` com serialização de estado/token e Exit Code limpo (Safe Halt).
     - [ ] **Resume/Spawn Protocol**: Suporte a reidratação (`--resume <token>`) e contrato de mensagens para controle via Stdout.
+    - [ ] **Native Retry Policies**: Formalizar suporte nativo a retentativas com *Exponential Backoff* direto no schema do nó (ex: `max_retries`, `backoff_strategy`).
 - [ ] **SQLite Adapter**: Implementação de referência para `ports.StateStore` usando `database/sql`. Permite infraestrutura "Single-File" compartilhada com outras libs (ex: `whatsmeow`).
-- [ ] **Developer Kit (SDK)**: `trellis new flow` generators e scaffolding para facilitar o início.
+- [ ] **Developer Kit (SDK) & Type Safety**:
+  - [ ] `trellis new flow` generators e scaffolding para facilitar o início.
+  - [ ] **Type-Safe Context Engine**: Criar wrapper com Generics (ex: `trellis.NewGraph[MyContext]()`) para garantir que o state runtime seja formalmente tipado quando usado como biblioteca.
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
 - [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração.
