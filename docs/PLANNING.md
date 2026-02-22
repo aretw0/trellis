@@ -335,6 +335,13 @@ Foco: Integrar as melhorias mais recentes nas bibliotecas fundamentais do ecossi
 - [ ] **Chat UI Polishing**: Evoluir o `reactivity-demo` para uma interface de chat moderna e dedicada.
 - [ ] **Reactivity Hardening**: Testes de estresse para atualizações em tempo real no frontend.
 
+### 🏗️ v0.7.15: The "Automation" Patch
+
+Foco: Melhorar a experiência de desenvolvimento e automação de scripts.
+
+- [ ] **Single-File Execution** (ADR-0001): Oficializar suporte no `Runner` e na CLI para executar scripts definidos em arquivos únicos (`.yaml`, `.md`) sem exigir estrutura de diretórios (`trellis run my_script.md`).
+- [ ] **Automation Nodes**: Testar integração nativa do Trellis com fluxos de Web Automation/Scraping (baseado nas lições do Wayang).
+
 ### 📦 v0.8: Ecosystem & Modularity (The "Mature" Phase)
 
 Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Transformar Trellis em uma Plataforma.
@@ -353,12 +360,20 @@ Foco: Ferramentaria avançada e encapsulamento para grandes bases de código. Tr
 - [ ] **Developer Kit (SDK) & Type Safety**:
   - [ ] `trellis new flow` generators e scaffolding para facilitar o início.
   - [ ] **Type-Safe Context Engine**: Criar wrapper com Generics (ex: `trellis.NewGraph[MyContext]()`) para garantir que o state runtime seja formalmente tipado quando usado como biblioteca.
+- [ ] **Trellis Gateway (Contextual Firewall)**: Implementação do "Hard Firewall" Stateful Proxy para controle de acesso dinâmico de ferramentas (MCP Router restrito por estados do DFA).
 - [ ] **Language Server Protocol (LSP)**: Plugin de IDE (VSCode) para autocompletar nomes de nós, variáveis e ferramentas.
 - [ ] **TUI Elements**: Widgets ricos para CLI (Select, MultiSelect, Password) via `charmbracelet/bubbles`.
 - [ ] **Declarative Config (`trellis.yaml`)**: Permitir configurar Middlewares (Encryption, PII) e Adapters via arquivo de configuração.
   - *Refinement*: Internal middleware usage should be fully driven by this config.
 - [ ] **WASM Target**: Compilar Trellis/Runner para WebAssembly, permitindo execução no Browser ou Edge (Cloudflare Workers).
 - [ ] **gRPC Interface**: API binária para comunicação interna de baixa latência em malhas de serviço (Service Mesh).
+
+### 🚀 v0.9: Compilers & Expressiveness (The "Expressive" Phase)
+
+Foco: Melhorar a ergonomia e flexibilidade na construção de fluxos complexos baseando-se em conceitos abstratos.
+
+- [ ] **Graph Compiler & Macro Nodes** (`type: flow`): Implementar a arquitetura abstrata (Lowering Phase) para compilar nós expressivos (estilo Colang) para o motor estrito do DFA sem penalidade em runtime, resolvendo o problema de verbosidade.
+- [ ] **Advanced Validation**: Refatoramento de pré-flight checks e análise estática do compilador.
 
 ---
 
