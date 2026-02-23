@@ -176,6 +176,12 @@ components:
         current_node_id:
           type: string
           description: The identifier of the active node.
+        status:
+          type: string
+          description: Current lifecycle status of the State.
+        pending_tool_call:
+          type: string
+          description: ID of a tool call being waited on.
         memory:
           type: object
           description: Key-value store for session variables.

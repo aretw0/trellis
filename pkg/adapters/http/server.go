@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/aretw0/trellis"
+	"github.com/aretw0/trellis/pkg/adapters/http/ui"
 	"github.com/aretw0/trellis/pkg/domain"
 	"github.com/aretw0/trellis/pkg/ports"
 	"github.com/aretw0/trellis/pkg/runner"
@@ -57,6 +58,12 @@ func NewHandler(engine Engine) http.Handler {
 	r.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.Write([]byte(swaggerHTML))
+	})
+
+	// Embedded UI / Trellis Inspector
+	r.Mount("/ui", http.StripPrefix("/ui", http.FileServer(http.FS(ui.FS))))
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/ui/", http.StatusFound)
 	})
 
 	handler := HandlerFromMux(server, r)
@@ -139,23 +146,39 @@ func (s *Server) Navigate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	domainState := mapStateToDomain(body.State)
-	input := ""
+	var input any = ""
 	if body.Input != nil {
-		var err error
-		input, err = body.Input.AsNavigateRequestInput0()
-		if err != nil {
-			http.Error(w, "Invalid input format: expected string", http.StatusBadRequest)
-			slog.Warn("Navigate: Invalid input format", "error", err)
-			return
+		if tr, err := body.Input.AsToolResult(); err == nil && tr.Id != "" {
+			res := domain.ToolResult{
+				ID: tr.Id,
+			}
+			if tr.Result != nil {
+				res.Result = tr.Result
+			}
+			if tr.IsError != nil {
+				res.IsError = *tr.IsError
+			}
+			if tr.Error != nil {
+				res.Error = *tr.Error
+			}
+			input = res
+		} else {
+			str, err := body.Input.AsNavigateRequestInput0()
+			if err != nil {
+				http.Error(w, "Invalid input format: expected string or tool result", http.StatusBadRequest)
+				slog.Warn("Navigate: Invalid input format", "error", err)
+				return
+			}
+			input = str
 		}
 	}
 
 	// Sanitize Input (Global Policy)
-	if input != "" {
-		clean, err := runner.SanitizeInput(input)
+	if strInput, ok := input.(string); ok && strInput != "" {
+		clean, err := runner.SanitizeInput(strInput)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Invalid input: %v", err), http.StatusBadRequest)
-			slog.Warn("Navigate: Input rejected", "error", err, "size", len(input))
+			slog.Warn("Navigate: Input rejected", "error", err, "size", len(strInput))
 			return
 		}
 		input = clean
@@ -476,10 +499,12 @@ func mapStateToDomain(s State) domain.State {
 
 func mapStateFromDomain(d domain.State) State {
 	s := State{
-		SessionId:     ptr(d.SessionID),
-		CurrentNodeId: d.CurrentNodeID,
-		Memory:        ptr(d.Context),
-		Terminated:    &d.Terminated,
+		SessionId:       ptr(d.SessionID),
+		CurrentNodeId:   d.CurrentNodeID,
+		Status:          ptr(string(d.Status)),
+		PendingToolCall: ptr(d.PendingToolCall),
+		Memory:          ptr(d.Context),
+		Terminated:      &d.Terminated,
 	}
 	if d.History != nil {
 		s.History = &d.History
