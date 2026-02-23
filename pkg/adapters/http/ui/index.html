@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trellis Inspector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .chat-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+      .chat-scroll::-webkit-scrollbar-thumb {
+        background: #e5e7eb;
+        border-radius: 10px;
+      }
+      .bubble-system {
+        background: #f3f4f6;
+        border-radius: 18px 18px 18px 4px;
+      }
+      .bubble-user {
+        background: #3b82f6;
+        color: white;
+        border-radius: 18px 18px 4px 18px;
+      }
+      .bubble-tool {
+        background: #ecfdf5;
+        border: 1px solid #d1fae5;
+        color: #065f46;
+        border-radius: 12px;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+    <header
+      class="bg-white/80 backdrop-blur sticky top-0 z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold italic"
+        >
+          T
+        </div>
+        <h1 class="text-lg font-semibold tracking-tight">Trellis Inspector</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <div
+          id="conn-status"
+          class="flex items-center gap-2 text-xs font-medium text-slate-500"
+        >
+          <span class="w-2 h-2 bg-slate-300 rounded-full animate-pulse"></span>
+          Connecting...
+        </div>
+        <button
+          onclick="toggleDebug()"
+          class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200"
+        >
+          Toggle Debug
+        </button>
+      </div>
+    </header>
+
+    <main
+      class="flex-1 max-w-6xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6"
+    >
+      <div
+        class="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+      >
+        <!-- Chat Interface -->
+        <div
+          id="chat-window"
+          class="flex-1 p-6 space-y-4 overflow-y-auto chat-scroll max-h-[70vh]"
+        ></div>
+
+        <div
+          id="input-container"
+          class="p-4 border-t border-slate-100 bg-slate-50/50"
+        >
+          <div id="prompt-area" class="flex gap-2 hidden">
+            <input
+              type="text"
+              id="user-input"
+              class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-inner"
+              placeholder="Type your response..."
+              onkeypress="if (event.key === 'Enter') sendInput();"
+            />
+            <button
+              onclick="sendInput()"
+              id="send-btn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-md"
+            >
+              Send
+            </button>
+          </div>
+          <div id="terminal-area" class="hidden text-center py-4">
+            <p
+              class="text-slate-500 italic text-sm font-medium"
+              id="terminal-msg"
+            >
+              Session Ended.
+            </p>
+            <button
+              onclick="window.location.reload()"
+              class="mt-2 text-slate-600 border border-slate-300 px-4 py-1.5 rounded-md hover:bg-slate-100 text-sm transition-colors"
+            >
+              Restart
+            </button>
+          </div>
+          <div id="processing-area" class="text-center py-4 hidden">
+            <span class="text-slate-500 italic text-sm animate-pulse"
+              >Thinking...</span
+            >
+          </div>
+        </div>
+        <div
+          class="px-4 py-3 bg-slate-100/50 border-t border-slate-100 flex gap-2 justify-center"
+        >
+          <button
+            onclick="sendSignal('interrupt')"
+            class="text-[10px] uppercase tracking-wider font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1 rounded border border-orange-200"
+          >
+            Interrupt (Ctrl+C)
+          </button>
+          <button
+            onclick="sendSignal('quit')"
+            class="text-[10px] uppercase tracking-wider font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1 rounded border border-red-200"
+          >
+            Quit
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <h2
+            class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+              ></path>
+            </svg>
+            Session Info
+          </h2>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500">Node:</span
+              ><span
+                id="current-node"
+                class="font-mono text-blue-600 text-xs font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100"
+                >start</span
+              >
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500">Status:</span
+              ><span
+                id="exec-status"
+                class="font-medium bg-slate-100 px-2 rounded tracking-wide text-xs py-0.5"
+                >active</span
+              >
+            </div>
+            <div
+              class="pt-3 mt-3 border-t border-slate-100 text-[10px] text-slate-400 font-mono break-all"
+            >
+              ID: <span id="session-id-display"></span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="debug-panel"
+          class="hidden bg-slate-900 p-6 rounded-2xl shadow-xl text-slate-300 font-mono text-xs overflow-hidden flex flex-col max-h-[50vh]"
+        >
+          <h2
+            class="text-blue-400 mb-4 border-b border-slate-800 pb-2 flex justify-between"
+          >
+            <span>EVENT LOG</span>
+          </h2>
+          <div
+            id="debug-logs"
+            class="flex-1 overflow-y-auto chat-scroll space-y-2"
+          ></div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const chatWindow = document.getElementById("chat-window");
+      const inputBox = document.getElementById("user-input");
+      const promptArea = document.getElementById("prompt-area");
+      const terminalArea = document.getElementById("terminal-area");
+      const terminalMsg = document.getElementById("terminal-msg");
+      const processingArea = document.getElementById("processing-area");
+      const connStatus = document.getElementById("conn-status");
+      const sessionDisplay = document.getElementById("session-id-display");
+      const currentNodeDisplay = document.getElementById("current-node");
+      const execStatusDisplay = document.getElementById("exec-status");
+      const debugPanel = document.getElementById("debug-panel");
+      const debugLogs = document.getElementById("debug-logs");
+
+      let currentSessionId = crypto.randomUUID();
+      let currentState = { current_node_id: "start", session_id: currentSessionId };
+      let eventSource = null;
+
+      sessionDisplay.textContent = currentSessionId;
+
+      function toggleDebug() {
+        debugPanel.classList.toggle("hidden");
+      }
+
+      function logDebug(type, payload) {
+        const d = new Date();
+        const time = `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}`;
+        const color = type === "SEND" ? "text-green-400" : type === "RECV" ? "text-purple-400" : type === "ERR" ? "text-red-400" : "text-blue-400";
+        
+        debugLogs.innerHTML += `<div class="mb-2"><span class="text-slate-500">[${time}]</span> <span class="${color} font-bold">${type}</span><br/><pre class="mt-1 bg-slate-800/50 p-2 rounded">${JSON.stringify(payload, null, 2)}</pre></div>`;
+        debugLogs.scrollTop = debugLogs.scrollHeight;
+      }
+
+      function appendBubble(content, type) {
+        const div = document.createElement("div");
+        div.className = "flex w-full mb-4 animate-fade-in";
+        
+        const inner = document.createElement("div");
+        inner.className = `max-w-[85%] px-5 py-3.5 shadow-sm text-[15px] leading-relaxed relative ${
+          type === 'user' ? 'bubble-user ml-auto' : 
+          type === 'tool' ? 'bubble-tool mx-auto w-full my-2' : 
+          'bubble-system mr-auto'
+        }`;
+        
+        if (type === 'tool') {
+          inner.innerHTML = `
+            <div class="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-100/50">
+              <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 px-2 py-0.5 rounded text-emerald-700">Tool Execution</span>
+            </div>
+            <div class="font-mono text-xs overflow-x-auto whitespace-pre-wrap">${content}</div>
+          `;
+        } else {
+          inner.innerHTML = content.replace(/\n/g, "<br>");
+        }
+        
+        div.appendChild(inner);
+        chatWindow.appendChild(div);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      function updateStatus(status) {
+        if (status === "connecting") {
+          connStatus.innerHTML = `<span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.5)]"></span>Connecting...`;
+        } else if (status === "connected") {
+          connStatus.innerHTML = `<span class="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>Live Updates`;
+        } else if (status === "disconnected" || status === "error") {
+          connStatus.innerHTML = `<span class="w-2 h-2 bg-slate-300 rounded-full"></span>Disconnected`;
+        }
+      }
+
+      function connectSSE() {
+        updateStatus("connecting");
+        if (eventSource) eventSource.close();
+        
+        eventSource = new EventSource(`/events?session_id=${currentSessionId}`);
+        
+        eventSource.onopen = () => updateStatus("connected");
+        eventSource.onerror = () => updateStatus("error");
+        
+        eventSource.addEventListener("update", (e) => {
+          const payload = JSON.parse(e.data);
+          logDebug("RECV", payload);
+          handleRenderResponse(payload);
+        });
+      }
+
+      function handleRenderResponse(res) {
+        processingArea.classList.add("hidden");
+        
+        if (res.state) {
+          currentState = res.state;
+          currentNodeDisplay.textContent = res.state.current_node_id || "end";
+          execStatusDisplay.textContent = res.state.terminated ? "terminated" : "active";
+          if (res.state.terminated) {
+            execStatusDisplay.className = "font-medium bg-red-100 text-red-700 px-2 rounded tracking-wide text-xs py-0.5";
+            promptArea.classList.add("hidden");
+            terminalArea.classList.remove("hidden");
+            terminalMsg.textContent = "Session Ended.";
+          }
+        }
+
+        let needsInput = false;
+        if (res.actions) {
+          res.actions.forEach(action => {
+            if (action.type === "RENDER_CONTENT" || action.type === "SYSTEM_MESSAGE") {
+              appendBubble(action.payload, "system");
+            } else if (action.type === "REQUEST_INPUT") {
+              needsInput = true;
+              promptArea.classList.remove("hidden");
+              inputBox.focus();
+            } else if (action.type === "CALL_TOOL") {
+              const body = action.payload;
+              const toolStr = `${body.name || body.Name || 'tool'}(${JSON.stringify(body.args || body.Args || {})})`;
+              appendBubble(toolStr, "tool");
+            }
+          });
+        }
+
+        // Auto-advance if no input is needed and the flow isn't finished/waiting for tools
+        if (!needsInput && !res.state.terminated && res.state.status !== "waiting_for_tool") {
+            logDebug("SYS", "Auto-advancing flow...");
+            navigate("");
+        }
+      }
+
+      async function apiCall(endpoint, payload) {
+        logDebug("SEND", { endpoint, payload });
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          // We rely on SSE for background state updates, but synchronous HTTP calls return our UI render actions
+          if (data && data.state) {
+             handleRenderResponse(data);
+          }
+        } catch (err) {
+          console.error(err);
+          logDebug("ERR", err.toString());
+          updateStatus("error");
+          processingArea.classList.add("hidden");
+        }
+      }
+
+      function navigate(inputStr) {
+        promptArea.classList.add("hidden");
+        processingArea.classList.remove("hidden");
+        
+        const payload = {
+          state: currentState,
+          input: inputStr // A primitive string
+        };
+        apiCall("/navigate", payload);
+      }
+
+      function sendInput() {
+        const val = inputBox.value.trim();
+        if (!val) return;
+        appendBubble(val, "user");
+        inputBox.value = "";
+        navigate(val);
+      }
+
+      function sendSignal(type) {
+        promptArea.classList.add("hidden");
+        processingArea.classList.remove("hidden");
+        apiCall("/signal", { state: currentState, signal: type });
+      }
+
+      // Initialize Loop
+      connectSSE();
+      apiCall("/render", currentState);
+    </script>
+  </body>
+</html>

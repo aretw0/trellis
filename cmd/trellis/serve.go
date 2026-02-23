@@ -50,6 +50,7 @@ var serveCmd = &cobra.Command{
 
 			lifecycle.Go(ctx, func(ctx context.Context) error {
 				logger.Info("Starting Trellis Server", "addr", srv.Addr, "dir", dir)
+				logger.Info(fmt.Sprintf("Trellis Inspector UI available at http://localhost:%s/ui", port))
 				serverErrors <- srv.ListenAndServe()
 				return nil
 			})
