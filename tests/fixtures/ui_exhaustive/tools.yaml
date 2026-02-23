@@ -1,0 +1,9 @@
+tools:
+  - name: mock_tool
+    description: "A mock tool"
+    command:
+      [
+        "sh",
+        "-c",
+        'echo ''{"success": true, "received": "''$TRELLIS_TOOL_input''"}''',
+      ]
