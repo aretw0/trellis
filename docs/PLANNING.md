@@ -330,12 +330,39 @@ Foco: Integrar as melhorias mais recentes nas bibliotecas fundamentais do ecossi
 - [x] **Lifecycle Update**: Atualizar para a versão contendo `StopAndWait(ctx)` no `ProcessWorker` e simplificar a mecânica de teardown manual atual no `trellis/pkg/adapters/process/runner.go`.
 - [x] **Loam Update**: Avaliar e aplicar as mais recentes atualizações de parser e schema do `loam` no Trellis para manter paridade e corrigir débitos.
 
-### 🏗️ v0.7.14: The "Chat UI" Patch
+### ✅ v0.7.14: The "Chat UI" Patch [COMPLETED]
 
-- [ ] **Chat UI Polishing**: Evoluir o `reactivity-demo` para uma interface de chat moderna e dedicada.
-- [ ] **Reactivity Hardening**: Testes de estresse para atualizações em tempo real no frontend.
+- [x] **Chat UI Polishing**: Evoluído o `reactivity-demo` para uma interface de chat web dedicada (integrada na CLI como `/ui`), com suporte robusto a SSE e auto-avanço de nós intermédios em background (`navigate("")`).
+- [x] **Reactivity Hardening**: Implementados testes E2E headless rigorosos via `go-rod` e testes estressando o sistema SSE no backend com 100 eventos simultâneos por sessão.
+- [x] **ToolResult via HTTP**: `Navigate` handler aceita `ToolResult` além de `string`. Frontend injeta resultado de ferramenta diretamente via API.
+- [x] **Kitchen Sink Interpolation**: Nó `kitchen_sink_node` no fixture `ui_exhaustive` documenta e testa todos os padrões de interpolação suportados. Limitações mapeadas.
+- [x] **Makefile**: Targets `make test-ui` e `make test-ui-headed` para rodar os testes E2E com ou sem browser visível.
 
-### 🏗️ v0.7.15: The "Automation" Patch
+### 🩹 v0.7.15 (Patch): Chained Context Enforcement
+
+**Focus**: Fix a pathological `context.Background()` detachment in `cmd/trellis/serve.go` identified during the lifecycle v1.7.1 ecosystem audit. The shutdown context for the HTTP server must respect the urgency escalation signalled by the parent lifecycle context (e.g., force-exit triggered by user mashing Ctrl+C).
+
+- [ ] **`cmd/trellis/serve.go`**: Replace `context.WithTimeout(context.Background(), 5*time.Second)` with `context.WithTimeout(ctx, 5*time.Second)` in the HTTP server shutdown path.
+
+### 🩹 v0.7.16 (Patch): Template Engine Hardening
+
+**Foco**: Corrigir as limitações de interpolação identificadas pelo kitchen sink do v0.7.14 e tornar o `DefaultInterpolator` mais expressivo.
+
+- [ ] **FuncMap**: Registrar funções utilitárias no `template.New` em `internal/runtime/engine.go`: `default`, `index`, `toJson`, `coalesce`. Isso permite `{{ default "N/A" .missing_key }}` e acesso a campos de mapas dinâmicos.
+- [ ] **`default_context` propagation**: Investigar por que o `default_context` definido em `start.md` não chega ao template. Verificar se o parser YAML do Loam faz merge correto no `domain.Context` antes da renderização.
+- [ ] **`tool_result` typed access**: O resultado de ferramenta é armazenado como `interface{}` (struct interna `ToolResult{ID, Result}`). Avaliar se deve ser achatado (`map[string]any`) antes de ser salvo no contexto, possibilitando `{{ .tool_result.received }}`.
+- [ ] **`mapStateToDomain` bidirecional**: `status` e `pending_tool_call` enviados pelo cliente são ignorados no parse. Necessário para retomada de sessão em `waiting_for_tool`.
+
+### 📝 v0.7.17 (Patch): Documentation — Chat UI & Template Engine
+
+**Foco**: Registrar formalmente o que foi implementado e as limitações descobertas durante o v0.7.14/v0.7.16. Toda documentação aqui dependente da estabilização do `DefaultInterpolator` (v0.7.16) antes de ser finalizada.
+
+- [ ] **`docs/reference/node_syntax.md`**: Adicionar seção de limitações do `DefaultInterpolator` — o que funciona (`{{ .key }}`, `{{ if }}`, `{{ if eq }}`), o que não funciona sem FuncMap (`{{ default }}`), e o comportamento de `tool_result` como `interface{}`.
+- [ ] **`docs/guides/frontend-integration.md`**: Expandir com guia completo do Chat UI embutido (`/ui`): como iniciar (`trellis serve`), fluxo de auto-advance, ciclo de vida do SSE, e como o cliente injeta `ToolResult`.
+- [ ] **`docs/guides/running_http_server.md`**: Adicionar referência à UI embutida, aos endpoints `/ui`, `/navigate` com `ToolResult`, e ao campo `pending_tool_call` no schema de resposta.
+- [ ] **`docs/TESTING.md`**: Documentar a estratégia de testes E2E com `go-rod`: targets do Makefile (`make test-ui`, `make test-ui-headed`), variável `TRELLIS_TEST_HEADLESS`, e o papel do fixture `ui_exhaustive` como contrato de comportamento da UI.
+
+### 🏗️ v0.7.18: The "Automation" Patch
 
 Foco: Melhorar a experiência de desenvolvimento e automação de scripts.
 

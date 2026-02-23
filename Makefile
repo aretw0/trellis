@@ -1,4 +1,4 @@
-.PHONY: all gen build test coverage lint vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-on-introspection work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
+.PHONY: all gen build test test-ui test-ui-headed coverage lint vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-on-introspection work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
 
 # Go parameters
 GOCMD=go
@@ -46,6 +46,14 @@ build:
 test:
 	@echo "Running tests..."
 	$(GOTEST) -race -timeout 90s ./...
+
+# Run UI E2E tests in headless mode (default)
+test-ui:
+	$(GOTEST) -v -timeout 30s ./tests/ui/...
+
+# Run UI E2E tests with a visible browser window (for debugging)
+test-ui-headed:
+	TRELLIS_TEST_HEADLESS=false $(GOTEST) -v -timeout 60s ./tests/ui/...
 
 # Run coverage tests
 coverage:
