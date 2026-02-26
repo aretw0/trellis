@@ -59,7 +59,25 @@ They simulate:
 - **Good Citizens:** Processes that handle signals and exit gracefully.
 - **Bad Citizens:** Processes that ignore signals, hang, or crash.
 
-See [tests/fixtures/README.md](tests/fixtures/README.md) for details.
+## Cross-Platform Quirks
+
+Trellis is designed to be cross-platform, but some adapters (especially `process` and `ui`) have OS-specific behaviors that are documented here for troubleshooting.
+
+### 1. Process Signal Propagation (Windows vs Unix)
+The `process` adapter uses `os.Interrupt` (SIGINT) for graceful shutdowns.
+
+- **Unix/Linux/WSL**: Signals propagate correctly down the process tree.
+- **Windows**: `os.Interrupt` is only sent to the console process group. Background processes started by the `process` adapter may not receive the signal correctly and will often fall back to the **Force-Kill** grace period (default 5s).
+
+### 2. UI Tests & CI Sandboxing
+UI tests use `go-rod` to control a headless Chromium instance.
+
+- **GitHub Actions (Linux)**: Most CI runners do not allow the default Chromium sandbox. Tests automatically detect the `GITHUB_ACTIONS=true` environment variable and apply the `--no-sandbox` flag only when strictly necessary.
+- **Local Dev**: In local environments (Windows/macOS/Linux), the browser runs with its default sandbox enabled for maximum security and fidelity.
+- **Windows AppData**: We disable `Leakless` in tests to avoid extraction issues in restricted environments.
+
+### 3. Data Race Mitigation
+Capturing output from rapidly spawning and terminating processes can trigger data races if buffers are not synchronized. The `process` adapter uses a thread-safe `safeBuffer` to protect `stdout` and `stderr` during reads in the `Execute` method.
 
 ## Philosophy
 
