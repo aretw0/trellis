@@ -404,4 +404,17 @@ Foco: Melhorar a ergonomia e flexibilidade na construção de fluxos complexos b
 
 ---
 
+## Ecosystem Readiness (Lifecycle v1.8+)
+
+Objetivo: Alinhar o Trellis com as primitivas de "Durable Execution" e sincronicidade do `lifecycle` v1.8+.
+
+- [ ] **Barrier Primitives (v1.8)**:
+  - [ ] Adotar as novas barreiras de sincronização do `lifecycle` para o orquestrador de passos paralelos, simplificando o controle de "Join" no motor.
+- [ ] **Durable Event Router (v1.8)**:
+  - [ ] Integrar os novos "Durable Sinks" do Router para persistência nativa de breadcrumbs e transições, reduzindo o acoplamento com o `pkg/session`.
+- [ ] **Case Study Flagship (v1.9)**:
+  - [ ] Curar snippets de código "Antes vs Depois" da implementação do `lifecycle` para o marketing oficial da lib (Case Study: "Trellis: De 500 linhas de sinal para 50").
+
+---
+
 > **Arquitetura & Decisões**: O histórico de decisões arquiteturais foi movido para [docs/architecture/HISTORY.md](./architecture/HISTORY.md).
