@@ -92,7 +92,7 @@
 **Focus**: Organize Trellis in layers (`engine/`, `flow/`, `protocols/`) without repo extraction  
 **Goal**: Clean code, 100% backward compat, ground zero for validation
 
-**Blocker**: Node abstraction design decision
+**Decision**: Node abstraction fixed as **Hybrid** (Interface core + Function adapters + Builder ergonomics)
 
 ---
 

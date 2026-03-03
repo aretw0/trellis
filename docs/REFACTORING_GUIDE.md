@@ -138,7 +138,7 @@ trellis/pkg/
 
 ## Critical Design Decisions
 
-### Node Abstraction: Hybrid Approach Recommended
+### Node Abstraction: Hybrid Approach (DECIDED)
 
 ```go
 // Flexibility (functions) + Safety (interface) + DX (builder)
@@ -273,4 +273,4 @@ func (e *Engine) Run(ctx context.Context, nodes []Executable) error {
 
 **Last Updated**: 2026-03-02  
 **Status**: Ready for Phase 2a implementation  
-**Next Step**: Trellis maintainer to decide on Node abstraction (see Section: Critical Design Decisions)
+**Next Step**: Implement Execution Contract v0 and validate with Life-DSL/Scrape-DSL discovery spikes
