@@ -7,53 +7,32 @@
 
 > **The Neuro-Symbolic Backbone for Agents & Automation.**
 
-**Trellis** e um motor deterministico de fluxos para orquestrar ferramentas, scripts e guardrails com previsibilidade.
+**Trellis** é um motor determinístico de fluxos para orquestrar ferramentas, scripts e guardrails com previsibilidade.
 Use como framework de CLI/Markdown ou como biblioteca Go dentro do seu backend.
 
 > **Hybrid Nature**: Use como **Framework** (CLI + Markdown) para prototipagem rápida, ou como **Biblioteca** (Go) para controle total em seu backend. *"Opinionated by default, flexible under the hood."*
 
 ## Onde brilha
 
-- **CLIs e Ops**: fluxos guiados, com validacao e auditabilidade.
-- **Automacao de ferramentas**: scripts e APIs encadeados como um grafo versionavel.
-- **Agentes com governanca**: guardrails reais, sem depender apenas de prompt.
-- **Backends duraveis**: execucoes longas com pause/resume e padroes SAGA.
+- **CLIs e Ops**: fluxos guiados, com validação e auditabilidade.
+- **Automação de ferramentas**: scripts e APIs encadeados como um grafo versionável.
+- **Agentes com governança**: guardrails reais, sem depender apenas de prompt.
+- **Backends duráveis**: execuções longas com pause/resume e padrões SAGA.
 
-## O Conceito Neuro-Simbólico & Automação
+## O Conceito Neuro-Simbólico
 
-O Trellis preenche a lacuna entre a **Rigidez dos Processos** e a **Flexibilidade da Inteligência**:
-
-- **Para Agentes de IA**: Substitua "If/Else" frágeis e Prompts gigantes por um grafo de estados auditável. O Trellis impede alucinações de fluxo.
-- **Para Humanos**: Funciona como um motor de **Workflow as Code** (similar a um n8n/Zapier, mas compilado e versionável), ideal para CLIs complexas e automação de Ops.
-
-```mermaid
-graph TD
-    %% Nodes
-    Brain["🧠 Cérebro (LLM) ou<br/>👤 Humano (CLI)"] -->|Intenção / Input| Trellis["🛡️ Espinha Dorsal<br/>(Trellis Engine)"]
-    
-    subgraph "Mundo Simbólico (Determinístico)"
-        Trellis -->|Validação| Rules["📜 Regras de Negócio<br/>(State Machine)"]
-        Rules -->|Ok / Block| Trellis
-    end
-    
-    Trellis -->|Execução Segura| Tools["⚡ Ferramentas<br/>(API / DB / Scripts)"]
-    Tools -->|Resultado| Trellis
-    Trellis -->|Contexto Atualizado| Brain
-
-    %% Styles
-    style Brain fill:#f9f,stroke:#333,stroke-width:2px,color:black
-    style Trellis fill:#9cf,stroke:#333,stroke-width:2px,color:black
-    style Rules fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:black
-    style Tools fill:#9f9,stroke:#333,stroke-width:2px,color:black
-```
+O Trellis preenche a lacuna entre a **Rigidez dos Processos** e a **Flexibilidade da Inteligência**.
 
 O decisor (seja **IA** ou **Humano**) escolhe *qual* caminho tomar, mas o Trellis garante que ele *existe* e é *válido*.
 
+> **💡 Para entender a filosofia completa e o posicionamento estratégico, leia [PRODUCT.md](docs/PRODUCT.md).  
+> Para a arquitetura hexagonal e definição formal (DFA), veja [TECHNICAL.md](docs/TECHNICAL.md).**
+
 ## Como modelar um fluxo
 
-Voce define um **Grafo de Estados** com **Nos** (Passos) e **Transicoes** (Regras), e o Trellis gerencia a navegacao.
+Você define um **Grafo de Estados** com **Nós** (Passos) e **Transições** (Regras), e o Trellis gerencia a navegação.
 
-Voce pode definir esse grafo de duas formas:
+Você pode definir esse grafo de duas formas:
 
 ### 1. Declarativo (Arquivos)
 
@@ -87,15 +66,15 @@ Ideal para integração profunda em backends, performance crítica e type-safety
 
 **Para produto e UX**
 
-- **Data Binding & Contexto**: Capture inputs (`save_to`) e use variaveis (`{{ .name }}`) nativamente.
-- **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e modulos (`jump_to`).
-- **MCP Server**: Integracao nativa com **Model Context Protocol** para conectar Agentes de IA.
+- **Data Binding & Contexto**: Capture inputs (`save_to`) e use variáveis (`{{ .name }}`) nativamente.
+- **Namespaces (Sub-Grafos)**: Organize fluxos complexos em pastas e módulos (`jump_to`).
+- **MCP Server**: Integração nativa com **Model Context Protocol** para conectar Agentes de IA.
 
 **Para engenharia**
 
-- **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitacao.
-- **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core e desacoplado de IO e Persistencia.
-- **Native SAGA Support**: Orquestracao de transacoes distribuidas com `undo` e `rollback` automatico.
+- **Strict Typing**: Garante que seus fluxos sejam robustos e livres de erros de digitação.
+- **Embeddable & Agnostic**: Use como CLI, Lib ou Service. O Core é desacoplado de IO e Persistência.
+- **Native SAGA Support**: Orquestração de transações distribuídas com `undo` e `rollback` automático.
 
 ## Quick Start
 
@@ -138,11 +117,11 @@ eng, _ := trellis.New("", trellis.WithLoader(loader))
 ### Rodando o Golden Path (Demo)
 
 ```bash
-# Execucao do Engine (Demo)
+# Execução do Engine (Demo)
 trellis run ./examples/tour
 ```
 
-Se voce estiver desenvolvendo dentro do repo, veja a secao "Modo de Desenvolvimento" abaixo.
+Se você estiver desenvolvendo dentro do repo, veja a seção "Modo de Desenvolvimento" abaixo.
 
 ## Usage
 
@@ -160,7 +139,7 @@ trellis serve --dir ./examples/tour --port 8080
 trellis mcp --dir ./examples/tour
 ```
 
-Detalhes e variacoes em:
+Detalhes e variações em:
 
 - [docs/guides/running_http_server.md](docs/guides/running_http_server.md)
 - [docs/guides/running_mcp_server.md](docs/guides/running_mcp_server.md)
@@ -175,7 +154,7 @@ trellis graph ./my-flow
 # Saída: graph TD ...
 ```
 
-### Para quem esta contribuindo
+### Para quem está contribuindo
 
 **Usando Makefile (Recomendado):**
 
@@ -202,7 +181,7 @@ trellis run --watch --dir ./my-flow
 
 O engine monitorará seus arquivos `.md`, `.json`, `.yaml`. Ao salvar, a sessão recarrega automaticamente (preservando o loop de execução).
 
-## Documentacao
+## Documentação
 
 - [📖 Product Vision & Philosophy](./docs/PRODUCT.md)
 - [🏗 Architecture & Technical Details](./docs/TECHNICAL.md)

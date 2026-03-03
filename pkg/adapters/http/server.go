@@ -485,6 +485,12 @@ func mapStateToDomain(s State) domain.State {
 	if s.SessionId != nil {
 		d.SessionID = *s.SessionId
 	}
+	if s.Status != nil {
+		d.Status = domain.ExecutionStatus(*s.Status)
+	}
+	if s.PendingToolCall != nil {
+		d.PendingToolCall = *s.PendingToolCall
+	}
 	if s.Memory != nil {
 		d.Context = *s.Memory
 	}

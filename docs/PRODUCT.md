@@ -16,6 +16,29 @@ Embora o **Loam** guarde os arquivos, é o **Trellis** que garante a integridade
 
 O Trellis transforma a "Conversa Probabilística" (LLM) em "Transição Determinística" (DFA). Ele garante que o sistema só transite de "Pagamento" para "Envio" se o pagamento for confirmado, independente do quão persuasivo o LLM seja.
 
+```mermaid
+graph TD
+    %% Nodes
+    Brain["🧠 Cérebro (LLM) ou<br/>👤 Humano (CLI)"] -->|Intenção / Input| Trellis["🛡️ Espinha Dorsal<br/>(Trellis Engine)"]
+    
+    subgraph "Mundo Simbólico (Determinístico)"
+        Trellis -->|Validação| Rules["📜 Regras de Negócio<br/>(State Machine)"]
+        Rules -->|Ok / Block| Trellis
+    end
+    
+    Trellis -->|Execução Segura| Tools["⚡ Ferramentas<br/>(API / DB / Scripts)"]
+    Tools -->|Resultado| Trellis
+    Trellis -->|Contexto Atualizado| Brain
+
+    %% Styles
+    style Brain fill:#f9f,stroke:#333,stroke-width:2px,color:black
+    style Trellis fill:#9cf,stroke:#333,stroke-width:2px,color:black
+    style Rules fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:black
+    style Tools fill:#9f9,stroke:#333,stroke-width:2px,color:black
+```
+
+> **📚 Para a definição técnica formal (Reentrant DFA with Controlled Side-Effects) e detalhes de arquitetura hexagonal, veja [TECHNICAL.md](TECHNICAL.md).**
+
 ### Arquitetura: The Pure Kernel
 
 Trellis não é um framework monolítico; é um **Kernel Puro**.

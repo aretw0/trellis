@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -31,8 +32,20 @@ func TestChatUI_ExhaustiveFlow(t *testing.T) {
 	// Headless mode: set TRELLIS_TEST_HEADLESS=false to open a visible browser window for debugging.
 	headless := os.Getenv("TRELLIS_TEST_HEADLESS") != "false"
 	t.Logf("Headless mode: %v (set TRELLIS_TEST_HEADLESS=false to disable)", headless)
-	// Disable Leakless so it doesn't fail extracting into AppData temp on Windows
-	u := launcher.New().Headless(headless).Leakless(false).MustLaunch()
+	l := launcher.New().
+		Headless(headless)
+
+	// Leakless is known to have issues in some restricted environments (like AppData on Windows)
+	if runtime.GOOS == "windows" {
+		l.Leakless(false)
+	}
+
+	// Sandbox bypass - only strictly required in restricted CI environments like GitHub Actions
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		l.Set("no-sandbox")
+	}
+
+	u := l.MustLaunch()
 	browser := rod.New().ControlURL(u).MustConnect()
 	defer browser.MustClose()
 

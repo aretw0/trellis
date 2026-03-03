@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aretw0/lifecycle"
@@ -144,7 +145,7 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 	w.SetEnv("TRELLIS_ARGS", string(argsJSON))
 
 	// Capture Output
-	var stdout, stderr bytes.Buffer
+	var stdout, stderr safeBuffer
 	w.SetOutput(&stdout, &stderr)
 
 	execErr := r.runWorker(ctx, w)
@@ -162,6 +163,24 @@ func (r *Runner) Execute(ctx context.Context, toolCall domain.ToolCall) (domain.
 
 	result.Result = r.parseResult(stdout.String())
 	return result, nil
+}
+
+// safeBuffer is a thread-safe wrapper around bytes.Buffer.
+type safeBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *safeBuffer) Write(p []byte) (n int, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.Write(p)
+}
+
+func (s *safeBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
 }
 
 // runWorker starts the worker and waits for completion or context cancellation.

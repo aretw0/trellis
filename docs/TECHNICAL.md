@@ -34,7 +34,8 @@
 
 Esta seção define os pilares arquiteturais, regras de design e estratégias que governam todo o projeto.
 
-> **Histórico**: Para um log cronológico de decisões, veja [HISTORY.md](./architecture/HISTORY.md).
+> **💡 Comece pelo [PRODUCT.md](PRODUCT.md)** para entender a filosofia, identidade e posicionamento estratégico antes de mergulhar nos detalhes técnicos.  
+> **Histórico**: Para um log cronológico de decisões, veja [architecture/HISTORY.md](architecture/HISTORY.md).
 
 ### 1. Definição Formal (Identity)
 

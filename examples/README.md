@@ -2,6 +2,29 @@
 
 This directory contains examples demonstrating different ways to use the Trellis engine.
 
+## 🚀 Start Here
+
+New to Trellis? Begin with:
+
+1. **[Tour](./tour)** — Run `trellis run ./examples/tour` for a guided walkthrough
+2. **[Hello World](./hello-world)** — Minimal example using in-memory graphs
+
+Then explore by category below based on your needs.
+
+---
+
+## 📑 Table of Contents
+
+- [🚀 Start Here](#-start-here)
+- [1. Getting Started](#1-getting-started)
+- [2. Core Features](#2-core-features)
+- [3. Infrastructure & Patterns](#3-infrastructure--patterns)
+- [4. Advanced Control](#4-advanced-control)
+- [5. Production & Observability](#5-production--observability)
+- [6. Internals & API](#6-internals--api)
+
+---
+
 ## 1. Getting Started
 
 ### [Tour (The Product)](./tour)
@@ -131,3 +154,18 @@ Demonstrates how to use the `--debug` flag to visualize state transitions and ev
 
 **Concepts:** `Manual Loop`, `engine.Render`, `engine.Navigate`
 Demonstrates how to manually drive the engine without using the `trellis.Runner`. Useful if you need to integrate Trellis into a custom UI framework, a game engine, or a non-standard event loop.
+
+### [DSL Graph (Go Builders)](./dsl-graph)
+
+**Concepts:** `pkg/dsl`, `Fluent API`, `Type Safety`
+Demonstrates how to build graphs using the Go DSL (Fluent Builders) instead of YAML/Markdown files. Ideal for scenarios requiring compile-time type safety and programmatic graph construction.
+
+### [Observability Introspection (Deep Dive)](./observability-introspection)
+
+**Concepts:** `introspection.TypedWatcher`, `lifecycle` Integration
+Advanced example showing integration with the `lifecycle` package for unified observability across the Engine, Workers, and Signals.
+
+### [Reactivity Demo (SSE & WebUI)](./reactivity-demo)
+
+**Concepts:** `SSE`, `State Delta`, `Chat Interface`, `Frontend Integration`
+Demonstrates the integrated web chat UI (`/ui`) with Server-Sent Events for real-time state updates. Shows how frontends can consume deltas efficiently and inject tool results via HTTP.
