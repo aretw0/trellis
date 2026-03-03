@@ -23,9 +23,16 @@
 
 **Foco**: Corrigir as limitações de interpolação identificadas pelo kitchen sink do v0.7.14 e tornar o `DefaultInterpolator` mais expressivo.
 
+- [ ] **Server-side**: Avaliar se devemos facilitar o envio de markdown pré-renderizado para a interface web não aparecer markdown cru ou se isso deveria ser responsabilidade do cliente. O ideal é que o `DefaultInterpolator` seja capaz de lidar com os casos mais comuns (ex: `{{ default }}`) sem exigir FuncMap personalizada.
+- [ ] **Client-side**: Implementar renderização de markdown no frontend para mensagens que contenham blocos de código ou formatação, garantindo que a UI seja amigável mesmo quando o backend não puder renderizar tudo perfeitamente.
 - [ ] **FuncMap**: Registrar funções utilitárias no `template.New` em `internal/runtime/engine.go`: `default`, `index`, `toJson`, `coalesce`. Isso permite `{{ default "N/A" .missing_key }}` e acesso a campos de mapas dinâmicos.
 - [ ] **`default_context` propagation**: Investigar por que o `default_context` definido em `start.md` não chega ao template. Verificar se o parser YAML do Loam faz merge correto no `domain.Context` antes da renderização.
 - [ ] **`tool_result` typed access**: O resultado de ferramenta é armazenado como `interface{}` (struct interna `ToolResult{ID, Result}`). Avaliar se deve ser achatado (`map[string]any`) antes de ser salvo no contexto, possibilitando `{{ .tool_result.received }}`.
+- [ ] **Documentar limitações**: Atualizar `docs/reference/node_syntax.md` com uma seção clara sobre o que o `DefaultInterpolator` suporta nativamente e o que requer FuncMap personalizada.
+- [ ] **Testes**: Adicionar casos de teste unitários para o `DefaultInterpolator` cobrindo os padrões mais comuns e as limitações identificadas.
+- [ ] **E2E Validation**: Validar que os fluxos existentes (ex: `ui_exhaustive`) continuam funcionando e que a UI renderiza mensagens corretamente após as mudanças.
+- [ ] **Primitivas**: Considerar se é necessário adicionar primitivas de nó específicas para casos comuns de formatação ou manipulação de dados, aliviando a necessidade de lógica complexa no template.
+- [ ] **Cognitive load**: Avaliar o que pode ser feito para reduzir a carga cognitiva por extrair lógica de formatação do template para o nó (ex: `type: format` com campos específicos).
 
 ### 📝 v0.7.17 (Patch): Documentation — Chat UI & Template Engine
 
