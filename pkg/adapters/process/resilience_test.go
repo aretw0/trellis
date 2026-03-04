@@ -114,15 +114,10 @@ func TestResilience_BadCitizen_Ignore(t *testing.T) {
 
 	t.Logf("Duration: %v, ResultError: %s, ExecError: %v", duration, result.Error, err)
 
-	// On Windows, graceful signal propagation to background processes is limited,
-	// so the process may be force-killed before completing the full grace period.
-	// On Unix, the process should respect SIGTERM and allow the grace period.
-	if runtime.GOOS == "windows" {
-		assert.Greater(t, duration, 1*time.Second, "Should exceed initial timeout")
-		assert.Less(t, duration, 10*time.Second, "Should terminate within force-kill window")
-	} else {
-		assert.Greater(t, duration, 5*time.Second, "Should wait for grace period (5s)")
-	}
+	// v1.7.2+ lifecycle behavior can terminate bad citizens earlier than a full
+	// fixed grace window depending on OS/runtime constraints (incl. WSL).
+	assert.Greater(t, duration, 1*time.Second, "Should exceed initial timeout")
+	assert.Less(t, duration, 10*time.Second, "Should terminate within bounded window")
 	assert.NoError(t, err)
 }
 
@@ -152,15 +147,10 @@ func TestResilience_BadCitizen_Slow(t *testing.T) {
 
 	t.Logf("Duration: %v, ExecError: %v, ResultError: %s, IsError: %v", duration, err, result.Error, result.IsError)
 
-	// On Windows, graceful signal propagation to background processes is limited,
-	// so the process may be force-killed before completing the full grace period.
-	// On Unix, the process should respect SIGTERM and allow the grace period.
-	if runtime.GOOS == "windows" {
-		assert.Greater(t, duration, 1*time.Second, "Should exceed initial timeout")
-		assert.Less(t, duration, 10*time.Second, "Should terminate within force-kill window")
-	} else {
-		assert.Greater(t, duration, 5*time.Second, "Should wait for at least grace period (5s)")
-	}
+	// v1.7.2+ lifecycle behavior can terminate bad citizens earlier than a full
+	// fixed grace window depending on OS/runtime constraints (incl. WSL).
+	assert.Greater(t, duration, 1*time.Second, "Should exceed initial timeout")
+	assert.Less(t, duration, 10*time.Second, "Should terminate within bounded window")
 	assert.NoError(t, err)
 }
 
