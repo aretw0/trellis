@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/alicebob/miniredis/v2 v2.36.0
 	github.com/aretw0/introspection v0.1.3
-	github.com/aretw0/lifecycle v1.7.0
+	github.com/aretw0/lifecycle v1.7.2
 	github.com/aretw0/loam v0.10.9
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/getkin/kin-openapi v0.133.0
@@ -25,7 +25,7 @@ require (
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
-	github.com/aretw0/procio v0.1.2 // indirect
+	github.com/aretw0/procio v0.5.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect

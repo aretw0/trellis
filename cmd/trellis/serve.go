@@ -65,7 +65,7 @@ var serveCmd = &cobra.Command{
 				logger.Info("Start shutdown", "reason", ctx.Err())
 
 				// Give outstanding requests a deadline for completion.
-				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 				defer cancel()
 
 				// Asking listener to shut down and shed load.

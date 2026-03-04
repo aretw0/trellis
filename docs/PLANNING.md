@@ -15,11 +15,12 @@
 
 ### 🩹 v0.7.15 (Patch): Chained Context Enforcement
 
-**Status**: [CURRENT]
+**Status**: [COMPLETED]
 
 **Focus**: Fix a pathological `context.Background()` detachment in `cmd/trellis/serve.go` identified during the lifecycle v1.7.1 ecosystem audit. The shutdown context for the HTTP server must respect the urgency escalation signalled by the parent lifecycle context (e.g., force-exit triggered by user mashing Ctrl+C).
 
-- [ ] **`cmd/trellis/serve.go`**: Replace `context.WithTimeout(context.Background(), 5*time.Second)` with `context.WithTimeout(ctx, 5*time.Second)` in the HTTP server shutdown path.
+- [x] **`cmd/trellis/serve.go`**: Replace `context.WithTimeout(context.Background(), 5*time.Second)` with `context.WithTimeout(ctx, 5*time.Second)` in the HTTP server shutdown path.
+- [x] **`pkg/adapters/process/resilience_test.go`**: Add Windows platform-specific assertions to account for limited signal propagation in background processes on Windows. The grace period verification now uses `runtime.GOOS` checks to differentiate behavior: Unix expects full 5s grace period, Windows allows force-kill within 10s.
 
 ### 🩹 v0.7.16 (Patch): Template Engine Hardening
 
