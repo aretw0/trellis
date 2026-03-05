@@ -1,120 +1,120 @@
 # Template Engine Reference
 
-Este documento é a referência canônica do sistema de interpolação de templates do Trellis. Aplica-se à v0.7.16+.
+This document is the canonical reference for the Trellis template interpolation system (v0.7.16+).
 
-## 1. O que é o Interpolator
+## 1. What is the Interpolator
 
-O `Interpolator` é um **port funcional** injetável no engine:
+The `Interpolator` is a functional **port** that can be injected into the engine:
 
 ```go
 type Interpolator func(ctx context.Context, templateStr string, data any) (string, error)
 ```
 
-Toda função compatível com esse tipo pode ser injetada via `NewEngine`:
+Any function compatible with this signature can be injected via `NewEngine`:
 
 ```go
 engine := runtime.NewEngine(loader, nil, runtime.HTMLInterpolator)
 ```
 
-Se nenhum interpolador for fornecido, `DefaultInterpolator` é usado automaticamente.
+If no interpolator is provided, `DefaultInterpolator` is used by default.
 
-## 2. Variantes Disponíveis
+## 2. Available Variants
 
-| Variante | Template Package | Escape HTML? | Quando usar |
+| Variant | Template Package | HTML Escaping | Recommended Use |
 |:---|:---|:---|:---|
-| `DefaultInterpolator` | `text/template` | ❌ Não | CLI, texto puro, Markdown |
-| `HTMLInterpolator` | `html/template` | ✅ Sim | Chat UI, SSE, output direto ao browser |
-| `LegacyInterpolator` | `strings.ReplaceAll` | ❌ Não | Flows legados com `{{ key }}` sem ponto |
+| `DefaultInterpolator` | `text/template` | ❌ No | CLI, Plain Text, Markdown |
+| `HTMLInterpolator` | `html/template` | ✅ Yes | Chat UI, SSE, direct browser output |
+| `LegacyInterpolator` | `strings.ReplaceAll` | ❌ No | Legacy flows using `{{ key }}` without a leading dot |
 
 > [!NOTE]
-> `DefaultInterpolator` é o padrão. Para o Chat UI embutido (`trellis serve`), considere injetar `HTMLInterpolator` para evitar XSS em conteúdo dinâmico.
+> `DefaultInterpolator` is the standard. For the built-in Chat UI (`trellis serve`), consider injecting `HTMLInterpolator` to prevent XSS.
 
-## 3. Contexto de Template
+## 3. Template Context
 
-Dentro dos templates, as seguintes variáveis estão disponíveis:
+The following variables are available within templates:
 
-| Expressão | Origem | Exemplo |
+| Expression | Origin | Example |
 |:---|:---|:---|
 | `{{ .key }}` | `state.Context` (user space) | `{{ .username }}` |
-| `{{ .sys.ans }}` | `state.SystemContext` | Último input do usuário |
-| `{{ .sys.* }}` | `state.SystemContext` | Namespace do sistema (somente leitura) |
-| `{{ .tool_result.id }}` | Auto-injetado após tool (v0.7.16+) | ID do último tool call |
-| `{{ .tool_result.result }}` | Auto-injetado após tool (v0.7.16+) | Resultado do último tool call |
+| `{{ .sys.ans }}` | `state.SystemContext` | Last user input |
+| `{{ .sys.* }}` | `state.SystemContext` | System namespace (read-only) |
+| `{{ .tool_result.id }}` | Auto-injected after tools | Call ID of the last tool call |
+| `{{ .tool_result.result }}` | Auto-injected after tools | Result of the last tool call |
 
-### Chaves Reservadas
+### Reserved Keys
 
-| Chave | Descrição |
+| Key | Description |
 |:---|:---|
-| `sys.*` | Namespace do sistema. Somente leitura nos templates. Protegido contra gravação via `save_to`. |
-| `tool_result` | Último resultado de ferramenta bem-sucedido (política **last-result**, v0.7.16+). |
-| `tool_results` | **Reservado** para política de acumulação futura (v0.8+). Não use em flows hoje. |
+| `sys.*` | System namespace. Read-only in templates. Protected from `save_to` writes. |
+| `tool_result` | Last successful tool result (Policy: **last-result**, v0.7.16+). |
+| `tool_results` | **Reserved** for future accumulation policy (v0.8+). Do not use in flows today. |
 
-## 4. FuncMap — Funções Disponíveis
+## 4. FuncMap — Available Functions
 
-### Funções Registradas (v0.7.16+)
+### Standard Functions (v0.7.16+)
 
-| Função | Uso | Comportamento |
+| Function | Usage | Behavior |
 |:---|:---|:---|
-| `default` | `{{ default "N/A" .key }}` | Retorna `.key` se não-zero; senão, retorna `"N/A"` |
-| `coalesce` | `{{ coalesce .a .b .c }}` | Retorna o primeiro valor não-zero da lista |
-| `toJson` | `{{ toJson .obj }}` | Serializa para JSON; propaga erros de marshal |
+| `default` | `{{ default "N/A" .key }}` | Returns `.key` if non-zero; otherwise returns `"N/A"` |
+| `coalesce` | `{{ coalesce .a .b .c }}` | Returns the first non-zero value in the list |
+| `toJson` | `{{ toJson .obj }}` | Serializes to JSON; propagates marshal errors |
 
-### Funções Nativas do Go Template
+### Native Go Template Functions
 
-| Função | Exemplo |
+| Function | Example |
 |:---|:---|
-| `index` | `{{ index .config "env" }}` — acessa mapa dinâmico |
+| `index` | `{{ index .config "env" }}` — access dynamic maps |
 | `if` / `else` | `{{ if .logged_in }}...{{ end }}` |
 | `eq`, `ne`, `lt`, `gt` | `{{ if eq .status "ok" }}...{{ end }}` |
 | `range` | `{{ range .items }}{{ . }}{{ end }}` |
 | `len` | `{{ len .items }}` |
 
-## 5. Comportamento de Chave Ausente
+## 5. Missing Key Behavior
 
 ```
 {{ .missing_key }}  →  <no value>
 ```
 
-Chaves ausentes em `map[string]any` sempre rendem `<no value>` em Go templates. Isso é comportamento padrão do `text/template` e `html/template` e **não é configurável** para maps.
+Missing keys in `map[string]any` always render as `<no value>` in Go templates. This is the default behavior of `text/template` and `html/template` and is **not configurable** for maps (unlike structs).
 
-Use `{{ default }}` para fornecer valores explícitos:
+Use `{{ default }}` to provide explicit fallback values:
 
 ```
-{{ default "visitante" .username }}  →  "visitante"  (se .username ausente ou vazio)
-{{ default "visitante" .username }}  →  "Alice"      (se .username = "Alice")
+{{ default "guest" .username }}  →  "guest"  (if .username is missing or zero)
+{{ default "guest" .username }}  →  "Alice"  (if .username = "Alice")
 ```
 
-## 6. Exemplos Rápidos
+## 6. Quick Examples
 
 ```markdown
-# Interpolação simples
-Olá, {{ .username }}!
+# Simple interpolation
+Hello, {{ .username }}!
 
-# Com fallback
-Olá, {{ default "visitante" .username }}!
+# With fallback
+Hello, {{ default "guest" .username }}!
 
-# Condicional
-{{ if .tool_result.result }}Ferramenta executou com sucesso.{{ else }}Aguardando.{{ end }}
+# Conditional
+{{ if .tool_result.result }}Tool executed successfully.{{ else }}Waiting.{{ end }}
 
-# Acesso ao resultado de ferramenta (após nó tool)
-- ID da chamada: {{ .tool_result.id }}
-- Resultado: {{ .tool_result.result }}
+# Accessing tool results (after a tool node)
+- Call ID: {{ .tool_result.id }}
+- Result: {{ .tool_result.result }}
 
-# Inspecionar resultado como JSON
+# Inspecting result as JSON
 {{ toJson .tool_result }}
 
-# Acesso a mapa dinâmico
+# Dynamic map access
 {{ index .config "environment" }}
 
-# Comparação de string
-{{ if eq .user_input "sim" }}Confirmado!{{ end }}
+# String comparison
+{{ if eq .user_input "yes" }}Confirmed!{{ end }}
 ```
 
-## 7. Limitações Conhecidas
+## 7. Known Limitations
 
-| Cenário | Comportamento | Mitigação |
+| Scenario | Behavior | Mitigation |
 |:---|:---|:---|
-| Chave ausente em map | Rende `<no value>` | Use `{{ default "fallback" .key }}` |
-| `{{ .tool_result }}` raw | Rende representação Go do map | Use `{{ .tool_result.result }}` ou `{{ toJson .tool_result }}` |
-| Template inválido | Retorna erro (não silencioso) | Corrija a sintaxe do template |
-| Strings com `<`, `>` no `DefaultInterpolator` | **Não** são escapadas (text/template) | Use `HTMLInterpolator` para output no browser |
+| Missing map key | Renders `<no value>` | Use `{{ default "fallback" .key }}` |
+| `{{ .tool_result }}` raw | Renders Go map representation | Use `{{ .tool_result.result }}` or `{{ toJson .tool_result }}` |
+| Invalid template | Returns error (stops flow) | Ensure correct template syntax |
+| HTML in `DefaultInterpolator` | **Not** escaped (text/template) | Use `HTMLInterpolator` for browser output |
