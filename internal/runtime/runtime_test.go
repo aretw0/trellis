@@ -199,7 +199,9 @@ func TestEngine_Interpolation(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Render failed: %v", err)
 		}
-		expected := "Hello ! VIP: No"
+		// Go's text/template renders absent map keys as "<no value>".
+		// Use {{ default "fallback" .Name }} to provide explicit fallbacks in your flow.
+		expected := "Hello <no value>! VIP: No"
 		if actions[0].Payload != expected {
 			t.Errorf("Expected '%s', got '%s'", expected, actions[0].Payload)
 		}

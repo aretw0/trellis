@@ -88,3 +88,39 @@ The PII Middleware masks data **before persistence**.
 **Effect on Resume**: If your application crashes and restarts, it will load the session from disk. Since the sensitive data was masked, the resumed state will contain `***` instead of the real values.
 
 > **Use Case**: Use PII Masking primarily for **Logging compliance** or **Ephemeral sessions** where you prefer to crash rather than leak data. If you need Durable Execution with sensitive data, rely on **Encryption** instead of Masking.
+
+## 3. Template Injection
+
+Trellis uses Go's `text/template` in `DefaultInterpolator`. Unlike `html/template`, it does **not** escape HTML characters by default.
+
+### Risk: Untrusted Context Data
+
+If flow authors are untrusted (e.g., flows loaded from external sources), data in `state.Context` can contain expressions that access other context keys:
+
+```markdown
+Hello, {{ .username }}
+
+{{ /* An attacker-controlled value in .name could expose other fields: */ }}
+{{ .sys.some_value }}
+```
+
+However, the `sys.*` namespace is **read-only** in templates — it cannot be written to via `save_to` (a security violation error is raised).
+
+### Mitigations
+
+| Mitigation | Description |
+|:---|:---|
+| `HTMLInterpolator` | Injects `html/template` — all values are HTML-escaped before rendering. Use when sending output to a browser. |
+| `context_schema` | Validates and enforces types on context keys before node execution, preventing unexpected values from entering the context. |
+| `required_context` | Ensures only declared keys are present before a node renders. |
+
+### When to Use `HTMLInterpolator`
+
+Use `HTMLInterpolator` when the flow output is sent directly to a **browser** (e.g., via SSE or WebSocket). Inject it at engine construction:
+
+```go
+engine := runtime.NewEngine(loader, eventBus, runtime.HTMLInterpolator)
+```
+
+> [!NOTE]
+> For CLI and text/Markdown flows, `DefaultInterpolator` (`text/template`) is the correct choice — HTML escaping in terminal output is usually incorrect.

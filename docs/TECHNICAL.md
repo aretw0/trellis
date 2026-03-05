@@ -141,6 +141,45 @@ graph TD
     Store -.->|Adapter| Memory[pkg/adapters/memory]
 ```
 
+#### 2.4. Interpolation Port (v0.7.16)
+
+O `Interpolator` é um **port funcional injetável** que processa templates Go dentro do conteúdo e argumentos de ferramentas dos nós:
+
+```go
+type Interpolator func(ctx context.Context, templateStr string, data any) (string, error)
+```
+
+**Implementações padrão:**
+
+| Implementação | Template Package | Escape HTML | Uso |
+|:---|:---|:---|:---|
+| `DefaultInterpolator` | `text/template` | ❌ | CLI, Markdown, text flows |
+| `HTMLInterpolator` | `html/template` | ✅ | Chat UI, SSE, output ao browser |
+| `LegacyInterpolator` | `strings.ReplaceAll` | ❌ | Compatibilidade com flows legados |
+
+**Injeção via `NewEngine`:**
+
+```go
+// Default (text/template - sem escape)
+engine := runtime.NewEngine(loader, bus, nil)
+
+// Browser output (html/template - com escape)
+engine := runtime.NewEngine(loader, bus, runtime.HTMLInterpolator)
+```
+
+**Fluxo de interpolação:**
+
+```mermaid
+flowchart LR
+    Render["Engine.Render(State)"] --> Interp["Interpolator(ctx, template, data)"]
+    Interp --> Text["DefaultInterpolator\n(text/template)"]
+    Interp --> HTML["HTMLInterpolator\n(html/template)"]
+    Text --> Out["string output"]
+    HTML --> Out
+```
+
+> Para referência completa de funções disponíveis, contexto de template e limitações conhecidas, veja [docs/reference/interpolation.md](../reference/interpolation.md).
+
 ### 3. Estrutura de Diretórios
 
 ```text

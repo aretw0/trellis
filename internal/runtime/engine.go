@@ -4,11 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"html/template"
+	htmltemplate "html/template"
 	"io"
 	"log/slog"
+	"reflect"
 	"strings"
+	texttemplate "text/template"
 	"time"
 
 	"github.com/aretw0/trellis/internal/compiler"
@@ -88,17 +91,103 @@ func DefaultEvaluator(ctx context.Context, condition string, input any) (bool, e
 // Interpolator is a function that replaces variables in a string with values from data.
 type Interpolator func(ctx context.Context, templateStr string, data any) (string, error)
 
-// DefaultInterpolator uses Go's text/template logic.
+// buildFuncMap returns the shared utility FuncMap registered in both DefaultInterpolator and HTMLInterpolator.
+// Functions available in templates:
+//   - default <fallback> <value>: returns value if non-zero, otherwise fallback.
+//   - coalesce <v1> <v2> ...: returns the first non-zero value in the list.
+//   - toJson <value>: serializes value to a JSON string; propagates errors.
+func buildFuncMap() map[string]any {
+	return map[string]any{
+		"default":  funcDefault,
+		"coalesce": funcCoalesce,
+		"toJson":   funcToJson,
+	}
+}
+
+// isZero reports whether v is the zero value for its type.
+// Handles nil, string, int/int64, float64, and bool.
+// Structs, slices, and maps are checked via reflect.DeepEqual.
+func isZero(v any) bool {
+	if v == nil {
+		return true
+	}
+	switch val := v.(type) {
+	case string:
+		return val == ""
+	case int:
+		return val == 0
+	case int64:
+		return val == 0
+	case float64:
+		return val == 0
+	case bool:
+		return !val
+	}
+	// Fallback: use reflect for maps, slices, etc.
+	rv := reflect.ValueOf(v)
+	return rv.IsZero()
+}
+
+func funcDefault(def any, val any) any {
+	if isZero(val) {
+		return def
+	}
+	return val
+}
+
+func funcCoalesce(vals ...any) any {
+	for _, v := range vals {
+		if !isZero(v) {
+			return v
+		}
+	}
+	return nil
+}
+
+func funcToJson(v any) (string, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", fmt.Errorf("toJson: %w", err)
+	}
+	return string(b), nil
+}
+
+// DefaultInterpolator uses Go's text/template — no HTML escaping.
+// Suitable for CLI, plain text, and Markdown flows.
+// For browser output, use HTMLInterpolator instead.
 func DefaultInterpolator(ctx context.Context, templateStr string, data any) (string, error) {
 	// Fast path: no template tokens
 	if !strings.Contains(templateStr, "{{") {
 		return templateStr, nil
 	}
 
-	tmpl, err := template.New("node").Parse(templateStr)
+	// Note: missingkey=zero has no effect on map[string]any access in Go templates.
+	// Missing map keys always render as "<no value>" — use {{ default }} to provide fallbacks.
+	tmpl, err := texttemplate.New("node").Funcs(texttemplate.FuncMap(buildFuncMap())).Parse(templateStr)
 	if err != nil {
-		// Fallback: return raw string if parse fails, or error?
-		// For robustness in text UIs, maybe returning error is better so dev sees mistake.
+		return "", fmt.Errorf("invalid template '%s': %w", templateStr, err)
+	}
+
+	var sb strings.Builder
+	if err := tmpl.Execute(&sb, data); err != nil {
+		return "", fmt.Errorf("template execution failed: %w", err)
+	}
+	return sb.String(), nil
+}
+
+// HTMLInterpolator uses Go's html/template — escapes HTML characters automatically.
+// Use this when the rendered output is sent directly to a browser (e.g., Chat UI / SSE).
+// Inject it via: trellis.New(dir, trellis.WithInterpolator(runtime.HTMLInterpolator))
+func HTMLInterpolator(ctx context.Context, templateStr string, data any) (string, error) {
+	// Fast path: no template tokens
+	if !strings.Contains(templateStr, "{{") {
+		return templateStr, nil
+	}
+
+	// Note: missingkey=zero has no effect on map[string]any access in Go templates.
+	// Missing map keys always render as "<no value>" — use {{ default }} to provide fallbacks.
+	tmpl, err := htmltemplate.New("node").Funcs(htmltemplate.FuncMap(buildFuncMap())).Parse(templateStr)
+	if err != nil {
 		return "", fmt.Errorf("invalid template '%s': %w", templateStr, err)
 	}
 

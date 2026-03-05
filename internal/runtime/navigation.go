@@ -80,6 +80,15 @@ func (e *Engine) handleToolResult(ctx context.Context, currentState *domain.Stat
 	resumedState.Status = domain.StatusActive
 	resumedState.PendingToolCall = ""
 
+	// Flatten: Expose the last tool result as an accessible map in user context.
+	// This allows {{ .tool_result.result }}, {{ .tool_result.id }}, etc. in templates.
+	// Policy: "last-result" — only the most recent successful tool result is kept.
+	// Note: "tool_results" (plural) is reserved for a future accumulation policy (v0.8+).
+	resumedState.Context["tool_result"] = map[string]any{
+		"id":     result.ID,
+		"result": result.Result,
+	}
+
 	return e.navigateInternal(ctx, resumedState, result.Result)
 }
 

@@ -36,13 +36,13 @@ type: text              # Optional. Inferred from behavior (Defaults to "text").
 do:
   name: my_tool_name    # Tool to execute
   args:                 # Arguments passed to the tool
-    id: "{{ user_id }}"
+    id: "{{ .user_id }}"
 
 # --- Behavior: SAGA (The "Undo") ---
 undo:
   name: revert_tool     # Executed if flow rolls back
   args:
-    id: "{{ user_id }}"
+    id: "{{ .user_id }}"
 
 # --- Context Management ---
 required_context:       # Fails if these keys are missing
@@ -327,3 +327,53 @@ input_default: "yes" # Overrides convention to make Enter = True
 on_denied: stop_flow
 to: continue_flow
 ```
+
+## 6. Template Engine
+
+Node content and tool arguments support Go's `text/template` syntax for dynamic interpolation.
+
+### 6.1. Basic Examples
+
+```markdown
+---
+to: greet
+save_to: username
+---
+What is your name?
+```
+
+```markdown
+---
+to: done
+---
+Hello, {{ .username }}!
+
+Welcome back, {{ default "friend" .nickname }}.
+```
+
+### 6.2. Accessing Tool Results
+
+After a `tool` node executes successfully, the result is automatically available as `{{ .tool_result }}`:
+
+```markdown
+---
+to: next_step
+---
+## Last Tool Call
+
+- Call ID: {{ .tool_result.id }}
+- Result: {{ .tool_result.result }}
+
+{{ if .tool_result.result }}Operation succeeded.{{ end }}
+```
+
+### 6.3. Available Functions
+
+| Function | Example | Description |
+|:---|:---|:---|
+| `default` | `{{ default "N/A" .key }}` | Returns `.key` if non-zero, otherwise the fallback |
+| `coalesce` | `{{ coalesce .a .b .c }}` | Returns the first non-zero value |
+| `toJson` | `{{ toJson .obj }}` | Serializes to JSON string |
+| `index` | `{{ index .map "key" }}` | Accesses a map by dynamic key (built-in) |
+
+> For the full reference — including `HTMLInterpolator` for browser output, reserved keys, and known limitations — see [docs/reference/interpolation.md](./interpolation.md).
