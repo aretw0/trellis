@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en"> <!-- Updated dynamically by applyTranslations() -->
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +9,29 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
       body {
         font-family: "Inter", sans-serif;
       }
       .mono {
         font-family: "JetBrains Mono", monospace;
+      }
+      /* Skip link for a11y */
+      .skip-link {
+        position: absolute;
+        top: -100px;
+        left: 0;
+        background: #3b82f6;
+        color: white;
+        padding: 8px 16px;
+        z-index: 100;
+        transition: top 0.2s;
+        border-radius: 0 0 8px 0;
+        font-weight: 500;
+      }
+      .skip-link:focus {
+        top: 0;
       }
       .chat-scroll::-webkit-scrollbar {
         width: 6px;
@@ -28,7 +45,7 @@
         border-radius: 18px 18px 18px 4px;
       }
       .bubble-user {
-        background: #3b82f6;
+        background: #2563eb; /* WCAG AA: blue-600 has better contrast than default blue-500 */
         color: white;
         border-radius: 18px 18px 4px 18px;
       }
@@ -38,113 +55,160 @@
         color: #065f46;
         border-radius: 12px;
       }
+      /* Markdown Enhancements */
+      .markdown-content h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+      .markdown-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 1rem; }
+      .markdown-content p { margin-bottom: 0.75rem; }
+      .markdown-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+      .markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+      .markdown-content code { background: rgba(0,0,0,0.05); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: "JetBrains Mono", monospace; font-size: 0.875em; }
+      .bubble-user .markdown-content code { background: rgba(255,255,255,0.2); }
+      .markdown-content pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; font-family: "JetBrains Mono", monospace; }
+      .markdown-content blockquote { border-left: 4px solid #cbd5e1; padding-left: 1rem; font-style: italic; color: #64748b; margin-bottom: 1rem; }
+      .markdown-content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+      .markdown-content th, .markdown-content td { border: 1px solid #e2e8f0; padding: 0.5rem; text-align: left; }
+      .markdown-content th { background: #f8fafc; }
+      /* Remove trailing margin from last element inside bubble */
+      .markdown-content > *:last-child { margin-bottom: 0; }
     </style>
   </head>
-  <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+  <body class="bg-slate-50 text-slate-900 h-screen flex flex-col overflow-hidden">
+    <a href="#chat-window" class="skip-link" data-i18n="skipToChat">Skip to chat</a>
     <header
+      role="banner"
+      aria-label="Trellis Inspector Header"
       class="bg-white/80 backdrop-blur sticky top-0 z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm"
     >
       <div class="flex items-center gap-3">
         <div
+          aria-hidden="true"
           class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold italic"
         >
           T
         </div>
-        <h1 class="text-lg font-semibold tracking-tight">Trellis Inspector</h1>
+        <h1 class="text-lg font-semibold tracking-tight" data-i18n="title">Trellis Inspector</h1>
       </div>
       <div class="flex items-center gap-4">
+        <select
+          id="lang-picker"
+          aria-label="Select Language"
+          onchange="changeLang(this.value)"
+          class="text-xs bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="en">🌐 English</option>
+          <option value="pt-BR">🌐 Português</option>
+          <option value="es">🌐 Español</option>
+        </select>
         <div
           id="conn-status"
-          class="flex items-center gap-2 text-xs font-medium text-slate-500"
+          role="status"
+          class="flex items-center gap-2 text-xs font-medium text-slate-600"
         >
           <span class="w-2 h-2 bg-slate-300 rounded-full animate-pulse"></span>
-          Connecting...
+          <span data-i18n="connecting">Connecting...</span>
         </div>
         <button
           onclick="toggleDebug()"
-          class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200"
+          id="debug-toggle-btn"
+          aria-expanded="false"
+          aria-controls="debug-panel"
+          class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         >
-          Toggle Debug
+          <span data-i18n="toggleDebug">Toggle Debug</span>
         </button>
       </div>
     </header>
 
     <main
-      class="flex-1 max-w-6xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6"
+      role="main"
+      aria-label="Inspector Workspace"
+      class="flex-1 min-h-0 max-w-6xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6"
     >
       <div
-        class="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+        class="lg:col-span-2 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-0"
       >
         <!-- Chat Interface -->
         <div
           id="chat-window"
-          class="flex-1 p-6 space-y-4 overflow-y-auto chat-scroll max-h-[70vh]"
+          role="log"
+          aria-live="polite"
+          aria-label="Chat messages"
+          class="flex-1 min-h-0 p-6 space-y-4 overflow-y-auto chat-scroll"
         ></div>
 
         <div
           id="input-container"
           class="p-4 border-t border-slate-100 bg-slate-50/50"
         >
-          <div id="prompt-area" class="flex gap-2 hidden">
+          <div id="prompt-area" class="flex gap-2 hidden" role="form" aria-label="Message form">
             <input
               type="text"
               id="user-input"
               class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-inner"
               placeholder="Type your response..."
-              onkeypress="if (event.key === 'Enter') sendInput();"
+              data-i18n-placeholder="placeholder"
+              aria-label="Type your response"
+              onkeydown="if (event.key === 'Enter') sendInput();"
             />
             <button
               onclick="sendInput()"
               id="send-btn"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-md"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              Send
+              <span data-i18n="send">Send</span>
             </button>
           </div>
           <div id="terminal-area" class="hidden text-center py-4">
             <p
-              class="text-slate-500 italic text-sm font-medium"
+              class="text-slate-600 italic text-sm font-medium"
               id="terminal-msg"
+              data-i18n="sessionEnded"
             >
               Session Ended.
             </p>
             <button
               onclick="window.location.reload()"
-              class="mt-2 text-slate-600 border border-slate-300 px-4 py-1.5 rounded-md hover:bg-slate-100 text-sm transition-colors"
+              class="mt-2 text-slate-700 border border-slate-300 px-4 py-1.5 rounded-md hover:bg-slate-100 text-sm transition-colors focus:ring-2 focus:ring-blue-500"
             >
-              Restart
+              <span data-i18n="restart">Restart</span>
             </button>
           </div>
-          <div id="processing-area" class="text-center py-4 hidden">
-            <span class="text-slate-500 italic text-sm animate-pulse"
+          <div id="processing-area" class="text-center py-4 hidden" role="status">
+            <span class="text-slate-600 italic text-sm animate-pulse" data-i18n="thinking"
               >Thinking...</span
             >
           </div>
         </div>
-        <div
+        <nav
+          aria-label="Flow Controls"
           class="px-4 py-3 bg-slate-100/50 border-t border-slate-100 flex gap-2 justify-center"
         >
           <button
             onclick="sendSignal('interrupt')"
-            class="text-[10px] uppercase tracking-wider font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1 rounded border border-orange-200"
+            class="text-xs uppercase tracking-wider font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1 rounded border border-orange-200 focus:ring-2 focus:ring-orange-500"
           >
-            Interrupt (Ctrl+C)
+            <span data-i18n="interrupt">Interrupt</span>
           </button>
           <button
             onclick="sendSignal('quit')"
-            class="text-[10px] uppercase tracking-wider font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1 rounded border border-red-200"
+            class="text-xs uppercase tracking-wider font-bold text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded border border-red-200 focus:ring-2 focus:ring-red-500"
           >
-            Quit
+            <span data-i18n="quit">Quit</span>
           </button>
-        </div>
+        </nav>
       </div>
 
-      <div class="space-y-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div class="space-y-6 overflow-y-auto">
+        <section
+          aria-labelledby="session-info-title"
+          class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+        >
           <h2
-            class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2"
+            id="session-info-title"
+            class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2"
           >
             <svg
+              aria-hidden="true"
               class="w-4 h-4"
               fill="none"
               stroke="currentColor"
@@ -157,47 +221,51 @@
                 d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
               ></path>
             </svg>
-            Session Info
+            <span data-i18n="sessionInfo">Session Info</span>
           </h2>
           <div class="space-y-3 text-sm">
             <div class="flex justify-between items-center">
-              <span class="text-slate-500">Node:</span
-              ><span
+              <span class="text-slate-600" data-i18n="node">Node:</span>
+              <span
                 id="current-node"
-                class="font-mono text-blue-600 text-xs font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100"
+                class="font-mono text-blue-700 text-xs font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100"
                 >start</span
               >
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-slate-500">Status:</span
-              ><span
+              <span class="text-slate-600" data-i18n="status">Status:</span>
+              <span
                 id="exec-status"
                 class="font-medium bg-slate-100 px-2 rounded tracking-wide text-xs py-0.5"
                 >active</span
               >
             </div>
             <div
-              class="pt-3 mt-3 border-t border-slate-100 text-[10px] text-slate-400 font-mono break-all"
+              class="pt-3 mt-3 border-t border-slate-100 text-xs text-slate-500 font-mono break-all"
             >
               ID: <span id="session-id-display"></span>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div
+        <section
           id="debug-panel"
+          aria-labelledby="debug-panel-title"
           class="hidden bg-slate-900 p-6 rounded-2xl shadow-xl text-slate-300 font-mono text-xs overflow-hidden flex flex-col max-h-[50vh]"
         >
           <h2
+            id="debug-panel-title"
             class="text-blue-400 mb-4 border-b border-slate-800 pb-2 flex justify-between"
           >
-            <span>EVENT LOG</span>
+            <span data-i18n="eventLog">EVENT LOG</span>
           </h2>
           <div
             id="debug-logs"
+            role="log"
+            aria-live="polite"
             class="flex-1 overflow-y-auto chat-scroll space-y-2"
           ></div>
-        </div>
+        </section>
       </div>
     </main>
 
@@ -214,22 +282,135 @@
       const execStatusDisplay = document.getElementById("exec-status");
       const debugPanel = document.getElementById("debug-panel");
       const debugLogs = document.getElementById("debug-logs");
+      const debugToggleBtn = document.getElementById("debug-toggle-btn");
+      const langPicker = document.getElementById("lang-picker");
+
+      const TRANSLATIONS = {
+        en: {
+          title: "Trellis Inspector",
+          connecting: "Connecting...",
+          liveUpdates: "Live Updates",
+          disconnected: "Disconnected",
+          toggleDebug: "Toggle Debug",
+          placeholder: "Type your response...",
+          send: "Send",
+          sessionEnded: "Session Ended.",
+          restart: "Restart",
+          thinking: "Thinking...",
+          interrupt: "Interrupt",
+          quit: "Quit",
+          sessionInfo: "Session Info",
+          node: "Node:",
+          status: "Status:",
+          eventLog: "EVENT LOG",
+          toolExec: "Tool Execution",
+          autoAdvance: "Auto-advancing flow...",
+          skipToChat: "Skip to chat",
+        },
+        "pt-BR": {
+          title: "Inspetor Trellis",
+          connecting: "Conectando...",
+          liveUpdates: "Atualizações ao Vivo",
+          disconnected: "Desconectado",
+          toggleDebug: "Alternar Debug",
+          placeholder: "Digite sua resposta...",
+          send: "Enviar",
+          sessionEnded: "Sessão Encerrada.",
+          restart: "Reiniciar",
+          thinking: "Pensando...",
+          interrupt: "Interromper",
+          quit: "Sair",
+          sessionInfo: "Info da Sessão",
+          node: "Nó:",
+          status: "Status:",
+          eventLog: "LOG DE EVENTOS",
+          toolExec: "Execução de Ferramenta",
+          autoAdvance: "Auto-avançando fluxo...",
+          skipToChat: "Pular para o chat",
+        },
+        es: {
+          title: "Inspector Trellis",
+          connecting: "Conectando...",
+          liveUpdates: "Actualizaciones en Vivo",
+          disconnected: "Desconectado",
+          toggleDebug: "Alternar Depuración",
+          placeholder: "Escribe tu respuesta...",
+          send: "Enviar",
+          sessionEnded: "Sesión Finalizada.",
+          restart: "Reiniciar",
+          thinking: "Pensando...",
+          interrupt: "Interrumpir",
+          quit: "Salir",
+          sessionInfo: "Información de Sesión",
+          node: "Nodo:",
+          status: "Estado:",
+          eventLog: "LOG DE EVENTOS",
+          toolExec: "Ejecución de Herramienta",
+          autoAdvance: "Auto-avanzando flujo...",
+          skipToChat: "Saltar al chat",
+        },
+      };
+
+      let currentLocale = localStorage.getItem("trellis-locale") || 
+                          (TRANSLATIONS[navigator.language] ? navigator.language : 
+                           TRANSLATIONS[navigator.language.split('-')[0]] ? navigator.language.split('-')[0] : "en");
+      
+      if (!TRANSLATIONS[currentLocale]) currentLocale = "en";
+      langPicker.value = currentLocale;
+
+      function t(key) {
+        return TRANSLATIONS[currentLocale][key] || TRANSLATIONS["en"][key] || key;
+      }
+
+      function applyTranslations() {
+        document.title = t("title");
+        document.documentElement.lang = currentLocale;
+        
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          el.textContent = t(el.getAttribute("data-i18n"));
+        });
+        
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+          el.placeholder = t(el.getAttribute("data-i18n-placeholder"));
+          if (el.hasAttribute("aria-label")) {
+            el.setAttribute("aria-label", el.placeholder);
+          }
+        });
+      }
+
+      function changeLang(lang) {
+        currentLocale = lang;
+        localStorage.setItem("trellis-locale", lang);
+        applyTranslations();
+      }
 
       let currentSessionId = crypto.randomUUID();
-      let currentState = { current_node_id: "start", session_id: currentSessionId };
+      let currentState = {
+        current_node_id: "start",
+        session_id: currentSessionId,
+      };
       let eventSource = null;
+      let lastRenderedContentHash = null;
 
       sessionDisplay.textContent = currentSessionId;
 
       function toggleDebug() {
-        debugPanel.classList.toggle("hidden");
+        const isHidden = debugPanel.classList.toggle("hidden");
+        debugToggleBtn.setAttribute("aria-expanded", !isHidden);
       }
 
       function logDebug(type, payload) {
         const d = new Date();
         const time = `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}`;
-        const color = type === "SEND" ? "text-green-400" : type === "RECV" ? "text-purple-400" : type === "ERR" ? "text-red-400" : "text-blue-400";
-        
+        const color =
+          type === "SEND"
+            ? "text-green-400"
+            : type === "RECV"
+              ? "text-purple-400"
+              : type === "ERR"
+                ? "text-red-400"
+                : "text-blue-400";
+
         debugLogs.innerHTML += `<div class="mb-2"><span class="text-slate-500">[${time}]</span> <span class="${color} font-bold">${type}</span><br/><pre class="mt-1 bg-slate-800/50 p-2 rounded">${JSON.stringify(payload, null, 2)}</pre></div>`;
         debugLogs.scrollTop = debugLogs.scrollHeight;
       }
@@ -237,25 +418,27 @@
       function appendBubble(content, type) {
         const div = document.createElement("div");
         div.className = "flex w-full mb-4 animate-fade-in";
-        
+
         const inner = document.createElement("div");
         inner.className = `max-w-[85%] px-5 py-3.5 shadow-sm text-[15px] leading-relaxed relative ${
-          type === 'user' ? 'bubble-user ml-auto' : 
-          type === 'tool' ? 'bubble-tool mx-auto w-full my-2' : 
-          'bubble-system mr-auto'
+          type === "user"
+            ? "bubble-user ml-auto"
+            : type === "tool"
+              ? "bubble-tool mx-auto w-full my-2"
+              : "bubble-system mr-auto"
         }`;
-        
-        if (type === 'tool') {
+
+        if (type === "tool") {
           inner.innerHTML = `
             <div class="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-100/50">
-              <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 px-2 py-0.5 rounded text-emerald-700">Tool Execution</span>
+              <span class="text-xs font-bold uppercase tracking-wider bg-emerald-100 px-2 py-0.5 rounded text-emerald-700">${t("toolExec")}</span>
             </div>
             <div class="font-mono text-xs overflow-x-auto whitespace-pre-wrap">${content}</div>
           `;
         } else {
-          inner.innerHTML = content.replace(/\n/g, "<br>");
+          inner.innerHTML = `<div class="markdown-content">${marked.parse(content)}</div>`;
         }
-        
+
         div.appendChild(inner);
         chatWindow.appendChild(div);
         chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -263,23 +446,23 @@
 
       function updateStatus(status) {
         if (status === "connecting") {
-          connStatus.innerHTML = `<span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.5)]"></span>Connecting...`;
+          connStatus.innerHTML = `<span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.5)]"></span><span data-i18n="connecting">${t("connecting")}</span>`;
         } else if (status === "connected") {
-          connStatus.innerHTML = `<span class="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>Live Updates`;
+          connStatus.innerHTML = `<span class="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span><span data-i18n="liveUpdates">${t("liveUpdates")}</span>`;
         } else if (status === "disconnected" || status === "error") {
-          connStatus.innerHTML = `<span class="w-2 h-2 bg-slate-300 rounded-full"></span>Disconnected`;
+          connStatus.innerHTML = `<span class="w-2 h-2 bg-slate-300 rounded-full"></span><span data-i18n="disconnected">${t("disconnected")}</span>`;
         }
       }
 
       function connectSSE() {
         updateStatus("connecting");
         if (eventSource) eventSource.close();
-        
+
         eventSource = new EventSource(`/events?session_id=${currentSessionId}`);
-        
+
         eventSource.onopen = () => updateStatus("connected");
         eventSource.onerror = () => updateStatus("error");
-        
+
         eventSource.addEventListener("update", (e) => {
           const payload = JSON.parse(e.data);
           logDebug("RECV", payload);
@@ -289,23 +472,34 @@
 
       function handleRenderResponse(res) {
         processingArea.classList.add("hidden");
-        
+
         if (res.state) {
           currentState = res.state;
           currentNodeDisplay.textContent = res.state.current_node_id || "end";
-          execStatusDisplay.textContent = res.state.terminated ? "terminated" : "active";
+          execStatusDisplay.textContent = res.state.terminated
+            ? "terminated"
+            : "active";
           if (res.state.terminated) {
-            execStatusDisplay.className = "font-medium bg-red-100 text-red-700 px-2 rounded tracking-wide text-xs py-0.5";
+            execStatusDisplay.className =
+              "font-medium bg-red-100 text-red-700 px-2 rounded tracking-wide text-xs py-0.5";
             promptArea.classList.add("hidden");
             terminalArea.classList.remove("hidden");
-            terminalMsg.textContent = "Session Ended.";
+            // terminalMsg content is handled by data-i18n but we set it here for robustness
+            terminalMsg.textContent = t("sessionEnded");
           }
         }
 
         let needsInput = false;
         if (res.actions) {
-          res.actions.forEach(action => {
-            if (action.type === "RENDER_CONTENT" || action.type === "SYSTEM_MESSAGE") {
+          res.actions.forEach((action) => {
+            if (
+              action.type === "RENDER_CONTENT" ||
+              action.type === "SYSTEM_MESSAGE"
+            ) {
+              // Deduplicate: skip if the same content was just rendered
+              const contentHash = action.payload;
+              if (contentHash === lastRenderedContentHash) return;
+              lastRenderedContentHash = contentHash;
               appendBubble(action.payload, "system");
             } else if (action.type === "REQUEST_INPUT") {
               needsInput = true;
@@ -313,16 +507,20 @@
               inputBox.focus();
             } else if (action.type === "CALL_TOOL") {
               const body = action.payload;
-              const toolStr = `${body.name || body.Name || 'tool'}(${JSON.stringify(body.args || body.Args || {})})`;
+              const toolStr = `${body.name || body.Name || "tool"}(${JSON.stringify(body.args || body.Args || {})})`;
               appendBubble(toolStr, "tool");
             }
           });
         }
 
         // Auto-advance if no input is needed and the flow isn't finished/waiting for tools
-        if (!needsInput && !res.state.terminated && res.state.status !== "waiting_for_tool") {
-            logDebug("SYS", "Auto-advancing flow...");
-            navigate("");
+        if (
+          !needsInput &&
+          !res.state.terminated &&
+          res.state.status !== "waiting_for_tool"
+        ) {
+          logDebug("SYS", t("autoAdvance"));
+          navigate("");
         }
       }
 
@@ -332,12 +530,12 @@
           const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
           });
           const data = await res.json();
           // We rely on SSE for background state updates, but synchronous HTTP calls return our UI render actions
           if (data && data.state) {
-             handleRenderResponse(data);
+            handleRenderResponse(data);
           }
         } catch (err) {
           console.error(err);
@@ -350,10 +548,10 @@
       function navigate(inputStr) {
         promptArea.classList.add("hidden");
         processingArea.classList.remove("hidden");
-        
+
         const payload = {
           state: currentState,
-          input: inputStr // A primitive string
+          input: inputStr, // A primitive string
         };
         apiCall("/navigate", payload);
       }
@@ -364,6 +562,8 @@
         appendBubble(val, "user");
         inputBox.value = "";
         navigate(val);
+        // Focus management: return focus to input
+        setTimeout(() => inputBox.focus(), 100);
       }
 
       function sendSignal(type) {
@@ -373,6 +573,7 @@
       }
 
       // Initialize Loop
+      applyTranslations();
       connectSSE();
       apiCall("/render", currentState);
     </script>
