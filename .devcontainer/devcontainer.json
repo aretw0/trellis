@@ -1,0 +1,27 @@
+{
+  "name": "Trellis Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+  "postCreateCommand": "go mod tidy && npm install -g pa11y lighthouse",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "editorconfig.editorconfig",
+        "DavidAnson.vscode-markdownlint"
+      ],
+      "settings": {
+        "go.testFlags": ["-race", "-timeout", "90s"],
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "forwardPorts": [8080, 8081],
+  "remoteUser": "vscode"
+}
