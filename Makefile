@@ -1,4 +1,7 @@
-.PHONY: all gen build test test-ui test-ui-headed coverage lint vet tidy serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify work-on-lifecycle work-on-loam work-on-procio work-on-introspection work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
+.PHONY: all gen build test test-ui test-ui-headed coverage lint vet tidy \
+	serve-docs serve-tour mcp-tour inspect-tour inspect-tour-sse verify a11y \
+	work-on-lifecycle work-on-loam work-on-procio work-on-introspection \
+	work-off-lifecycle work-off-loam work-off-procio work-off-introspection work-off-all
 
 # Go parameters
 GOCMD=go
@@ -95,6 +98,11 @@ inspect-tour-sse:
 # Verify server endpoints (requires server running in another terminal)
 verify:
 	$(CURL) -X POST http://localhost:8080/render -H "Content-Type: application/json" -d "{\"current_node_id\": \"start\"}"
+
+# Run Accessibility Audit (requires pa11y and lighthouse)
+a11y:
+	@chmod +x ./scripts/a11y-audit.sh
+	./scripts/a11y-audit.sh
 
 # --- Dependency Management (Dev vs Prod) ---
 
