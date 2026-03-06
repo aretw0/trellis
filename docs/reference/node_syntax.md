@@ -353,7 +353,10 @@ Welcome back, {{ default "friend" .nickname }}.
 
 ### 6.2. Accessing Tool Results
 
-After a `tool` node executes successfully, the result is automatically available as `{{ .tool_result }}`:
+After a `tool` node executes successfully, the result is automatically added to the context under `tool_result`.
+
+**If the tool returns a JSON object (Map/Dictionary):**
+The fields are flattened into `tool_result` for direct access, and the call ID is stored in `_id`:
 
 ```markdown
 ---
@@ -361,10 +364,19 @@ to: next_step
 ---
 ## Last Tool Call
 
-- Call ID: {{ .tool_result.id }}
-- Result: {{ .tool_result.result }}
+- Call ID: {{ .tool_result._id }}
+- Status: {{ .tool_result.status }}
+- Message: {{ .tool_result.message }}
 
-{{ if .tool_result.result }}Operation succeeded.{{ end }}
+{{ if eq .tool_result.status "success" }}Operation succeeded.{{ end }}
+```
+
+**If the tool returns a scalar (String, Int, etc.):**
+The result is stored in the `result` field, and the call ID is stored in `_id`:
+
+```markdown
+- Call ID: {{ .tool_result._id }}
+- Result: {{ .tool_result.result }}
 ```
 
 ### 6.3. Available Functions

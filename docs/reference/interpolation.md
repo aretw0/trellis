@@ -38,8 +38,9 @@ The following variables are available within templates:
 | `{{ .key }}` | `state.Context` (user space) | `{{ .username }}` |
 | `{{ .sys.ans }}` | `state.SystemContext` | Last user input |
 | `{{ .sys.* }}` | `state.SystemContext` | System namespace (read-only) |
-| `{{ .tool_result.id }}` | Auto-injected after tools | Call ID of the last tool call |
-| `{{ .tool_result.result }}` | Auto-injected after tools | Result of the last tool call |
+| `{{ .tool_result._id }}` | Auto-injected after tools | Call ID of the last tool call |
+| `{{ .tool_result.result }}` | Auto-injected after tools | Result (if scalar) |
+| `{{ .tool_result.field }}` | Auto-injected after tools | Extracted field (if result was a map) |
 
 ### Reserved Keys
 
@@ -97,7 +98,7 @@ Hello, {{ default "guest" .username }}!
 {{ if .tool_result.result }}Tool executed successfully.{{ else }}Waiting.{{ end }}
 
 # Accessing tool results (after a tool node)
-- Call ID: {{ .tool_result.id }}
+- Call ID: {{ .tool_result._id }}
 - Result: {{ .tool_result.result }}
 
 # Inspecting result as JSON
