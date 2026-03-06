@@ -83,6 +83,21 @@ on_signal_default:
 timeout: "30s"            # Max time to wait for input
 ```
 
+### `type: format`
+
+A technical node used for post-processing or converting content (e.g., Markdown to HTML). It utilizes the configured `ContentConverter` in the engine.
+
+```yaml
+id: docs_render
+type: format
+format: markdown
+message: |
+  # Hello
+  This is **markdown**.
+```
+
+Nodes of type `format` typically have a `format` property specifying the transformation type.
+
 ## 3. Formatting Rules
 
 ### 3.1. Markdown Body = Content
@@ -280,6 +295,8 @@ print(json.dumps({"status": "success"}))
 | `input_type`| `string` | `text` (default), `confirm`, `choice`, `int`. |
 | `input_default`| `string` | Default value if user presses Enter. |
 | `input_options`| `[]string` | Options for `choice` input (Low-level). |
+| `messages` | `map[string]string` | Map of locales to content. Used for internationalization. See [I18n Guide](../guides/frontend-integration.md). |
+| `next` | `string` | The ID of the next node to transition to. |
 | `save_to` | `string` | Context variable key to store Input or Tool Result. |
 | `to` | `string` | Shorthand for single unconditional transition. |
 | `transitions` | `[]Transition` | List of conditional paths. Evaluated in order. |

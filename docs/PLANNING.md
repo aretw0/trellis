@@ -22,29 +22,18 @@
 - [x] **`cmd/trellis/serve.go`**: Replace `context.WithTimeout(context.Background(), 5*time.Second)` with `context.WithTimeout(ctx, 5*time.Second)` in the HTTP server shutdown path.
 - [x] **`pkg/adapters/process/resilience_test.go`**: Add Windows platform-specific assertions to account for limited signal propagation in background processes on Windows. The grace period verification now uses `runtime.GOOS` checks to differentiate behavior: Unix expects full 5s grace period, Windows allows force-kill within 10s.
 
-### 🩹 v0.7.16 (Patch): Template Engine Hardening
+### 🩹 v0.7.16 (Patch): Template Engine Hardening [RELEASED]
 
-**Foco**: Corrigir as limitações de interpolação identificadas pelo kitchen sink do v0.7.14 e tornar o `DefaultInterpolator` mais expressivo.
+- [x] **FuncMap**: Registered utility functions (`default`, `coalesce`, `toJson`) in `Engine`.
+- [x] **`default_context` propagation**: Fixed in Loam parser to ensure merge into domain context.
+- [x] **`tool_result` typed access**: Tool results are now accessible in templates via `.tool_result`.
 
-- [ ] **FuncMap**: Registrar funções utilitárias no `template.New` em `internal/runtime/engine.go`: `default`, `index`, `toJson`, `coalesce`. Isso permite `{{ default "N/A" .missing_key }}` e acesso a campos de mapas dinâmicos.
-- [ ] **`default_context` propagation**: Investigar por que o `default_context` definido em `start.md` não chega ao template. Verificar se o parser YAML do Loam faz merge correto no `domain.Context` antes da renderização.
-- [ ] **`tool_result` typed access**: O resultado de ferramenta é armazenado como `interface{}` (struct interna `ToolResult{ID, Result}`). Avaliar se deve ser achatado (`map[string]any`) antes de ser salvo no contexto, possibilitando `{{ .tool_result.received }}`.
-- [ ] **Testes**: Adicionar casos de teste unitários para o `DefaultInterpolator` cobrindo os padrões mais comuns e as limitações identificadas.
+### 📝 v0.7.17 (Patch): Inspector I18n & Accessibility [RELEASED]
 
-**Escopo opcional (se sobrar tempo)**:
-
-- [ ] **Server-side Markdown**: Avaliar envio de markdown pré-renderizado pelo backend vs responsabilidade do cliente.
-- [ ] **Client-side Markdown**: Melhorar renderização de blocos/código no frontend.
-- [ ] **Primitivas de formatação**: Explorar nós específicos (ex: `type: format`) para reduzir lógica em template.
-
-### 📝 v0.7.17 (Patch): Documentation — Chat UI & Template Engine
-
-**Foco**: Registrar formalmente o que foi implementado e as limitações descobertas durante o v0.7.14/v0.7.16. Toda documentação aqui dependente da estabilização do `DefaultInterpolator` (v0.7.16) antes de ser finalizada.
-
-- [ ] **`docs/reference/node_syntax.md`**: Adicionar seção de limitações do `DefaultInterpolator` — o que funciona (`{{ .key }}`, `{{ if }}`, `{{ if eq }}`), o que não funciona sem FuncMap (`{{ default }}`), e o comportamento de `tool_result` como `interface{}`.
-- [ ] **`docs/guides/frontend-integration.md`**: Expandir com guia completo do Chat UI embutido (`/ui`): como iniciar (`trellis serve`), fluxo de auto-advance, ciclo de vida do SSE, e como o cliente injeta `ToolResult`.
-- [ ] **`docs/guides/running_http_server.md`**: Adicionar referência à UI embutida, aos endpoints `/ui`, `/navigate` com `ToolResult`, e ao campo `pending_tool_call` no schema de resposta.
-- [ ] **`docs/TESTING.md`**: Documentar a estratégia de testes E2E com `go-rod`: targets do Makefile (`make test-ui`, `make test-ui-headed`), variável `TRELLIS_TEST_HEADLESS`, e o papel do fixture `ui_exhaustive` como contrato de comportamento da UI.
+- [x] **I18n System**: Multi-language support (EN, PT-BR, ES) with auto-detection and persistence.
+- [x] **WCAG 2.1 AA**: Full accessibility overhaul (ARIA landmarks, contrast, keyboard nav).
+- [x] **Quality Tooling**: Integrated `pa11y` and `Lighthouse` for automated audits.
+- [x] **Documentation**: Updated `node_syntax.md`, `frontend-integration.md`, and `TECHNICAL.md`.
 
 ### 🏗️ v0.7.18: The "Automation" Patch
 

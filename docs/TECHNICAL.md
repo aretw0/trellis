@@ -58,6 +58,7 @@ A API primária para interagir com o engine.
 * `Engine.Navigate(state, input)`: Computa o próximo estado dado um input.
 * `Engine.Inspect()`: Retorna o grafo completo para visualização.
 * `Engine.Name`: Nome/Rótulo identificador do grafo (útil para logs e introspecção).
+* `ContentConverter.Convert(content)`: (Porta Driven opcional) Converte conteúdo (ex: Markdown para HTML).
 
 #### 2.2. Driven Ports (Saída)
 
@@ -131,9 +132,13 @@ graph TD
         Domain[Domain - Node, State]
     end
     Engine -->|Driven Port| Loader[GraphLoader Interface]
+    Engine -->|Driven Port| Converter[ContentConverter Interface]
+    
     Loader -.->|Adapter| Loam[pkg/adapters/loam]
     Loader -.->|Adapter| Memory[pkg/adapters/memory]
     Loader -.->|Adapter| GoDSL[pkg/dsl]
+    
+    Converter -.->|Adapter| Markdown[pkg/adapters/markdown]
     
     Host -->|Uses| Store[StateStore Interface]
     Store -.->|Adapter| File[pkg/adapters/file]
