@@ -121,17 +121,32 @@ func TestDefaultInterpolator(t *testing.T) {
 	})
 
 	t.Run("ToolResult_FlatMap_AccessibleFields", func(t *testing.T) {
-		// Simulates the context shape produced by navigation.go after a successful tool call.
+		// Simulates the context shape produced by navigation.go after a successful tool call payload (Map flattened).
 		data := map[string]any{
 			"tool_result": map[string]any{
-				"id":     "call-abc",
-				"result": "success-payload",
+				"_id":    "call-abc",
+				"status": 200,
+				"body":   "success-payload",
 			},
 		}
-		result, err := runtime.DefaultInterpolator(ctx, `id={{ .tool_result.id }} result={{ .tool_result.result }}`, data)
+		result, err := runtime.DefaultInterpolator(ctx, `id={{ .tool_result._id }} status={{ .tool_result.status }} body={{ .tool_result.body }}`, data)
 		require.NoError(t, err)
-		assert.Equal(t, "id=call-abc result=success-payload", result)
+		assert.Equal(t, "id=call-abc status=200 body=success-payload", result)
 	})
+
+	t.Run("ToolResult_Scalar_AccessibleAsResult", func(t *testing.T) {
+		// Simulates the context shape produced by navigation.go for a scalar tool result.
+		data := map[string]any{
+			"tool_result": map[string]any{
+				"_id":    "call-xyz",
+				"result": "OK",
+			},
+		}
+		result, err := runtime.DefaultInterpolator(ctx, `id={{ .tool_result._id }} result={{ .tool_result.result }}`, data)
+		require.NoError(t, err)
+		assert.Equal(t, "id=call-xyz result=OK", result)
+	})
+
 }
 
 func TestHTMLInterpolator(t *testing.T) {
