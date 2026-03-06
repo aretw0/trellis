@@ -500,6 +500,9 @@ func mapStateToDomain(s State) domain.State {
 	if s.Terminated != nil {
 		d.Terminated = *s.Terminated
 	}
+	if s.Locale != nil {
+		d.Locale = *s.Locale
+	}
 	return d
 }
 
@@ -511,6 +514,7 @@ func mapStateFromDomain(d domain.State) State {
 		PendingToolCall: ptr(d.PendingToolCall),
 		Memory:          ptr(d.Context),
 		Terminated:      &d.Terminated,
+		Locale:          ptr(d.Locale),
 	}
 	if d.History != nil {
 		s.History = &d.History

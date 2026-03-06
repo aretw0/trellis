@@ -194,6 +194,9 @@ components:
         terminated:
           type: boolean
           description: Indicates if the execution has reached a sink state.
+        locale:
+          type: string
+          description: Preferred language for the session.
         actions:
           type: array
           description: List of actions to be performed (e.g., render content).
@@ -279,4 +282,7 @@ components:
           nullable: true
         terminated:
           type: boolean
+          nullable: true
+        locale:
+          type: string
           nullable: true
