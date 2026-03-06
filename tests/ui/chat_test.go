@@ -105,19 +105,20 @@ func TestChatUI_ExhaustiveFlow(t *testing.T) {
 	// -- E. Kitchen Sink Interpolation --
 	//
 	// Verifies Go text/template interpolation in Trellis node content.
-	// Engine uses DefaultInterpolator (plain text/template, no FuncMap).
+	// Engine uses DefaultInterpolator with FuncMap support.
 	//
-	// KNOWN LIMITATIONS (deferred — see PLANNING.md for future patch):
-	//   - default_context from start.md not reaching the template in this fixture
-	//     (values arrive as empty — investigate YAML parsing of DefaultContext)
-	//   - {{ default "N/A" .missing_key }} → FAILS: 'default' is not registered
-	//   - {{ .tool_result.received }}      → FAILS: tool_result is interface{}, not map
-	//   - {{ range $k, $v := .tool_result }} → FAILS: cannot range over interface{}
-	//   - tool_result structure is map[id:mock_tool result:map[...]] not map[received:...]
+	// ✅ Verified features:
+	//   - {{ default "N/A" .missing_key }} works (FuncMap)
+	//   - {{ .tool_result.received }} works (Flattened map access)
+	//   - {{ .tool_result._id }} works (Internal metadata exposure)
 	t.Log("Testing Kitchen Sink Interpolation...")
 
 	// ✅ String interpolation via save_to
 	page.MustElementR(".bubble-system", `user_input: Hello Tool`).MustWaitVisible()
+
+	// ✅ Typed access from flattened tool_result
+	page.MustElementR(".bubble-system", `tool_result ID: mock_tool`).MustWaitVisible()
+	page.MustElementR(".bubble-system", `tool_result field: Hello Tool`).MustWaitVisible()
 
 	// ✅ Conditional: non-empty value is truthy
 	page.MustElementR(".bubble-system", "user_input is set").MustWaitVisible()
