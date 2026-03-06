@@ -28,6 +28,7 @@ type Engine struct {
 	parser             *compiler.Parser
 	evaluator          ConditionEvaluator
 	interpolator       Interpolator
+	contentConverter   ports.ContentConverter
 	hooks              domain.LifecycleHooks
 	entryNodeID        string
 	defaultErrorNodeID string
@@ -62,6 +63,14 @@ func WithLogger(logger *slog.Logger) EngineOption {
 func WithDefaultErrorNode(nodeID string) EngineOption {
 	return func(e *Engine) {
 		e.defaultErrorNodeID = nodeID
+	}
+}
+
+// WithContentConverter configures an optional post-interpolation content transformer.
+// The engine is agnostic of what this does — it could be Markdown-to-HTML, sanitization, etc.
+func WithContentConverter(converter ports.ContentConverter) EngineOption {
+	return func(e *Engine) {
+		e.contentConverter = converter
 	}
 }
 

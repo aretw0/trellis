@@ -31,6 +31,9 @@ type State struct {
 	// Reserved namespace: "sys".
 	SystemContext map[string]any `json:"system_context"`
 
+	// Locale identifies the preferred language for the session (e.g., "en", "pt-BR").
+	Locale string `json:"locale,omitempty"`
+
 	// History could track the path taken (optional for now, but good for debugging)
 	History []string `json:"history,omitempty"`
 

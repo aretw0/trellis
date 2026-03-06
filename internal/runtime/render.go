@@ -9,11 +9,24 @@ import (
 	"github.com/aretw0/trellis/pkg/domain"
 )
 
-// renderContent handles interpolation and formatting of node text.
+// renderContent handles interpolation, formatting, and markdown conversion of node text.
 func (e *Engine) renderContent(ctx context.Context, node *domain.Node, state *domain.State) (string, error) {
-	text := string(node.Content)
+	var rawText string
+
+	// 1. Resolve Raw Text: Handle NodeTypeFormat vs Standard
+	if node.Type == domain.NodeTypeFormat {
+		var err error
+		rawText, err = e.renderFormatNode(ctx, node, state)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		rawText = string(node.Content)
+	}
+
+	// 2. Interpolation (Standard Step)
 	if e.interpolator == nil {
-		return text, nil
+		return e.applyContentConversion(ctx, rawText)
 	}
 
 	// Prepare data for interpolation
@@ -23,11 +36,58 @@ func (e *Engine) renderContent(ctx context.Context, node *domain.Node, state *do
 	}
 	data["sys"] = state.SystemContext
 
-	interpolated, err := e.interpolator(ctx, text, data)
+	interpolated, err := e.interpolator(ctx, rawText, data)
 	if err != nil {
 		return "", fmt.Errorf("rendering failed during interpolation: %w", err)
 	}
-	return interpolated, nil
+
+	// 3. Content Conversion (Optional post-processing step)
+	return e.applyContentConversion(ctx, interpolated)
+}
+
+// renderFormatNode composes text from FormatItems based on locale and conditions.
+func (e *Engine) renderFormatNode(ctx context.Context, node *domain.Node, state *domain.State) (string, error) {
+	locale := state.Locale
+	items := node.Messages[locale]
+
+	if len(items) == 0 && locale != "" {
+		// Try empty locale as fallback if current locale failed
+		items = node.Messages[""]
+	}
+
+	if len(items) == 0 && locale != "en" {
+		// Try English as global fallback
+		items = node.Messages["en"]
+	}
+
+	if len(items) == 0 {
+		// Fallback to default content (body of MD file)
+		return string(node.Content), nil
+	}
+
+	var sb strings.Builder
+	for _, item := range items {
+		// Check condition if present
+		if item.Condition != "" && e.evaluator != nil {
+			ok, err := e.evaluator(ctx, item.Condition, state.Context)
+			if err != nil {
+				return "", fmt.Errorf("failed to evaluate condition '%s' in format node: %w", item.Condition, err)
+			}
+			if !ok {
+				continue
+			}
+		}
+		sb.WriteString(item.Text)
+	}
+	return sb.String(), nil
+}
+
+// applyContentConversion applies the configured ContentConverter if present.
+func (e *Engine) applyContentConversion(ctx context.Context, text string) (string, error) {
+	if e.contentConverter == nil {
+		return text, nil
+	}
+	return e.contentConverter.Convert(ctx, text)
 }
 
 // renderInputRequest calculates the action for user input based on node config.

@@ -149,6 +149,10 @@ func (l *Loader) buildBaseNodeData(docID string, meta NodeMetadata, content stri
 	data["transitions"] = transitions
 	data["content"] = []byte(content)
 
+	if len(meta.Messages) > 0 {
+		data["messages"] = meta.Messages
+	}
+
 	return data, nil
 }
 

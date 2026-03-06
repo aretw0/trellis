@@ -1,5 +1,7 @@
 package loam
 
+import "github.com/aretw0/trellis/pkg/domain"
+
 // NodeMetadata represents the header/metadata of a Trellis Node.
 // It uses "mapstructure" tags to match standard Frontmatter/YAML keys (to, from).
 type NodeMetadata struct {
@@ -45,6 +47,9 @@ type NodeMetadata struct {
 
 	// General Metadata
 	Metadata map[string]any `json:"metadata" mapstructure:"metadata"`
+
+	// Messages holds localized content for type: format nodes
+	Messages map[string][]domain.FormatItem `json:"messages" mapstructure:"messages"`
 }
 
 type LoaderTransition struct {

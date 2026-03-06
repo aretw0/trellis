@@ -13,6 +13,9 @@ const (
 	// NodeTypeTool executes an external side-effect (tool).
 	NodeTypeTool = "tool"
 
+	// NodeTypeFormat handles structured content with i18n and conditional logic.
+	NodeTypeFormat = "format"
+
 	// NodeTypeStart indicates the entry point (typically convention-based, but can be explicit).
 	NodeTypeStart = "start"
 )
@@ -83,6 +86,16 @@ type Node struct {
 	// It is triggered if the engine enters rollback mode.
 	Undo *ToolCall `json:"undo,omitempty" yaml:"undo,omitempty"`
 
+	// Messages provides a dictionary of content by locale for i18n support.
+	// Used when Type == "format".
+	Messages map[string][]FormatItem `json:"messages,omitempty" yaml:"messages,omitempty"`
+
 	// Timeout defines the maximum duration (e.g. "30s") to wait for input.
 	Timeout string `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+}
+
+// FormatItem represents a single piece of content within a "format" node.
+type FormatItem struct {
+	Text      string `json:"text" yaml:"text" mapstructure:"text"`
+	Condition string `json:"condition,omitempty" yaml:"condition,omitempty" mapstructure:"condition"`
 }
